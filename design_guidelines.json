@@ -1,0 +1,113 @@
+{
+  "identity": {
+    "name": "E1",
+    "mission": "Create a B2B Corporate & E-learning platform that radiates trust, efficiency, and modern professionalism.",
+    "tone": "Corporate, Preventive, Educational, Trustworthy, Modern.",
+    "archetype": "Swiss & High-Contrast (Authority) + Organic (Health)"
+  },
+  "typography": {
+    "headings": {
+      "family": "Manrope, sans-serif",
+      "weights": ["600", "700", "800"],
+      "usage": "Use for all H1-H6. Tracking tight (-0.02em).",
+      "import": "@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Public+Sans:wght@300;400;500;600&display=swap');"
+    },
+    "body": {
+      "family": "Public Sans, sans-serif",
+      "weights": ["300", "400", "500", "600"],
+      "usage": "Use for paragraphs, inputs, labels. High readability."
+    }
+  },
+  "colors": {
+    "primary": {
+      "DEFAULT": "#005EB8",
+      "foreground": "#FFFFFF",
+      "description": "Official GASI Blue. Use for primary actions, active states, key brand elements."
+    },
+    "secondary": {
+      "DEFAULT": "#327BBD",
+      "foreground": "#FFFFFF",
+      "description": "Lighter Blue. Use for secondary buttons, illustrations, gradients."
+    },
+    "accent": {
+      "DEFAULT": "#0F172A",
+      "foreground": "#FFFFFF",
+      "description": "Navy Charcoal (Slate 900). Use for dark backgrounds, footers, high-contrast text."
+    },
+    "background": {
+      "DEFAULT": "#F8FAFC",
+      "paper": "#FFFFFF",
+      "subtle": "#F1F5F9"
+    },
+    "text": {
+      "primary": "#0F172A",
+      "secondary": "#64748B",
+      "muted": "#94A3B8"
+    },
+    "status": {
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "error": "#EF4444",
+      "info": "#3B82F6"
+    }
+  },
+  "spacing": {
+    "container": "max-w-7xl mx-auto px-6 lg:px-8",
+    "section": "py-20 lg:py-24",
+    "element": "gap-6 lg:gap-12"
+  },
+  "ui_strategies": {
+    "glassmorphism": {
+      "use_case": "Sticky Nav, Floating Chatbot, Toasts",
+      "classes": "bg-white/80 backdrop-blur-md border border-white/20 shadow-sm"
+    },
+    "tracing_beam": {
+      "use_case": "Featured Course Cards, Service Highlights",
+      "description": "Subtle border glow on hover or active state."
+    },
+    "bento_grid": {
+      "use_case": "Services Overview, Sectors",
+      "classes": "grid grid-cols-1 md:grid-cols-3 gap-6"
+    },
+    "buttons": {
+      "style": "Rounded-lg (radius-md). No pill shapes for this corporate B2B look. Sharp but friendly.",
+      "primary": "bg-primary text-white hover:bg-primary/90 shadow-sm transition-all hover:-translate-y-0.5",
+      "secondary": "bg-white text-primary border border-primary/20 hover:bg-primary/5"
+    }
+  },
+  "components": {
+    "shadcn_path": "/app/frontend/src/components/ui",
+    "icons": "lucide-react",
+    "charts": "recharts (via shadcn/charts)",
+    "custom_instructions": [
+      "Override Shadcn default radius to 0.5rem (rounded-lg).",
+      "Use 'Sonner' for toasts.",
+      "Forms: Use Shadcn Form + React Hook Form + Zod.",
+      "Calendar: Use Shadcn Calendar (react-day-picker)."
+    ]
+  },
+  "image_urls": {
+    "hero_bg": "https://images.unsplash.com/photo-1772170041690-c862ca59acad?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTZ8MHwxfHNlYXJjaHwyfHxvY2N1cGF0aW9uYWwlMjBoZWFsdGglMjBudXJzZSUyMGNvcnBvcmF0ZSUyMG9mZmljZXxlbnwwfHx8fDE3NzM1MDk5MzF8MA&ixlib=rb-4.1.0&q=85",
+    "cpr_training": "https://images.unsplash.com/photo-1755548413930-a396a62e1220?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjd8MHwxfHNlYXJjaHwyfHxjb3Jwb3JhdGUlMjBjcHIlMjB0cmFpbmluZyUyMGZpcnN0JTIwYWlkJTIwY2xhc3N8ZW58MHx8fHwxNzczNTA5OTMwfDA&ixlib=rb-4.1.0&q=85",
+    "cpr_dummy": "https://images.unsplash.com/photo-1755549746560-f56c7bd0c82f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjd8MHwxfHNlYXJjaHw0fHxjb3Jwb3JhdGUlMjBjcHIlMjB0cmFpbmluZyUyMGZpcnN0JTIwYWlkJTIwY2xhc3N8ZW58MHx8fHwxNzczNTA5OTMwfDA&ixlib=rb-4.1.0&q=85",
+    "office_exterior": "https://images.unsplash.com/photo-1772170041690-c862ca59acad?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTZ8MHwxfHNlYXJjaHwyfHxvY2N1cGF0aW9uYWwlMjBoZWFsdGglMjBudXJzZSUyMGNvcnBvcmF0ZSUyMG9mZmljZXxlbnwwfHx8fDE3NzM1MDk5MzF8MA&ixlib=rb-4.1.0&q=85",
+    "placeholders": {
+      "logo": "https://placehold.co/200x60/005EB8/FFFFFF?text=GASI",
+      "course_thumb": "https://placehold.co/600x400/F1F5F9/005EB8?text=Course+Preview"
+    }
+  },
+  "accessibility": {
+    "contrast": "Ensure text is #0F172A on light backgrounds.",
+    "focus": "Visible focus ring (ring-2 ring-primary ring-offset-2).",
+    "semantic_html": "Use <main>, <nav>, <header>, <footer>, <section>, <article>."
+  },
+  "universal_guidelines": [
+    "Do NOT use gradients for text.",
+    "Avoid 'Inter' font for headings.",
+    "Use 2-3x more spacing than typical designs (p-8, p-12).",
+    "Add data-testid to all interactive elements.",
+    "Use Lucide icons for UI elements.",
+    "Ensure the design feels 'B2B Corporate' but 'Modern' (not boring).",
+    "NO AMBULANCES or EMERGENCY imagery."
+  ]
+}
