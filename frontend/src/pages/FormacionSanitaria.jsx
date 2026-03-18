@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { GraduationCap, Clock, Euro, BookOpen, Lock, LogIn } from 'lucide-react';
+import { GraduationCap, Clock, BookOpen, LogIn, Plus, Edit, Trash2, Shield } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -17,6 +18,21 @@ const FormacionSanitaria = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
+  
+  // Admin states
+  const [showCourseModal, setShowCourseModal] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
+  const [courseFormData, setCourseFormData] = useState({
+    title: '',
+    description: '',
+    duration: '',
+    type: 'Presencial',
+    price: 0,
+    is_free: true,
+    modules: []
+  });
+  
   const { user, login, register } = useAuth();
   const navigate = useNavigate();
 
@@ -78,6 +94,80 @@ const FormacionSanitaria = () => {
     navigate(`/curso/${course.course_id}`);
   };
 
+  // ADMIN FUNCTIONS
+  const handleCreateCourse = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      if (editingCourse) {
+        await axios.put(`${API}/admin/courses/${editingCourse.course_id}`, courseFormData, {
+          withCredentials: true
+        });
+        toast.success('Curso actualizado');
+      } else {
+        await axios.post(`${API}/admin/courses`, courseFormData, {
+          withCredentials: true
+        });
+        toast.success('Curso creado');
+      }
+      setShowCourseModal(false);
+      setEditingCourse(null);
+      resetCourseForm();
+      fetchCourses();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Error al guardar curso');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditCourse = (course) => {
+    setEditingCourse(course);
+    setCourseFormData({
+      title: course.title,
+      description: course.description,
+      duration: course.duration,
+      type: course.type,
+      price: course.price,
+      is_free: course.is_free,
+      modules: course.modules || []
+    });
+    setShowCourseModal(true);
+  };
+
+  const handleDeleteCourse = async (courseId) => {
+    if (!window.confirm('¿Seguro que quieres eliminar este curso?')) return;
+    
+    try {
+      await axios.delete(`${API}/admin/courses/${courseId}`, {
+        withCredentials: true
+      });
+      toast.success('Curso eliminado');
+      fetchCourses();
+    } catch (error) {
+      toast.error('Error al eliminar curso');
+    }
+  };
+
+  const resetCourseForm = () => {
+    setCourseFormData({
+      title: '',
+      description: '',
+      duration: '',
+      type: 'Presencial',
+      price: 0,
+      is_free: true,
+      modules: []
+    });
+  };
+
+  const openCreateModal = () => {
+    resetCourseForm();
+    setEditingCourse(null);
+    setShowCourseModal(true);
+  };
+
   return (
     <div data-testid="formacion-page">
       <section className="bg-gradient-to-br from-[#005EB8] to-[#327BBD] text-white py-20">
@@ -88,6 +178,7 @@ const FormacionSanitaria = () => {
           <p className="text-xl opacity-90 mb-8">
             Cursos especializados en primeros auxilios, RCP y prevención en el entorno laboral
           </p>
+          
           {!user && (
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
@@ -113,20 +204,63 @@ const FormacionSanitaria = () => {
         </div>
       </section>
 
+      {/* ADMIN MODE INDICATOR */}
+      {user && user.is_admin && (
+        <div className="bg-[#0F172A] text-white py-4 border-b-2 border-[#005EB8]">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-[#005EB8]" />
+              <span className="font-semibold text-sm uppercase tracking-wide">Modo Administrador Activado</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-400">Vista:</span>
+              <Button
+                size="sm"
+                variant={!adminMode ? "default" : "outline"}
+                onClick={() => setAdminMode(false)}
+                className={!adminMode ? "bg-[#005EB8]" : ""}
+              >
+                Alumno
+              </Button>
+              <Button
+                size="sm"
+                variant={adminMode ? "default" : "outline"}
+                onClick={() => setAdminMode(true)}
+                className={adminMode ? "bg-[#005EB8]" : ""}
+              >
+                Administrador
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4">
-              Catálogo de Cursos
-            </h2>
-            <p className="text-lg text-[#64748B]">
-              Formación práctica y certificada para sus equipos
-            </p>
+          <div className="flex items-center justify-between mb-12">
+            <div className="text-center flex-1">
+              <h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4">
+                Catálogo de Cursos
+              </h2>
+              <p className="text-lg text-[#64748B]">
+                Formación práctica y certificada para sus equipos
+              </p>
+            </div>
+            
+            {user && user.is_admin && adminMode && (
+              <Button 
+                onClick={openCreateModal}
+                className="bg-[#005EB8] hover:bg-[#004a92] ml-4"
+                data-testid="admin-create-course"
+              >
+                <Plus className="mr-2 w-5 h-5" /> Crear Curso
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {courses.length > 0 ? courses.map((course, index) => (
-              <Card key={course.course_id} className="hover-lift" data-testid={`course-card-${index}`}>
+              <Card key={course.course_id} className="hover-lift relative" data-testid={`course-card-${index}`}>
                 <div className="h-48 bg-gradient-to-br from-[#005EB8] to-[#327BBD] rounded-t-lg flex items-center justify-center">
                   <GraduationCap className="w-20 h-20 text-white" />
                 </div>
@@ -154,13 +288,33 @@ const FormacionSanitaria = () => {
                       <span>{course.type}</span>
                     </div>
                   </div>
-                  <Button 
-                    className="w-full bg-[#005EB8] hover:bg-[#004a92] text-white"
-                    onClick={() => handleCourseAccess(course)}
-                    data-testid={`course-access-${index}`}
-                  >
-                    {user ? 'Acceder al Curso' : 'Iniciar Sesión para Acceder'}
-                  </Button>
+                  
+                  {user && user.is_admin && adminMode ? (
+                    <div className="flex gap-2">
+                      <Button 
+                        className="flex-1 bg-[#005EB8] hover:bg-[#004a92] text-white"
+                        onClick={() => handleEditCourse(course)}
+                        data-testid={`admin-edit-${index}`}
+                      >
+                        <Edit className="w-4 h-4 mr-1" /> Editar
+                      </Button>
+                      <Button 
+                        variant="destructive"
+                        onClick={() => handleDeleteCourse(course.course_id)}
+                        data-testid={`admin-delete-${index}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button 
+                      className="w-full bg-[#005EB8] hover:bg-[#004a92] text-white"
+                      onClick={() => handleCourseAccess(course)}
+                      data-testid={`course-access-${index}`}
+                    >
+                      {user ? 'Acceder al Curso' : 'Iniciar Sesión para Acceder'}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )) : (
@@ -189,6 +343,114 @@ const FormacionSanitaria = () => {
         </div>
       </section>
 
+      {/* ADMIN COURSE MODAL */}
+      {user && user.is_admin && (
+        <Dialog open={showCourseModal} onOpenChange={(open) => {
+          setShowCourseModal(open);
+          if (!open) {
+            setEditingCourse(null);
+            resetCourseForm();
+          }
+        }}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">{editingCourse ? 'Editar Curso' : 'Crear Nuevo Curso'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateCourse} className="space-y-4">
+              <div>
+                <Label htmlFor="course-title">Título *</Label>
+                <Input
+                  id="course-title"
+                  value={courseFormData.title}
+                  onChange={(e) => setCourseFormData({...courseFormData, title: e.target.value})}
+                  required
+                  placeholder="Nombre del curso"
+                />
+              </div>
+              <div>
+                <Label htmlFor="course-description">Descripción *</Label>
+                <Textarea
+                  id="course-description"
+                  value={courseFormData.description}
+                  onChange={(e) => setCourseFormData({...courseFormData, description: e.target.value})}
+                  required
+                  rows={4}
+                  placeholder="Descripción detallada del curso"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="course-duration">Duración *</Label>
+                  <Input
+                    id="course-duration"
+                    value={courseFormData.duration}
+                    onChange={(e) => setCourseFormData({...courseFormData, duration: e.target.value})}
+                    placeholder="ej: 8 horas"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="course-type">Tipo *</Label>
+                  <select
+                    id="course-type"
+                    value={courseFormData.type}
+                    onChange={(e) => setCourseFormData({...courseFormData, type: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-md bg-white"
+                    required
+                  >
+                    <option value="Presencial">Presencial</option>
+                    <option value="Online">Online</option>
+                    <option value="Híbrido">Híbrido</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="course-price">Precio (€)</Label>
+                  <Input
+                    id="course-price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={courseFormData.price}
+                    onChange={(e) => setCourseFormData({...courseFormData, price: parseFloat(e.target.value) || 0})}
+                    disabled={courseFormData.is_free}
+                  />
+                </div>
+                <div className="flex items-center gap-2 pt-8">
+                  <input
+                    type="checkbox"
+                    checked={courseFormData.is_free}
+                    onChange={(e) => setCourseFormData({...courseFormData, is_free: e.target.checked, price: e.target.checked ? 0 : courseFormData.price})}
+                    id="course-is-free"
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="course-is-free" className="cursor-pointer">Curso gratuito</Label>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4 border-t">
+                <Button type="submit" className="flex-1 bg-[#005EB8] hover:bg-[#004a92]" disabled={loading}>
+                  {loading ? 'Guardando...' : (editingCourse ? 'Actualizar Curso' : 'Crear Curso')}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowCourseModal(false);
+                    setEditingCourse(null);
+                    resetCourseForm();
+                  }}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* AUTH MODAL */}
       <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
         <DialogContent className="sm:max-w-md" data-testid="auth-modal">
           <DialogHeader>
