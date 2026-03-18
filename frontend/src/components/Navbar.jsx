@@ -31,7 +31,7 @@ const Navbar = () => {
             <img 
               src="https://customer-assets.emergentagent.com/job_f98f3724-6c7c-43ce-a711-d735c45e5317/artifacts/9tonzp4x_Dise%C3%B1o%20sin%20t%C3%ADtulo%20%281%29.png" 
               alt="GASI Logo" 
-              className="h-16 w-auto"
+              className="h-24 w-auto"
             />
           </Link>
 
