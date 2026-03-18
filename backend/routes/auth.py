@@ -26,6 +26,7 @@ async def register(user: UserCreate, db: AsyncIOMotorDatabase = Depends(get_db))
         "name": user.name,
         "password_hash": hash_password(user.password),
         "picture": None,
+        "is_admin": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
@@ -38,6 +39,7 @@ async def register(user: UserCreate, db: AsyncIOMotorDatabase = Depends(get_db))
         email=user.email,
         name=user.name,
         picture=None,
+        is_admin=False,
         created_at=datetime.now(timezone.utc)
     )
     
@@ -91,6 +93,7 @@ async def login(credentials: UserLogin, response: Response, db: AsyncIOMotorData
         email=user_doc["email"],
         name=user_doc["name"],
         picture=user_doc.get("picture"),
+        is_admin=user_doc.get("is_admin", False),
         created_at=created_at
     )
     
@@ -133,6 +136,7 @@ async def create_session_from_oauth(
             "name": oauth_data["name"],
             "picture": oauth_data.get("picture"),
             "password_hash": None,
+            "is_admin": False,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(user_doc)
@@ -167,6 +171,7 @@ async def create_session_from_oauth(
         email=oauth_data["email"],
         name=oauth_data["name"],
         picture=oauth_data.get("picture"),
+        is_admin=user_doc.get("is_admin", False),
         created_at=created_at
     )
     
@@ -192,6 +197,7 @@ async def get_me(
         email=user_doc["email"],
         name=user_doc["name"],
         picture=user_doc.get("picture"),
+        is_admin=user_doc.get("is_admin", False),
         created_at=created_at
     )
 

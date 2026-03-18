@@ -17,7 +17,7 @@ app = FastAPI()
 
 api_router = APIRouter(prefix="/api")
 
-from routes import auth, courses, chatbot, contact, payments
+from routes import auth, courses, chatbot, contact, payments, admin
 
 @api_router.get("/")
 async def root():
@@ -28,6 +28,7 @@ api_router.include_router(courses.router)
 api_router.include_router(chatbot.router)
 api_router.include_router(contact.router)
 api_router.include_router(payments.router)
+api_router.include_router(admin.router)
 
 app.include_router(api_router)
 

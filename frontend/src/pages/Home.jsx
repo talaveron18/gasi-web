@@ -11,21 +11,21 @@ const Home = () => {
       title: 'Cobertura Sanitaria en Empresas',
       description: 'Personal sanitario cualificado trabajando en sus instalaciones. Atención preventiva y primeros auxilios para sus trabajadores.',
       link: '/cobertura-sanitaria',
-      image: 'https://images.unsplash.com/photo-1772170041690-c862ca59acad?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTZ8MHwxfHNlYXJjaHwyfHxvY2N1cGF0aW9uYWwlMjBoZWFsdGglMjBudXJzZSUyMGNvcnBvcmF0ZSUyMG9mZmljZXxlbnwwfHx8fDE3NzM1MDk5MzF8MA&ixlib=rb-4.1.0&q=85'
+      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/c29a6c5d_1.png'
     },
     {
       icon: <GraduationCap className="w-12 h-12 text-[#005EB8]" />,
       title: 'Formación Sanitaria',
       description: 'Cursos especializados en primeros auxilios, RCP, soporte vital básico y actuación ante emergencias en el entorno laboral.',
       link: '/formacion-sanitaria',
-      image: 'https://images.unsplash.com/photo-1755548413930-a396a62e1220?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjd8MHwxfHNlYXJjaHwyfHxjb3Jwb3JhdGUlMjBjcHIlMjB0cmFpbmluZyUyMGZpcnN0JTIwYWlkJTIwY2xhc3N8ZW58MHx8fHwxNzczNTA5OTMwfDA&ixlib=rb-4.1.0&q=85'
+      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/np9q6v5h_2.png'
     },
     {
       icon: <Stethoscope className="w-12 h-12 text-[#005EB8]" />,
       title: 'Salud Laboral y Reconocimientos',
       description: 'Reconocimientos médicos laborales, chequeos preventivos y campañas de salud adaptadas a su empresa.',
       link: '/salud-laboral',
-      image: 'https://images.unsplash.com/photo-1772170041690-c862ca59acad?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTZ8MHwxfHNlYXJjaHwyfHxvY2N1cGF0aW9uYWwlMjBoZWFsdGglMjBudXJzZSUyMGNvcnBvcmF0ZSUyMG9mZmljZXxlbnwwfHx8fDE3NzM1MDk5MzF8MA&ixlib=rb-4.1.0&q=85'
+      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/71u32s3h_3.png'
     }
   ];
 
@@ -47,9 +47,9 @@ const Home = () => {
     <div data-testid="home-page">
       <section className="relative h-[600px] flex items-center justify-center bg-gradient-to-br from-[#005EB8] to-[#327BBD] text-white overflow-hidden">
         <div 
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0 opacity-30"
           style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1772170041690-c862ca59acad?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTZ8MHwxfHNlYXJjaHwyfHxvY2N1cGF0aW9uYWwlMjBoZWFsdGglMjBudXJzZSUyMGNvcnBvcmF0ZSUyMG9mZmljZXxlbnwwfHx8fDE3NzM1MDk5MzF8MA&ixlib=rb-4.1.0&q=85)',
+            backgroundImage: 'url(https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/c29a6c5d_1.png)',
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}

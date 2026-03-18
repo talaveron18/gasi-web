@@ -227,6 +227,7 @@ const FormacionSanitaria = () => {
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 required
+                minLength={6}
                 data-testid="auth-password-input"
               />
             </div>
@@ -240,7 +241,7 @@ const FormacionSanitaria = () => {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-muted-foreground">O</span>
+              <span className="bg-white px-2 text-gray-500">O</span>
             </div>
           </div>
 
@@ -248,6 +249,7 @@ const FormacionSanitaria = () => {
             variant="outline" 
             className="w-full" 
             onClick={handleGoogleLogin}
+            type="button"
             data-testid="google-login-button"
           >
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">

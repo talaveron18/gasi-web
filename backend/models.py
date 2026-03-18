@@ -13,6 +13,7 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     user_id: str
     picture: Optional[str] = None
+    is_admin: bool = False
     created_at: datetime
 
 class UserLogin(BaseModel):

@@ -11,7 +11,7 @@ const Servicios = () => {
       description: 'Personal sanitario cualificado trabajando directamente en sus instalaciones. Proporcionamos enfermería laboral, primeros auxilios y atención preventiva adaptada a su centro de trabajo.',
       benefits: ['Atención inmediata in situ', 'Reducción de bajas laborales', 'Cumplimiento normativo', 'Flexibilidad horaria'],
       link: '/cobertura-sanitaria',
-      image: 'https://images.unsplash.com/photo-1772170041690-c862ca59acad?w=600'
+      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/c29a6c5d_1.png'
     },
     {
       icon: <GraduationCap className="w-16 h-16 text-[#005EB8]" />,
@@ -19,7 +19,7 @@ const Servicios = () => {
       description: 'Cursos especializados en primeros auxilios, RCP, soporte vital básico y actuación ante emergencias en el entorno laboral. Formación práctica, homologada y adaptada a su sector.',
       benefits: ['Cursos presenciales y online', 'Certificaciones oficiales', 'Personal cualificado', 'Formación práctica'],
       link: '/formacion-sanitaria',
-      image: 'https://images.unsplash.com/photo-1755548413930-a396a62e1220?w=600'
+      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/np9q6v5h_2.png'
     },
     {
       icon: <Stethoscope className="w-16 h-16 text-[#005EB8]" />,
@@ -27,7 +27,7 @@ const Servicios = () => {
       description: 'Reconocimientos médicos laborales obligatorios, chequeos preventivos y campañas de salud corporativa. Cuidamos la salud de sus trabajadores de forma integral.',
       benefits: ['Reconocimientos completos', 'Informes detallados', 'Campañas preventivas', 'Gestión administrativa'],
       link: '/salud-laboral',
-      image: 'https://images.unsplash.com/photo-1772170041690-c862ca59acad?w=600'
+      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/71u32s3h_3.png'
     }
   ];
 
