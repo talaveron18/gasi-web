@@ -13,17 +13,6 @@ Construir una web corporativa completa para GASI, un proveedor B2B de servicios 
 ### Target Audience
 Clientes B2B: centros logísticos, naves industriales, grandes superficies comerciales (GXO, Amazon, Leroy Merlin, etc.)
 
-### Core Requirements
-1. **Páginas del sitio**: Home, Quiénes Somos, Servicios, Cobertura Sanitaria, Formación Sanitaria, Salud Laboral, Sectores, Contacto, Política de Privacidad
-2. **Formación sanitaria**: Catálogo de cursos, registro de usuarios, inscripción a cursos
-3. **Chatbot**: Cuestionario estructurado para captura de leads (Cobertura, Formación, Salud laboral)
-4. **Autenticación**: Login tradicional (email/password) + Google OAuth
-5. **Admin**: Panel integrado en /formacion-sanitaria para gestión de cursos (solo visible para admin)
-
-### Brand Colors
-- Primario: #005EB8 (azul corporativo)
-- Secundario: Blanco
-
 ---
 
 ## What's Been Implemented (Marzo 2026)
@@ -31,29 +20,40 @@ Clientes B2B: centros logísticos, naves industriales, grandes superficies comer
 ### Completado
 - [x] Sitio web completo con todas las páginas requeridas
 - [x] Sistema de autenticación JWT + Google OAuth
-- [x] Chatbot con flujo de cuestionario estructurado en 3 fases
+- [x] Chatbot con flujo de cuestionario estructurado y **persistencia en MongoDB**
 - [x] Panel de administración integrado en /formacion-sanitaria
 - [x] Catálogo de cursos con 6 cursos basados en PDFs de formación sanitaria
+- [x] **Página de detalle del curso** (`/curso/:courseId`) con toda la información
+- [x] **Imagen de Salud Laboral** agregada (reconocimiento médico GASI)
 - [x] Correcciones del chatbot:
-  - [x] Email de destino cambiado a coordinacion@gasisalud.com
-  - [x] Auto-focus en input después de enviar mensaje
-  - [x] Gestión de estado al cerrar (reset si terminó, mantener si en progreso)
+  - [x] Email de destino: coordinacion@gasisalud.com
+  - [x] Auto-focus en input después de enviar
+  - [x] Gestión de estado al cerrar
+  - [x] **Persistencia de sesiones** en MongoDB
+  - [x] **Función de email con Resend** (preparada, requiere API key)
 
 ### Cursos Creados (basados en PDFs)
-1. RCP y Uso del DEA en Adultos (8h - 95€)
-2. Primeros Auxilios en el Entorno Laboral (12h - 120€)
-3. Soporte Vital Básico Integral SVB (10h - 110€)
-4. Emergencias Médicas y Atención Inicial (8h - 95€)
-5. Atragantamiento y Maniobras de Desobstrucción (4h - 55€)
-6. Gestión de Heridas, Hemorragias y Traumatismos (8h - 90€)
+| Curso | Duración | Precio | Módulos |
+|-------|----------|--------|---------|
+| RCP y Uso del DEA en Adultos | 8h | 95€ | 3 |
+| Primeros Auxilios en el Entorno Laboral | 12h | 120€ | 4 |
+| Soporte Vital Básico Integral (SVB) | 10h | 110€ | 4 |
+| Emergencias Médicas y Atención Inicial | 8h | 95€ | 4 |
+| Atragantamiento y Maniobras de Desobstrucción | 4h | 55€ | 3 |
+| Gestión de Heridas, Hemorragias y Traumatismos | 8h | 90€ | 4 |
 
 ---
 
 ## Prioritized Backlog
 
+### P0 - Activar Email Real
+Para activar el envío de emails reales:
+1. Crear cuenta en https://resend.com
+2. Obtener API Key
+3. Agregar `RESEND_API_KEY=re_xxxxx` a `/app/backend/.env`
+4. Reiniciar backend: `sudo supervisorctl restart backend`
+
 ### P1 - Próximas tareas
-- [ ] **Integración real de WhatsApp**: Conectar send_whatsapp_alert con Twilio para enviar alertas al +34 634 02 98 65
-- [ ] **Servicio de email real**: Integrar Resend/SendGrid para enviar emails desde coordinacion@gasisalud.com
 - [ ] **Sistema avanzado de cursos**: 
   - Creación de cursos desde PDFs
   - Módulos con tests
@@ -62,11 +62,11 @@ Clientes B2B: centros logísticos, naves industriales, grandes superficies comer
 ### P2 - Mejoras importantes
 - [ ] Validación de Google OAuth en producción
 - [ ] Configuración de dominio personalizado (dondominio.com)
+- [ ] Dashboard de analytics para leads
 
 ### P3 - Backlog futuro
-- [ ] Dashboard de analytics para leads
-- [ ] Sistema de pagos con Stripe (parcialmente implementado)
-- [ ] Notificaciones push para nuevos leads
+- [ ] Sistema de pagos con Stripe
+- [ ] Notificaciones push
 
 ---
 
@@ -74,28 +74,17 @@ Clientes B2B: centros logísticos, naves industriales, grandes superficies comer
 
 ### Stack
 - **Frontend**: React + Tailwind CSS + Shadcn/UI
-- **Backend**: FastAPI (Python)
-- **Database**: MongoDB
+- **Backend**: FastAPI (Python) + Resend (Email)
+- **Database**: MongoDB (con persistencia de sesiones de chatbot)
 - **Authentication**: JWT + Google OAuth (Emergent-managed)
 
 ### Key Files
-- `/app/backend/routes/chatbot.py` - Endpoints del chatbot
+- `/app/backend/routes/chatbot.py` - Endpoints del chatbot con persistencia
 - `/app/backend/chatbot_engine.py` - Motor del chatbot
 - `/app/frontend/src/components/Chatbot.jsx` - UI del chatbot
-- `/app/frontend/src/pages/FormacionSanitaria.jsx` - Página de cursos con admin panel
-
-### API Endpoints
-- `POST /api/chatbot/message` - Procesar mensaje del chatbot
-- `GET /api/courses` - Listar cursos
-- `POST /api/auth/login` - Login
-- `POST /api/auth/register` - Registro
+- `/app/frontend/src/pages/FormacionSanitaria.jsx` - Catálogo de cursos
+- `/app/frontend/src/pages/CursoDetalle.jsx` - Página de detalle del curso
+- `/app/frontend/src/pages/SaludLaboral.jsx` - Con imagen actualizada
 
 ### Credenciales de test
 - Admin: admin@gasisalud.com / Admin2024!
-
----
-
-## Known Mocked Features
-⚠️ Las siguientes funciones están MOCKED (solo imprimen en consola):
-- `send_lead_email()` - No envía emails reales
-- `send_whatsapp_alert()` - No envía WhatsApp real

@@ -10,6 +10,7 @@ import QuienesSomos from '@/pages/QuienesSomos';
 import Servicios from '@/pages/Servicios';
 import CoberturaSanitaria from '@/pages/CoberturaSanitaria';
 import FormacionSanitaria from '@/pages/FormacionSanitaria';
+import CursoDetalle from '@/pages/CursoDetalle';
 import SaludLaboral from '@/pages/SaludLaboral';
 import Sectores from '@/pages/Sectores';
 import Contacto from '@/pages/Contacto';
@@ -32,6 +33,7 @@ function AppRouter() {
         <Route path="/servicios" element={<Servicios />} />
         <Route path="/cobertura-sanitaria" element={<CoberturaSanitaria />} />
         <Route path="/formacion-sanitaria" element={<FormacionSanitaria />} />
+        <Route path="/curso/:courseId" element={<CursoDetalle />} />
         <Route path="/salud-laboral" element={<SaludLaboral />} />
         <Route path="/sectores" element={<Sectores />} />
         <Route path="/contacto" element={<Contacto />} />

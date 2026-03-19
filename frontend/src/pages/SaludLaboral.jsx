@@ -28,14 +28,25 @@ const SaludLaboral = () => {
       </section>
 
       <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Servicios de Salud Laboral</h2>
-          <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-            La salud laboral es un pilar fundamental para cualquier empresa. GASI ofrece <strong>servicios integrales de reconocimientos médicos laborales</strong>, chequeos preventivos y campañas de salud corporativa adaptadas a las necesidades de su organización.
-          </p>
-          <p className="text-lg text-[#64748B] leading-relaxed">
-            Nuestro enfoque preventivo ayuda a detectar problemas de salud antes de que afecten al rendimiento laboral, reduciendo el absentismo y mejorando el bienestar general de sus trabajadores.
-          </p>
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Servicios de Salud Laboral</h2>
+              <p className="text-lg text-[#64748B] leading-relaxed mb-6">
+                La salud laboral es un pilar fundamental para cualquier empresa. GASI ofrece <strong>servicios integrales de reconocimientos médicos laborales</strong>, chequeos preventivos y campañas de salud corporativa adaptadas a las necesidades de su organización.
+              </p>
+              <p className="text-lg text-[#64748B] leading-relaxed">
+                Nuestro enfoque preventivo ayuda a detectar problemas de salud antes de que afecten al rendimiento laboral, reduciendo el absentismo y mejorando el bienestar general de sus trabajadores.
+              </p>
+            </div>
+            <div className="relative">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/ehswtdjk_download.png" 
+                alt="Reconocimiento médico GASI" 
+                className="rounded-2xl shadow-xl w-full"
+              />
+            </div>
+          </div>
         </div>
       </section>
 

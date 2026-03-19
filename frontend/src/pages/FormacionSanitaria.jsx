@@ -260,34 +260,60 @@ const FormacionSanitaria = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {courses.length > 0 ? courses.map((course, index) => (
-              <Card key={course.course_id} className="hover-lift relative" data-testid={`course-card-${index}`}>
-                <div className="h-48 bg-gradient-to-br from-[#005EB8] to-[#327BBD] rounded-t-lg flex items-center justify-center">
-                  <GraduationCap className="w-20 h-20 text-white" />
+              <Card key={course.course_id} className="hover-lift relative overflow-hidden" data-testid={`course-card-${index}`}>
+                <div className="h-48 bg-gradient-to-br from-[#005EB8] to-[#327BBD] rounded-t-lg flex items-center justify-center relative">
+                  <GraduationCap className="w-20 h-20 text-white/80" />
+                  {course.modules && course.modules.length > 0 && (
+                    <div className="absolute bottom-3 right-3 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+                      <span className="text-white text-xs font-medium">{course.modules.length} módulos</span>
+                    </div>
+                  )}
                 </div>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-xl font-bold text-[#0F172A] flex-1">
+                    <h3 className="text-xl font-bold text-[#0F172A] flex-1 leading-tight">
                       {course.title}
                     </h3>
                     {course.is_free ? (
-                      <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">Gratis</span>
+                      <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded ml-2 whitespace-nowrap">Gratis</span>
                     ) : (
-                      <span className="bg-[#005EB8] text-white text-xs font-semibold px-2 py-1 rounded">{course.price}€</span>
+                      <span className="bg-[#005EB8] text-white text-xs font-semibold px-2 py-1 rounded ml-2 whitespace-nowrap">{course.price}€</span>
                     )}
                   </div>
                   <p className="text-[#64748B] mb-4 text-sm line-clamp-3">
                     {course.description}
                   </p>
+                  
                   <div className="flex items-center gap-4 mb-4 text-sm text-[#64748B]">
                     <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
+                      <Clock className="w-4 h-4 text-[#005EB8]" />
                       <span>{course.duration}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <BookOpen className="w-4 h-4" />
+                      <BookOpen className="w-4 h-4 text-[#005EB8]" />
                       <span>{course.type}</span>
                     </div>
                   </div>
+                  
+                  {/* Mostrar módulos si existen */}
+                  {course.modules && course.modules.length > 0 && (
+                    <div className="mb-4 pt-3 border-t border-gray-100">
+                      <p className="text-xs font-semibold text-[#0F172A] mb-2">Contenido del curso:</p>
+                      <ul className="space-y-1">
+                        {course.modules.slice(0, 3).map((mod, i) => (
+                          <li key={mod.module_id || i} className="text-xs text-[#64748B] flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-[#005EB8] rounded-full"></span>
+                            {mod.title}
+                          </li>
+                        ))}
+                        {course.modules.length > 3 && (
+                          <li className="text-xs text-[#005EB8] font-medium">
+                            +{course.modules.length - 3} módulos más
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
                   
                   {user && user.is_admin && adminMode ? (
                     <div className="flex gap-2">
@@ -312,7 +338,7 @@ const FormacionSanitaria = () => {
                       onClick={() => handleCourseAccess(course)}
                       data-testid={`course-access-${index}`}
                     >
-                      {user ? 'Acceder al Curso' : 'Iniciar Sesión para Acceder'}
+                      {user ? 'Ver Detalles del Curso' : 'Iniciar Sesión para Acceder'}
                     </Button>
                   )}
                 </CardContent>
