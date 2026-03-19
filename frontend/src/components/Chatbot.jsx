@@ -12,7 +12,9 @@ const Chatbot = () => {
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [showButtons, setShowButtons] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -26,7 +28,29 @@ const Chatbot = () => {
     if (isOpen && messages.length === 0) {
       initChat();
     }
+    // Auto-focus en el input cuando se abre el chat
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
   }, [isOpen]);
+
+  const resetChat = () => {
+    setMessages([]);
+    setInput('');
+    setSessionId(null);
+    setShowButtons(false);
+    setIsCompleted(false);
+    setLoading(false);
+  };
+
+  const handleClose = () => {
+    if (isCompleted) {
+      // Si la conversación terminó, resetear al cerrar
+      resetChat();
+    }
+    // Si está en progreso, solo cerrar (mantener estado)
+    setIsOpen(false);
+  };
 
   const initChat = () => {
     setTimeout(() => {
@@ -74,6 +98,11 @@ const Chatbot = () => {
       const botResponse = response.data.response;
       const buttons = response.data.buttons;
       
+      // Detectar si la conversación ha terminado
+      if (botResponse.includes('En breve se pondrán en contacto contigo')) {
+        setIsCompleted(true);
+      }
+      
       setMessages(prev => [
         ...prev,
         { role: 'assistant', content: botResponse, buttons: buttons }
@@ -87,6 +116,12 @@ const Chatbot = () => {
       ]);
     } finally {
       setLoading(false);
+      // Auto-focus en el input después de enviar
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 100);
     }
   };
 
@@ -125,7 +160,7 @@ const Chatbot = () => {
               </div>
             </div>
             <button 
-              onClick={() => setIsOpen(false)} 
+              onClick={handleClose} 
               className="hover:bg-white/20 rounded-full p-1 transition-colors"
               data-testid="chatbot-close-button"
             >
@@ -211,6 +246,7 @@ const Chatbot = () => {
           <div className="p-4 border-t bg-white">
             <div className="flex gap-2">
               <input
+                ref={inputRef}
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

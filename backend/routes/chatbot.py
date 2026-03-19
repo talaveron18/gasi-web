@@ -22,7 +22,7 @@ async def get_db():
 async def send_lead_email(lead_data: dict):
     """Envía email con lead (preparado para integración futura)"""
     # TODO: Integrar con servicio de email (Resend/SendGrid)
-    print(f"📧 EMAIL A ENVIAR A admin@gasisalud.com:")
+    print(f"📧 EMAIL A ENVIAR A coordinacion@gasisalud.com:")
     print(f"Asunto: Nueva solicitud desde chatbot - {lead_data.get('servicio_nombre')}")
     print(f"Datos: {lead_data}")
 
@@ -101,10 +101,10 @@ async def chat_message(
     for resp in responses:
         if resp["type"] == "text":
             response_parts.append(resp["content"])
-        elif resp["type"] == "buttons":
+        elif resp["type"] == "buttons" and "content" in resp:
             response_parts.append(resp["content"])
     
-    response_text = "\n\n".join(response_parts)
+    response_text = "\n\n".join(response_parts) if response_parts else ""
     
     # Incluir botones si los hay
     buttons_data = None
