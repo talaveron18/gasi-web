@@ -71,6 +71,7 @@ class ChatMessage(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     session_id: str
+    buttons: Optional[List[Dict[str, str]]] = None
 
 class ContactForm(BaseModel):
     name: str

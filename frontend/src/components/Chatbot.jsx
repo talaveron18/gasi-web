@@ -59,6 +59,7 @@ const Chatbot = () => {
     }
 
     setLoading(true);
+    setShowButtons(false);
 
     try {
       const response = await axios.post(`${API}/chatbot/message`, {
@@ -71,10 +72,11 @@ const Chatbot = () => {
       }
 
       const botResponse = response.data.response;
+      const buttons = response.data.buttons;
       
       setMessages(prev => [
         ...prev,
-        { role: 'assistant', content: botResponse }
+        { role: 'assistant', content: botResponse, buttons: buttons }
       ]);
 
     } catch (error) {
@@ -133,20 +135,36 @@ const Chatbot = () => {
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50" data-testid="chatbot-messages">
             {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+              <div key={index}>
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                    msg.role === 'user'
-                      ? 'bg-[#005EB8] text-white'
-                      : 'bg-white text-gray-900 shadow-sm'
-                  }`}
-                  data-testid={`chatbot-message-${msg.role}`}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                      msg.role === 'user'
+                        ? 'bg-[#005EB8] text-white'
+                        : 'bg-white text-gray-900 shadow-sm'
+                    }`}
+                    data-testid={`chatbot-message-${msg.role}`}
+                  >
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  </div>
                 </div>
+                
+                {/* Botones dinámicos */}
+                {msg.buttons && msg.buttons.length > 0 && (
+                  <div className="flex flex-col gap-2 mt-3">
+                    {msg.buttons.map((btn, btnIndex) => (
+                      <button
+                        key={btnIndex}
+                        onClick={() => handleButtonClick(btn.text)}
+                        className="w-full bg-white hover:bg-[#005EB8] hover:text-white text-[#005EB8] border-2 border-[#005EB8] font-semibold py-3 px-4 rounded-xl transition-all shadow-sm hover:shadow-md text-sm"
+                      >
+                        {btn.text}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
 
