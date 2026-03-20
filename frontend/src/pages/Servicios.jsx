@@ -27,7 +27,7 @@ const Servicios = () => {
       description: 'Reconocimientos médicos laborales obligatorios, chequeos preventivos y campañas de salud corporativa. Cuidamos la salud de sus trabajadores de forma integral.',
       benefits: ['Reconocimientos completos', 'Informes detallados', 'Campañas preventivas', 'Gestión administrativa'],
       link: '/salud-laboral',
-      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/71u32s3h_3.png'
+      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/cokq50xq_download.png'
     }
   ];
 

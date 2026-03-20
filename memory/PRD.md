@@ -46,12 +46,8 @@ Clientes B2B: centros logísticos, naves industriales, grandes superficies comer
 
 ## Prioritized Backlog
 
-### P0 - Activar Email Real
-Para activar el envío de emails reales:
-1. Crear cuenta en https://resend.com
-2. Obtener API Key
-3. Agregar `RESEND_API_KEY=re_xxxxx` a `/app/backend/.env`
-4. Reiniciar backend: `sudo supervisorctl restart backend`
+### P0 - COMPLETADO ✅
+- [x] **Email real con Resend** - API key configurada, emails se envían a coordinacion@gasisalud.com
 
 ### P1 - Próximas tareas
 - [ ] **Sistema avanzado de cursos**: 

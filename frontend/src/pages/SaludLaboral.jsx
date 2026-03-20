@@ -41,7 +41,7 @@ const SaludLaboral = () => {
             </div>
             <div className="relative">
               <img 
-                src="https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/ehswtdjk_download.png" 
+                src="https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/cokq50xq_download.png" 
                 alt="Reconocimiento médico GASI" 
                 className="rounded-2xl shadow-xl w-full"
               />

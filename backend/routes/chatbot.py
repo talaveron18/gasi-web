@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from models import ChatMessage, ChatResponse
 from chatbot_engine import SimpleChatbot
-from dotenv import load_dotenv
 import os
 import uuid
 from datetime import datetime, timezone
@@ -10,15 +9,19 @@ import asyncio
 import logging
 import json
 
-load_dotenv()
-
 router = APIRouter(prefix="/chatbot", tags=["chatbot"])
 logger = logging.getLogger(__name__)
 
-# Configuración de Resend
+# Configuración de Resend (cargada desde server.py)
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
 RECIPIENT_EMAIL = "coordinacion@gasisalud.com"
+
+# Log al cargar el módulo
+if RESEND_API_KEY:
+    print(f"✅ Resend configurado: {RESEND_API_KEY[:15]}...")
+else:
+    print("⚠️ RESEND_API_KEY no encontrada")
 
 async def get_db():
     from server import db

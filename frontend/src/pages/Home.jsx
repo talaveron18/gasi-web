@@ -25,7 +25,7 @@ const Home = () => {
       title: 'Salud Laboral y Reconocimientos',
       description: 'Reconocimientos médicos laborales, chequeos preventivos y campañas de salud adaptadas a su empresa.',
       link: '/salud-laboral',
-      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/71u32s3h_3.png'
+      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/cokq50xq_download.png'
     }
   ];
 
