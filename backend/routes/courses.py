@@ -59,12 +59,17 @@ async def get_my_enrollments(
         {"_id": 0}
     ).to_list(100)
     
+    # Batch fetch all courses in a single query (avoid N+1)
+    course_ids = [e["course_id"] for e in enrollments]
+    courses_list = await db.courses.find(
+        {"course_id": {"$in": course_ids}},
+        {"_id": 0}
+    ).to_list(100)
+    courses_dict = {c["course_id"]: c for c in courses_list}
+    
     result = []
     for enrollment in enrollments:
-        course = await db.courses.find_one(
-            {"course_id": enrollment["course_id"]},
-            {"_id": 0}
-        )
+        course = courses_dict.get(enrollment["course_id"])
         if course:
             if isinstance(course.get("created_at"), str):
                 course["created_at"] = datetime.fromisoformat(course["created_at"])

@@ -106,9 +106,10 @@ async def create_session_from_oauth(
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH"""
+    oauth_backend_url = os.environ.get("OAUTH_BACKEND_URL", "https://demobackend.emergentagent.com")
     async with httpx.AsyncClient() as client:
         resp = await client.get(
-            "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
+            f"{oauth_backend_url}/auth/v1/env/oauth/session-data",
             headers={"X-Session-ID": session_id}
         )
         

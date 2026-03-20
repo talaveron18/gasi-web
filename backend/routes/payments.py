@@ -41,8 +41,8 @@ async def create_checkout_session(
                 "quantity": 1,
             }],
             mode="payment",
-            success_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/dashboard?payment=success",
-            cancel_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/formacion-sanitaria?payment=cancel",
+            success_url=f"{os.environ['FRONTEND_URL']}/dashboard?payment=success",
+            cancel_url=f"{os.environ['FRONTEND_URL']}/formacion-sanitaria?payment=cancel",
             metadata={
                 "course_id": course_id,
                 "user_id": user_id
