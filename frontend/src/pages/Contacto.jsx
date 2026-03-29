@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import { Mail, Phone, Send } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,10 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import axios from 'axios';
 import { Link } from 'react-router-dom';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const Contacto = () => {
   const [loading, setLoading] = useState(false);
@@ -27,7 +24,7 @@ const Contacto = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.accepts_privacy) {
       toast.error('Debe aceptar la política de protección de datos');
       return;
@@ -36,7 +33,14 @@ const Contacto = () => {
     setLoading(true);
 
     try {
-      await axios.post(`${API}/contact/submit`, formData);
+      const response = await fetch('/.netlify/functions/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) throw new Error('Error en el servidor');
+
       toast.success('¡Formulario enviado! Nos pondremos en contacto pronto.');
       setFormData({
         name: '',
@@ -99,9 +103,9 @@ const Contacto = () => {
                     </div>
                     <div>
                       <h3 className="font-bold text-[#0F172A] mb-2">WhatsApp</h3>
-                      <a 
-                        href="https://wa.me/34634029865" 
-                        target="_blank" 
+                      
+                        href="https://wa.me/34634029865"
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="text-[#005EB8] hover:underline text-lg"
                         data-testid="whatsapp-link"
@@ -119,8 +123,8 @@ const Contacto = () => {
                     </div>
                     <div>
                       <h3 className="font-bold text-[#0F172A] mb-2">Email</h3>
-                      <a 
-                        href="mailto:coordinacion@gasisalud.com" 
+                      
+                        href="mailto:coordinacion@gasisalud.com"
                         className="text-[#005EB8] hover:underline text-lg"
                         data-testid="email-link"
                       >
@@ -241,8 +245,8 @@ const Contacto = () => {
                     </Label>
                   </div>
 
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full bg-[#005EB8] hover:bg-[#004a92] text-white"
                     disabled={loading}
                     data-testid="contact-submit-button"
