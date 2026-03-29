@@ -8,7 +8,7 @@ const Chatbot = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState('inicio');
-  const [userData, setUserData] = useState({ service: '', name: '', phone: '' });
+  const [userData, setUserData] = useState({ service: '', name: '', email: '', phone: '' });
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -38,7 +38,7 @@ const Chatbot = () => {
     setIsOpen(false);
     setMessages([]);
     setStep('inicio');
-    setUserData({ service: '', name: '', phone: '' });
+    setUserData({ service: '', name: '', email: '', phone: '' });
   };
 
   const handleService = (service) => {
@@ -56,6 +56,11 @@ const Chatbot = () => {
 
     if (step === 'nombre') {
       setUserData(prev => ({ ...prev, name: text }));
+      setStep('email');
+      setTimeout(() => addBot('Tu correo electronico?'), 400);
+
+    } else if (step === 'email') {
+      setUserData(prev => ({ ...prev, email: text }));
       setStep('telefono');
       setTimeout(() => addBot('Y tu numero de telefono?'), 400);
 
@@ -93,7 +98,7 @@ const Chatbot = () => {
     }
   };
 
-  const showInput = step === 'nombre' || step === 'telefono';
+  const showInput = step === 'nombre' || step === 'email' || step === 'telefono';
 
   return (
     <>
