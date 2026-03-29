@@ -16,7 +16,7 @@ exports.handler = async (event) => {
     <p><strong>Mensaje:</strong> ${data.message}</p>
   `;
 
-  const response = await fetch('https://api.mailersend.com/v1/email', {
+  await fetch('https://api.mailersend.com/v1/email', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -30,17 +30,11 @@ exports.handler = async (event) => {
     })
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('MailerSend error:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Error al enviar el email' })
-    };
-  }
+  const whatsappMsg = encodeURIComponent(`GASI Web - Nuevo contacto: ${data.name} | ${data.company} | ${data.phone} | ${data.service_type}`);
+  await fetch(`https://api.callmebot.com/whatsapp.php?phone=34634029865&text=${whatsappMsg}&apikey=4291698`);
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ message: 'Email enviado correctamente' })
+    body: JSON.stringify({ message: 'ok' })
   };
 };
