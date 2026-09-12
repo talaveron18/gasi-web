@@ -1,0 +1,36 @@
+name: Internal Prototype CI
+
+on:
+  push:
+    branches:
+      - automation/web-internal-clinical-20260912-01
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Build
+        env:
+          CI: 'true'
+        run: yarn build
+      - name: Tests
+        env:
+          CI: 'true'
+        run: yarn test --watchAll=false --passWithNoTests
