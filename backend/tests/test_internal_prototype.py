@@ -215,6 +215,47 @@ def test_close_blocks_follow_up_and_missing_acknowledgement():
     assert closed.json()["status"] == "CERRADO"
 
 
+def test_close_blocks_unacknowledged_shift_handoff():
+    episode = create_episode()
+    episode_id = episode["id"]
+    client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/responses",
+        headers=PHYSICIAN,
+        json={"text": "Respuesta sintética antes del cambio de franja."},
+    )
+
+    blocked = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/close",
+        headers=PHYSICIAN,
+        json={
+            "follow_up_pending": False,
+            "acknowledgement_required": False,
+            "handoff_required": True,
+            "handoff_acknowledged": False,
+        },
+    )
+    assert blocked.status_code == 409
+    assert blocked.json()["detail"] == "handoff_acknowledgement_missing"
+
+    closed = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/close",
+        headers=PHYSICIAN,
+        json={
+            "follow_up_pending": False,
+            "acknowledgement_required": False,
+            "handoff_required": True,
+            "handoff_acknowledged": True,
+        },
+    )
+    assert closed.status_code == 200
+    assert closed.json()["status"] == "CERRADO"
+
+    audit = client.get("/api/internal-prototype/audit", headers=ADMIN).json()
+    closure = next(item for item in audit if item["action"] == "EPISODE_CLOSED")
+    assert closure["metadata"]["handoff_required"] is True
+    assert closure["metadata"]["handoff_acknowledged"] is True
+
+
 def test_closed_episode_rejects_level_change_and_addendum():
     episode = create_episode()
     episode_id = episode["id"]
