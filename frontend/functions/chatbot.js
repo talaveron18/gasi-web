@@ -15,6 +15,7 @@ const json = (statusCode, message, extraHeaders = {}) => ({
   body: JSON.stringify({ message })
 });
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+()\d\s.-]{6,40}$/;
 const ALLOWED_SERVICES = new Set([
   'Enfermería presencial',
@@ -43,10 +44,14 @@ exports.handler = async (event) => {
   if (String(data.website || '').trim()) return json(200, 'ok');
 
   const name = String(data.name || '').trim().slice(0, 120);
+  const email = String(data.email || '').trim().slice(0, 254);
   const phone = String(data.phone || '').trim().slice(0, 40);
   const service = String(data.service || '').trim().slice(0, 160);
+  const acceptsPrivacy = data.accepts_privacy === true;
 
-  if (!name || !phone || !service) return json(400, 'missing_fields');
+  if (!name || !email || !phone || !service) return json(400, 'missing_fields');
+  if (!acceptsPrivacy) return json(400, 'privacy_required');
+  if (!EMAIL_RE.test(email)) return json(400, 'invalid_email');
   if (!PHONE_RE.test(phone)) return json(400, 'invalid_phone');
   if (!ALLOWED_SERVICES.has(service)) return json(400, 'invalid_service');
 
@@ -59,6 +64,7 @@ exports.handler = async (event) => {
   const emailBody = `
     <h2>Nuevo contacto desde el chatbot GASI</h2>
     <p><strong>Nombre:</strong> ${escapeHtml(name)}</p>
+    <p><strong>Correo:</strong> ${escapeHtml(email)}</p>
     <p><strong>Telefono:</strong> ${escapeHtml(phone)}</p>
     <p><strong>Servicio de interes:</strong> ${escapeHtml(service)}</p>
   `;
