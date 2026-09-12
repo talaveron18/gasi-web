@@ -5,28 +5,25 @@ import { Building2, GraduationCap, Stethoscope, ArrowRight } from 'lucide-react'
 const Servicios = () => {
   const services = [
     {
-      icon: <Building2 className="w-16 h-16 text-[#005EB8]" />,
+      icon: Building2,
       title: 'Cobertura Sanitaria en Empresas',
       description: 'Servicios sanitarios configurados para cada centro, con enfermería presencial y, cuando corresponda, apoyo médico remoto asociado. La prestación concreta queda sujeta a la habilitación y autorización aplicables.',
       benefits: ['Enfermería presencial', 'Apoyo médico remoto asociado', 'Configuración adaptada al centro', 'Cobertura sujeta a autorización'],
-      link: '/cobertura-sanitaria',
-      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/c29a6c5d_1.png'
+      link: '/cobertura-sanitaria'
     },
     {
-      icon: <GraduationCap className="w-16 h-16 text-[#005EB8]" />,
+      icon: GraduationCap,
       title: 'Formación Sanitaria',
       description: 'Formación sanitaria para empresas y profesionales, adaptada al contexto y a las necesidades definidas para cada actividad.',
       benefits: ['Formación sanitaria', 'Modalidades según actividad', 'Contenido adaptado', 'Docencia por profesionales cualificados'],
-      link: '/formacion-sanitaria',
-      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/np9q6v5h_2.png'
+      link: '/formacion-sanitaria'
     },
     {
-      icon: <Stethoscope className="w-16 h-16 text-[#005EB8]" />,
+      icon: Stethoscope,
       title: 'Servicios Sanitarios Complementarios',
       description: 'Fisioterapia y psicología dentro de configuraciones asistenciales definidas para cada cliente, junto con los servicios de enfermería y apoyo médico remoto cuando proceda. Cada prestación se activa únicamente cuando cuenta con el encaje y la autorización correspondientes.',
       benefits: ['Fisioterapia', 'Psicología', 'Coordinación con la cobertura sanitaria', 'Activación según configuración autorizada'],
-      link: '/salud-laboral',
-      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/cokq50xq_download.png'
+      link: '/servicios-sanitarios-organizaciones'
     }
   ];
 
@@ -46,51 +43,53 @@ const Servicios = () => {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="space-y-20">
-            {services.map((service, index) => (
-              <div
-                key={index}
-                className={`flex flex-col lg:flex-row gap-12 items-center ${index % 2 === 1 ? 'lg:flex-row-reverse' : ''}`}
-                data-testid={`service-section-${index}`}
-              >
-                <div className="flex-1">
-                  <div className="mb-6">
-                    {service.icon}
+            {services.map((service, index) => {
+              const ServiceIcon = service.icon;
+
+              return (
+                <div
+                  key={service.title}
+                  className={`flex flex-col lg:flex-row gap-12 items-center ${index % 2 === 1 ? 'lg:flex-row-reverse' : ''}`}
+                  data-testid={`service-section-${index}`}
+                >
+                  <div className="flex-1">
+                    <div className="mb-6">
+                      <ServiceIcon className="w-16 h-16 text-[#005EB8]" aria-hidden="true" />
+                    </div>
+                    <h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-6">
+                      {service.title}
+                    </h2>
+                    <p className="text-lg text-[#64748B] mb-8 leading-relaxed">
+                      {service.description}
+                    </p>
+
+                    <div className="mb-8">
+                      <h3 className="font-bold text-[#0F172A] mb-4">Aspectos principales:</h3>
+                      <ul className="space-y-2">
+                        {service.benefits.map((benefit) => (
+                          <li key={benefit} className="flex items-start gap-2">
+                            <span className="text-[#005EB8] mt-1" aria-hidden="true">✓</span>
+                            <span className="text-[#64748B]">{benefit}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <Link to={service.link}>
+                      <button className="bg-[#005EB8] hover:bg-[#004a92] text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all hover:-translate-y-0.5" data-testid={`service-cta-${index}`}>
+                        Ver más detalles <ArrowRight className="w-5 h-5" aria-hidden="true" />
+                      </button>
+                    </Link>
                   </div>
-                  <h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-6">
-                    {service.title}
-                  </h2>
-                  <p className="text-lg text-[#64748B] mb-8 leading-relaxed">
-                    {service.description}
-                  </p>
 
-                  <div className="mb-8">
-                    <h3 className="font-bold text-[#0F172A] mb-4">Aspectos principales:</h3>
-                    <ul className="space-y-2">
-                      {service.benefits.map((benefit, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <span className="text-[#005EB8] mt-1">✓</span>
-                          <span className="text-[#64748B]">{benefit}</span>
-                        </li>
-                      ))}
-                    </ul>
+                  <div className="flex-1 w-full" aria-hidden="true">
+                    <div className="rounded-2xl shadow-xl w-full h-[400px] bg-gradient-to-br from-[#EAF4FC] to-[#D7EAF8] flex items-center justify-center">
+                      <ServiceIcon className="w-28 h-28 text-[#005EB8]" />
+                    </div>
                   </div>
-
-                  <Link to={service.link}>
-                    <button className="bg-[#005EB8] hover:bg-[#004a92] text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all hover:-translate-y-0.5" data-testid={`service-cta-${index}`}>
-                      Ver más detalles <ArrowRight className="w-5 h-5" />
-                    </button>
-                  </Link>
                 </div>
-
-                <div className="flex-1">
-                  <img
-                    src={service.image}
-                    alt={service.title}
-                    className="rounded-2xl shadow-xl w-full h-[400px] object-cover"
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
