@@ -3,6 +3,7 @@ import '@/App.css';
 import '@/index.css';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { InternalPrototypeAuthProvider, useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
 import { Toaster } from '@/components/ui/sonner';
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
@@ -17,12 +18,18 @@ import Contacto from '@/pages/Contacto';
 import PoliticaPrivacidad from '@/pages/PoliticaPrivacidad';
 import Dashboard from '@/pages/Dashboard';
 import AuthCallback from '@/pages/AuthCallback';
+import InternalAccess from '@/pages/InternalAccess';
 import InternalClinicalPrototype from '@/pages/InternalClinicalPrototype';
 import NotFound from '@/pages/NotFound';
 
+function InternalClinicalGuard() {
+  const { isAuthenticated } = useInternalPrototypeAuth();
+  return isAuthenticated ? <InternalClinicalPrototype /> : <Navigate to="/interno/acceso" replace />;
+}
+
 function AppRouter() {
   const location = useLocation();
-  
+
   if (location.hash?.includes('session_id=')) {
     return <AuthCallback />;
   }
@@ -42,7 +49,9 @@ function AppRouter() {
         <Route path="/contacto" element={<Contacto />} />
         <Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/interno/prototipo-clinico" element={<InternalClinicalPrototype />} />
+        <Route path="/interno" element={<Navigate to="/interno/acceso" replace />} />
+        <Route path="/interno/acceso" element={<InternalAccess />} />
+        <Route path="/interno/prototipo-clinico" element={<InternalClinicalGuard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
@@ -54,8 +63,10 @@ function App() {
     <div className="App">
       <BrowserRouter>
         <AuthProvider>
-          <AppRouter />
-          <Toaster position="top-right" />
+          <InternalPrototypeAuthProvider>
+            <AppRouter />
+            <Toaster position="top-right" />
+          </InternalPrototypeAuthProvider>
         </AuthProvider>
       </BrowserRouter>
     </div>
