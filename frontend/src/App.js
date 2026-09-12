@@ -17,6 +17,7 @@ import Contacto from '@/pages/Contacto';
 import PoliticaPrivacidad from '@/pages/PoliticaPrivacidad';
 import Dashboard from '@/pages/Dashboard';
 import AuthCallback from '@/pages/AuthCallback';
+import InternalClinicalPrototype from '@/pages/InternalClinicalPrototype';
 import NotFound from '@/pages/NotFound';
 
 function AppRouter() {
@@ -41,6 +42,7 @@ function AppRouter() {
         <Route path="/contacto" element={<Contacto />} />
         <Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/interno/prototipo-clinico" element={<InternalClinicalPrototype />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
