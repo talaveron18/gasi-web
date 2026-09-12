@@ -76,7 +76,56 @@ def test_nurse_creates_physician_responds_and_admin_cannot_read_narrative():
     admin_payload = admin_view.json()
     assert "summary" not in admin_payload
     assert "responses" not in admin_payload
+    assert "addenda" not in admin_payload
     assert admin_payload["status"] == "RESPONDIDO"
+
+
+def test_nurse_level_change_is_append_only_and_physician_cannot_reclassify():
+    episode = create_episode()
+    episode_id = episode["id"]
+
+    denied = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/level",
+        headers=PHYSICIAN,
+        json={"level": 1},
+    )
+    assert denied.status_code == 403
+
+    changed = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/level",
+        headers=NURSE,
+        json={"level": 1},
+    )
+    assert changed.status_code == 200
+    payload = changed.json()
+    assert payload["level"] == 1
+    assert payload["level_history"][-1]["from"] == 2
+    assert payload["level_history"][-1]["to"] == 1
+    assert payload["level_history"][-1]["actor_id"] == "USR-DEMO-NURSE-01"
+
+
+def test_addendum_preserves_prior_content_and_admin_cannot_append():
+    episode = create_episode()
+    episode_id = episode["id"]
+    original_summary = episode["summary"]
+
+    denied = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/addenda",
+        headers=ADMIN,
+        json={"text": "Adenda sintética no permitida."},
+    )
+    assert denied.status_code == 403
+
+    added = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/addenda",
+        headers=NURSE,
+        json={"text": "Adenda sintética de corrección sin borrado."},
+    )
+    assert added.status_code == 200
+    payload = added.json()
+    assert payload["summary"] == original_summary
+    assert len(payload["addenda"]) == 1
+    assert payload["addenda"][0]["author_id"] == "USR-DEMO-NURSE-01"
 
 
 def test_delivery_and_read_need_matching_synthetic_evidence():
@@ -88,6 +137,13 @@ def test_delivery_and_read_need_matching_synthetic_evidence():
         json={"text": "Respuesta sintética."},
     ).json()
     response_id = responded["responses"][-1]["id"]
+
+    admin_denied = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/responses/{response_id}/delivery",
+        headers=ADMIN,
+        json={"kind": "synthetic_delivery_receipt", "at": "2026-09-12T12:00:00Z"},
+    )
+    assert admin_denied.status_code == 403
 
     wrong = client.post(
         f"/api/internal-prototype/episodes/{episode_id}/responses/{response_id}/delivery",
@@ -159,21 +215,70 @@ def test_close_blocks_follow_up_and_missing_acknowledgement():
     assert closed.json()["status"] == "CERRADO"
 
 
+def test_closed_episode_rejects_level_change_and_addendum():
+    episode = create_episode()
+    episode_id = episode["id"]
+    responded = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/responses",
+        headers=PHYSICIAN,
+        json={"text": "Respuesta sintética."},
+    ).json()
+    response_id = responded["responses"][-1]["id"]
+    client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/responses/{response_id}/delivery",
+        headers=NURSE,
+        json={"kind": "synthetic_delivery_receipt", "at": "2026-09-12T12:00:00Z"},
+    )
+    client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/responses/{response_id}/delivery",
+        headers=NURSE,
+        json={"kind": "synthetic_read_receipt", "at": "2026-09-12T12:01:00Z"},
+    )
+    closed = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/close",
+        headers=PHYSICIAN,
+        json={"follow_up_pending": False, "acknowledgement_required": True},
+    )
+    assert closed.status_code == 200
+
+    level = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/level",
+        headers=NURSE,
+        json={"level": 1},
+    )
+    assert level.status_code == 409
+
+    addendum = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/addenda",
+        headers=NURSE,
+        json={"text": "Adenda sintética posterior."},
+    )
+    assert addendum.status_code == 409
+
+
 def test_audit_stream_contains_metadata_not_clinical_text():
     episode = create_episode()
     episode_id = episode["id"]
     clinical_text = "Respuesta sintética confidencial de prueba"
+    addendum_text = "Adenda sintética confidencial de prueba"
     client.post(
         f"/api/internal-prototype/episodes/{episode_id}/responses",
         headers=PHYSICIAN,
         json={"text": clinical_text},
+    )
+    client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/addenda",
+        headers=NURSE,
+        json={"text": addendum_text},
     )
 
     response = client.get("/api/internal-prototype/audit", headers=ADMIN)
     assert response.status_code == 200
     serialized = response.text
     assert clinical_text not in serialized
+    assert addendum_text not in serialized
     assert "CLINICAL_RESPONSE_ISSUED" in serialized
+    assert "ADDENDUM_APPENDED" in serialized
 
 
 def test_revoked_identity_is_rejected():
