@@ -72,6 +72,8 @@ class EvidenceInput(BaseModel):
 class CloseInput(BaseModel):
     follow_up_pending: bool = False
     acknowledgement_required: bool = False
+    handoff_required: bool = False
+    handoff_acknowledged: bool = False
 
 
 ACTORS: Dict[str, Actor] = {
@@ -319,13 +321,24 @@ def close_episode(episode_id: str, payload: CloseInput, x_demo_actor_id: Optiona
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="close_not_allowed")
     if payload.follow_up_pending:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="follow_up_pending")
+    if payload.handoff_required and not payload.handoff_acknowledged:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="handoff_acknowledgement_missing")
     if payload.acknowledgement_required and episode["responses"][-1]["status"] != "LEIDA":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="acknowledgement_missing")
     at = _now()
     episode["status"] = "CERRADO"
     episode["closed_at"] = at
     episode["closed_by_id"] = actor.id
-    _audit(actor, "EPISODE_CLOSED", episode_id)
+    _audit(
+        actor,
+        "EPISODE_CLOSED",
+        episode_id,
+        {
+            "acknowledgement_required": payload.acknowledgement_required,
+            "handoff_required": payload.handoff_required,
+            "handoff_acknowledged": payload.handoff_acknowledged,
+        },
+    )
     return episode
 
 
