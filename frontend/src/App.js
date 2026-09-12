@@ -21,11 +21,20 @@ import AuthCallback from '@/pages/AuthCallback';
 import InternalAccess from '@/pages/InternalAccess';
 import InternalClinicalPrototype from '@/pages/InternalClinicalPrototype';
 import InternalWorkers from '@/pages/InternalWorkers';
+import InternalProfile from '@/pages/InternalProfile';
 import NotFound from '@/pages/NotFound';
 
-function InternalClinicalGuard() {
+function InternalAuthenticated({ children }) {
   const { isAuthenticated } = useInternalPrototypeAuth();
-  return isAuthenticated ? <InternalClinicalPrototype /> : <Navigate to="/interno/acceso" replace />;
+  return isAuthenticated ? children : <Navigate to="/interno/acceso" replace />;
+}
+
+function InternalClinicalGuard() {
+  return <InternalAuthenticated><InternalClinicalPrototype /></InternalAuthenticated>;
+}
+
+function InternalProfileGuard() {
+  return <InternalAuthenticated><InternalProfile /></InternalAuthenticated>;
 }
 
 function InternalAdminGuard() {
@@ -58,6 +67,7 @@ function AppRouter() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/interno" element={<Navigate to="/interno/acceso" replace />} />
         <Route path="/interno/acceso" element={<InternalAccess />} />
+        <Route path="/interno/perfil" element={<InternalProfileGuard />} />
         <Route path="/interno/prototipo-clinico" element={<InternalClinicalGuard />} />
         <Route path="/interno/trabajadores" element={<InternalAdminGuard />} />
         <Route path="*" element={<NotFound />} />
