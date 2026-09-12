@@ -12,6 +12,7 @@ router = APIRouter(prefix="/internal-prototype", tags=["internal-prototype"])
 Role = Literal["nurse", "physician", "admin"]
 EpisodeStatus = Literal["ABIERTO", "RESPONDIDO", "CERRADO"]
 MessageStatus = Literal["EMITIDA", "ENTREGADA", "LEIDA"]
+DispositionKind = Literal["SALIDA_CENTRO", "TRASLADO", "DECISION_POSTERIOR"]
 
 
 def _enabled() -> bool:
@@ -62,6 +63,11 @@ class LevelChangeInput(BaseModel):
 
 class AddendumInput(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
+
+
+class DispositionInput(BaseModel):
+    kind: DispositionKind
+    occurred_at: str
 
 
 class EvidenceInput(BaseModel):
@@ -144,6 +150,7 @@ def _admin_view(episode: dict) -> dict:
         for key in (
             "id", "center", "level", "status", "created_at", "created_by_id",
             "responded_at", "responded_by_id", "closed_at", "closed_by_id",
+            "disposition_events",
         )
     }
 
@@ -186,6 +193,7 @@ def create_episode(payload: CreateEpisode, x_demo_actor_id: Optional[str] = Head
         "responses": [],
         "addenda": [],
         "level_history": [],
+        "disposition_events": [],
         "closed_at": None,
         "closed_by_id": None,
     }
@@ -237,6 +245,28 @@ def change_level(episode_id: str, payload: LevelChangeInput, x_demo_actor_id: Op
     return episode
 
 
+@router.post("/episodes/{episode_id}/disposition")
+def record_disposition(episode_id: str, payload: DispositionInput, x_demo_actor_id: Optional[str] = Header(default=None)):
+    actor = _actor(x_demo_actor_id)
+    if actor.role not in ("nurse", "physician"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="clinical_role_required")
+    episode = _episode_or_404(episode_id)
+    _require_episode_access(actor, episode)
+    if episode["status"] == "CERRADO":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="closed_episode_immutable")
+    event = {
+        "id": f"{episode_id}-D{len(episode['disposition_events']) + 1}",
+        "kind": payload.kind,
+        "occurred_at": payload.occurred_at,
+        "recorded_at": _now(),
+        "recorded_by_id": actor.id,
+        "recorded_by_role": actor.role,
+    }
+    episode["disposition_events"].append(event)
+    _audit(actor, "PATIENT_DISPOSITION_RECORDED", episode_id, {"event_id": event["id"], "kind": event["kind"]})
+    return episode
+
+
 @router.post("/episodes/{episode_id}/responses")
 def respond(episode_id: str, payload: ResponseInput, x_demo_actor_id: Optional[str] = Header(default=None)):
     actor = _actor(x_demo_actor_id)
@@ -247,6 +277,8 @@ def respond(episode_id: str, payload: ResponseInput, x_demo_actor_id: Optional[s
     if episode["status"] == "CERRADO":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="response_not_allowed")
     at = _now()
+    latest_disposition = episode["disposition_events"][-1] if episode["disposition_events"] else None
+    late_after_disposition = latest_disposition is not None
     response = {
         "id": f"{episode_id}-R{len(episode['responses']) + 1}",
         "text": payload.text.strip(),
@@ -254,13 +286,42 @@ def respond(episode_id: str, payload: ResponseInput, x_demo_actor_id: Optional[s
         "created_at": at,
         "status": "EMITIDA",
         "status_history": [{"at": at, "from": "BORRADOR", "to": "EMITIDA", "evidence": None}],
+        "late_after_disposition": late_after_disposition,
+        "disposition_event_id": latest_disposition["id"] if latest_disposition else None,
+        "late_reviewed_at": None,
+        "late_reviewed_by_id": None,
     }
     episode["responses"].append(response)
     episode["status"] = "RESPONDIDO"
     episode["responded_at"] = at
     episode["responded_by_id"] = actor.id
-    _audit(actor, "CLINICAL_RESPONSE_ISSUED", episode_id, {"response_id": response["id"]})
+    _audit(
+        actor,
+        "CLINICAL_RESPONSE_ISSUED",
+        episode_id,
+        {"response_id": response["id"], "late_after_disposition": late_after_disposition},
+    )
     return episode
+
+
+@router.post("/episodes/{episode_id}/responses/{response_id}/late-review")
+def review_late_response(episode_id: str, response_id: str, x_demo_actor_id: Optional[str] = Header(default=None)):
+    actor = _actor(x_demo_actor_id)
+    if actor.role != "physician":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="physician_only")
+    episode = _episode_or_404(episode_id)
+    _require_episode_access(actor, episode)
+    response = next((item for item in episode["responses"] if item["id"] == response_id), None)
+    if not response:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="response_not_found")
+    if not response.get("late_after_disposition"):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="response_not_late")
+    if response.get("late_reviewed_at"):
+        return response
+    response["late_reviewed_at"] = _now()
+    response["late_reviewed_by_id"] = actor.id
+    _audit(actor, "LATE_RESPONSE_REVIEWED", episode_id, {"response_id": response_id})
+    return response
 
 
 @router.post("/episodes/{episode_id}/addenda")
@@ -325,6 +386,8 @@ def close_episode(episode_id: str, payload: CloseInput, x_demo_actor_id: Optiona
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="handoff_acknowledgement_missing")
     if payload.acknowledgement_required and episode["responses"][-1]["status"] != "LEIDA":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="acknowledgement_missing")
+    if any(item.get("late_after_disposition") and not item.get("late_reviewed_at") for item in episode["responses"]):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="late_response_review_pending")
     at = _now()
     episode["status"] = "CERRADO"
     episode["closed_at"] = at
