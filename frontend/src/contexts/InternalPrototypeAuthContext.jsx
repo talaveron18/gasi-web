@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const InternalPrototypeAuthContext = createContext(null);
 
@@ -132,7 +132,7 @@ export function InternalPrototypeAuthProvider({ children }) {
     return { ok: true };
   };
 
-  const value = useMemo(() => ({
+  const value = {
     session,
     identities,
     accessAudit,
@@ -142,7 +142,7 @@ export function InternalPrototypeAuthProvider({ children }) {
     addSyntheticIdentity,
     setIdentityStatus,
     isAuthenticated: Boolean(session),
-  }), [session, identities, accessAudit, lastError]);
+  };
 
   return (
     <InternalPrototypeAuthContext.Provider value={value}>
