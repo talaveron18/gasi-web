@@ -1,12 +1,15 @@
 import os
+import sys
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 os.environ["ENABLE_INTERNAL_SYNTHETIC_PROTOTYPE"] = "true"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from backend.routes import internal_prototype  # noqa: E402
+from routes import internal_prototype  # noqa: E402
 
 
 app = FastAPI()
