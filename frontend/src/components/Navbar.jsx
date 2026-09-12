@@ -81,8 +81,8 @@ const Navbar = () => {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/salud-laboral" className="w-full" data-testid="nav-occupational-health">
-                    Salud Laboral
+                  <Link to="/servicios-sanitarios-organizaciones" className="w-full" data-testid="nav-health-services">
+                    Servicios Sanitarios para Organizaciones
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
