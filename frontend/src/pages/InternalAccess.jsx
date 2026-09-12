@@ -46,8 +46,9 @@ export default function InternalAccess() {
                 <h2 className="text-2xl font-bold mt-1">{session.displayName}</h2>
                 <p className="text-emerald-100/80 mt-1">{session.roleLabel} · {session.id}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={() => navigate('/interno/prototipo-clinico')} className="rounded-lg bg-emerald-300 text-slate-950 font-semibold px-4 py-2">Entrar al panel</button>
+                {session.role === 'admin' && <button type="button" onClick={() => navigate('/interno/trabajadores')} className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/40 text-cyan-100 px-4 py-2"><UserCog className="w-4 h-4" />Trabajadores y accesos</button>}
                 <button type="button" onClick={signOut} className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/40 px-4 py-2"><LogOut className="w-4 h-4" />Cerrar sesión</button>
               </div>
             </div>
@@ -91,7 +92,7 @@ export default function InternalAccess() {
         <section className="grid md:grid-cols-3 gap-4">
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-4"><LockKeyhole className="w-5 h-5 text-cyan-300" /><p className="font-semibold mt-2">Sesión segura</p><p className="text-sm text-slate-500 mt-1">La versión real deberá usar autenticación fuerte, sesiones seguras, expiración y revocación central.</p></div>
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-4"><ShieldCheck className="w-5 h-5 text-cyan-300" /><p className="font-semibold mt-2">Mínimo privilegio</p><p className="text-sm text-slate-500 mt-1">Enfermería, facultativo y coordinación reciben interfaces y acciones distintas.</p></div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4"><UserCog className="w-5 h-5 text-cyan-300" /><p className="font-semibold mt-2">Altas y bajas</p><p className="text-sm text-slate-500 mt-1">La estructura ya contempla estado de identidad y bloqueo; la gestión real requerirá backend autorizado.</p></div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4"><UserCog className="w-5 h-5 text-cyan-300" /><p className="font-semibold mt-2">Altas y bajas</p><p className="text-sm text-slate-500 mt-1">Coordinación puede probar altas, revocación y reactivación sintéticas; la gestión real requerirá backend autorizado.</p></div>
         </section>
       </div>
     </main>
