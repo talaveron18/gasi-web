@@ -17,7 +17,7 @@ const INITIAL_IDENTITIES = [
     displayName: 'Dr. Demo 01',
     role: 'physician',
     roleLabel: 'Facultativo',
-    centers: ['Cobertura remota ficticia Madrid'],
+    centers: ['Centro ficticio Madrid 01'],
     status: 'ACTIVE',
     operationalStatus: 'DEMO_READY',
   },
