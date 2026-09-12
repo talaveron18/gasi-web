@@ -19,6 +19,7 @@ const Contacto = () => {
     employee_count: '',
     service_type: '',
     message: '',
+    website: '',
     accepts_privacy: false
   });
 
@@ -35,11 +36,42 @@ const Contacto = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-      if (!response.ok) throw new Error('Error en el servidor');
-      toast.success('Formulario enviado! Nos pondremos en contacto pronto.');
-      setFormData({ name: '', company: '', email: '', phone: '', employee_count: '', service_type: '', message: '', accepts_privacy: false });
+
+      let result = {};
+      try {
+        result = await response.json();
+      } catch {
+        result = {};
+      }
+
+      if (!response.ok) {
+        const friendlyErrors = {
+          missing_fields: 'Revise los campos obligatorios.',
+          invalid_email: 'Revise el correo electronico.',
+          invalid_phone: 'Revise el telefono.',
+          invalid_employee_count: 'Revise el numero aproximado de trabajadores.',
+          invalid_service: 'Seleccione un servicio valido.',
+          payload_too_large: 'El formulario contiene demasiado texto.',
+          service_unavailable: 'El servicio de envio no esta disponible temporalmente.',
+          delivery_failed: 'No se pudo entregar el formulario. Intentelo de nuevo.'
+        };
+        throw new Error(friendlyErrors[result.message] || 'No se pudo enviar el formulario.');
+      }
+
+      toast.success('Formulario enviado. Nos pondremos en contacto pronto.');
+      setFormData({
+        name: '',
+        company: '',
+        email: '',
+        phone: '',
+        employee_count: '',
+        service_type: '',
+        message: '',
+        website: '',
+        accepts_privacy: false
+      });
     } catch (error) {
-      toast.error('Error al enviar el formulario. Intentelo de nuevo.');
+      toast.error(error?.message || 'Error al enviar el formulario. Intentelo de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -125,16 +157,21 @@ const Contacto = () => {
                     <Label htmlFor="service_type">Servicio de interes *</Label>
                     <select id="service_type" value={formData.service_type} onChange={(e) => setFormData({...formData, service_type: e.target.value})} required className="w-full px-3 py-2 border rounded-md" data-testid="contact-service-select">
                       <option value="">Seleccione un servicio</option>
-                      <option value="cobertura">Cobertura Sanitaria en Empresas</option>
-                      <option value="formacion">Formacion Sanitaria</option>
-                      <option value="salud_laboral">Salud Laboral y Reconocimientos</option>
-                      <option value="varios">Varios Servicios</option>
-                      <option value="otro">Otro</option>
+                      <option value="Enfermería presencial">Enfermería presencial</option>
+                      <option value="Apoyo médico remoto">Apoyo médico remoto asociado</option>
+                      <option value="Fisioterapia">Fisioterapia</option>
+                      <option value="Psicología">Psicología</option>
+                      <option value="Formación sanitaria">Formación sanitaria</option>
+                      <option value="Otro">Otro</option>
                     </select>
                   </div>
                   <div>
                     <Label htmlFor="message">Mensaje *</Label>
                     <Textarea id="message" value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})} required rows={4} placeholder="Cuentenos que necesita..." data-testid="contact-message-input" />
+                  </div>
+                  <div className="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true">
+                    <Label htmlFor="website">Sitio web</Label>
+                    <Input id="website" name="website" tabIndex={-1} autoComplete="off" value={formData.website} onChange={(e) => setFormData({...formData, website: e.target.value})} />
                   </div>
                   <div className="flex items-start gap-2">
                     <Checkbox id="privacy" checked={formData.accepts_privacy} onCheckedChange={(checked) => setFormData({...formData, accepts_privacy: checked})} data-testid="contact-privacy-checkbox" />
