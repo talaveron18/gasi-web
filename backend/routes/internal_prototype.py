@@ -56,6 +56,14 @@ class ResponseInput(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
 
 
+class LevelChangeInput(BaseModel):
+    level: Literal[1, 2, 3]
+
+
+class AddendumInput(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)
+
+
 class EvidenceInput(BaseModel):
     kind: Literal["synthetic_delivery_receipt", "synthetic_read_receipt"]
     at: str
@@ -121,6 +129,11 @@ def _can_access(actor: Actor, episode: dict) -> bool:
     if actor.role == "admin":
         return True
     return episode["center"] in actor.centers
+
+
+def _require_episode_access(actor: Actor, episode: dict) -> None:
+    if not _can_access(actor, episode):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="episode_forbidden")
 
 
 def _admin_view(episode: dict) -> dict:
@@ -193,10 +206,33 @@ def list_episodes(x_demo_actor_id: Optional[str] = Header(default=None)):
 def get_episode(episode_id: str, x_demo_actor_id: Optional[str] = Header(default=None)):
     actor = _actor(x_demo_actor_id)
     episode = _episode_or_404(episode_id)
-    if not _can_access(actor, episode):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="episode_forbidden")
+    _require_episode_access(actor, episode)
     _audit(actor, "EPISODE_VIEWED", episode_id)
     return _admin_view(episode) if actor.role == "admin" else episode
+
+
+@router.post("/episodes/{episode_id}/level")
+def change_level(episode_id: str, payload: LevelChangeInput, x_demo_actor_id: Optional[str] = Header(default=None)):
+    actor = _actor(x_demo_actor_id)
+    if actor.role != "nurse":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="nurse_only")
+    episode = _episode_or_404(episode_id)
+    _require_episode_access(actor, episode)
+    if episode["status"] == "CERRADO":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="closed_episode_immutable")
+    previous = episode["level"]
+    if previous == payload.level:
+        return episode
+    at = _now()
+    episode["level"] = payload.level
+    episode["level_history"].append({
+        "at": at,
+        "actor_id": actor.id,
+        "from": previous,
+        "to": payload.level,
+    })
+    _audit(actor, "LEVEL_CHANGED", episode_id, {"from": previous, "to": payload.level})
+    return episode
 
 
 @router.post("/episodes/{episode_id}/responses")
@@ -205,7 +241,8 @@ def respond(episode_id: str, payload: ResponseInput, x_demo_actor_id: Optional[s
     if actor.role != "physician":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="physician_only")
     episode = _episode_or_404(episode_id)
-    if not _can_access(actor, episode) or episode["status"] == "CERRADO":
+    _require_episode_access(actor, episode)
+    if episode["status"] == "CERRADO":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="response_not_allowed")
     at = _now()
     response = {
@@ -224,12 +261,35 @@ def respond(episode_id: str, payload: ResponseInput, x_demo_actor_id: Optional[s
     return episode
 
 
+@router.post("/episodes/{episode_id}/addenda")
+def add_addendum(episode_id: str, payload: AddendumInput, x_demo_actor_id: Optional[str] = Header(default=None)):
+    actor = _actor(x_demo_actor_id)
+    if actor.role not in ("nurse", "physician"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="clinical_role_required")
+    episode = _episode_or_404(episode_id)
+    _require_episode_access(actor, episode)
+    if episode["status"] == "CERRADO":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="closed_episode_immutable")
+    at = _now()
+    addendum = {
+        "id": f"{episode_id}-A{len(episode['addenda']) + 1}",
+        "text": payload.text.strip(),
+        "author_id": actor.id,
+        "author_role": actor.role,
+        "created_at": at,
+    }
+    episode["addenda"].append(addendum)
+    _audit(actor, "ADDENDUM_APPENDED", episode_id, {"addendum_id": addendum["id"]})
+    return episode
+
+
 @router.post("/episodes/{episode_id}/responses/{response_id}/delivery")
 def mark_delivery(episode_id: str, response_id: str, evidence: EvidenceInput, x_demo_actor_id: Optional[str] = Header(default=None)):
     actor = _actor(x_demo_actor_id)
     episode = _episode_or_404(episode_id)
-    if not _can_access(actor, episode):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="episode_forbidden")
+    _require_episode_access(actor, episode)
+    if actor.role == "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="clinical_role_required")
     response = next((item for item in episode["responses"] if item["id"] == response_id), None)
     if not response:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="response_not_found")
@@ -254,7 +314,8 @@ def close_episode(episode_id: str, payload: CloseInput, x_demo_actor_id: Optiona
     if actor.role not in ("nurse", "physician"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="clinical_role_required")
     episode = _episode_or_404(episode_id)
-    if not _can_access(actor, episode) or episode["status"] != "RESPONDIDO" or not episode["responses"]:
+    _require_episode_access(actor, episode)
+    if episode["status"] != "RESPONDIDO" or not episode["responses"]:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="close_not_allowed")
     if payload.follow_up_pending:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="follow_up_pending")
