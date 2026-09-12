@@ -1,16 +1,16 @@
 import os
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
-os.environ.setdefault("DB_NAME", "gasi_test")
 os.environ["ENABLE_INTERNAL_SYNTHETIC_PROTOTYPE"] = "true"
 
-from server import app  # noqa: E402
 from routes import internal_prototype  # noqa: E402
 
 
+app = FastAPI()
+app.include_router(internal_prototype.router, prefix="/api")
 client = TestClient(app)
 
 NURSE = {"x-demo-actor-id": "USR-DEMO-NURSE-01"}
