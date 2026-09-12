@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, BadgeCheck, HeartPulse, LockKeyhole, LogOut, ShieldCheck, Stethoscope, UserCog, UserX } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, HeartPulse, IdCard, LockKeyhole, LogOut, ShieldCheck, Stethoscope, UserCog, UserX } from 'lucide-react';
 import { useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
 
 const ROLE_ICON = {
@@ -48,6 +48,7 @@ export default function InternalAccess() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={() => navigate('/interno/prototipo-clinico')} className="rounded-lg bg-emerald-300 text-slate-950 font-semibold px-4 py-2">Entrar al panel</button>
+                <button type="button" onClick={() => navigate('/interno/perfil')} className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/40 px-4 py-2"><IdCard className="w-4 h-4" />Mi perfil</button>
                 {session.role === 'admin' && <button type="button" onClick={() => navigate('/interno/trabajadores')} className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/40 text-cyan-100 px-4 py-2"><UserCog className="w-4 h-4" />Trabajadores y accesos</button>}
                 <button type="button" onClick={signOut} className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/40 px-4 py-2"><LogOut className="w-4 h-4" />Cerrar sesión</button>
               </div>
