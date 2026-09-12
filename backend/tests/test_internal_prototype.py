@@ -259,6 +259,64 @@ def test_close_blocks_unacknowledged_shift_handoff():
     assert closure["metadata"]["handoff_acknowledged"] is True
 
 
+def test_late_response_after_patient_disposition_requires_physician_review_before_close():
+    episode = create_episode()
+    episode_id = episode["id"]
+
+    disposition = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/disposition",
+        headers=NURSE,
+        json={"kind": "TRASLADO", "occurred_at": "2026-09-12T12:05:00Z"},
+    )
+    assert disposition.status_code == 200
+    assert disposition.json()["disposition_events"][-1]["kind"] == "TRASLADO"
+
+    responded = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/responses",
+        headers=PHYSICIAN,
+        json={"text": "Respuesta sintética emitida después del traslado."},
+    )
+    assert responded.status_code == 200
+    response = responded.json()["responses"][-1]
+    assert response["late_after_disposition"] is True
+    assert response["disposition_event_id"] == disposition.json()["disposition_events"][-1]["id"]
+
+    blocked = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/close",
+        headers=PHYSICIAN,
+        json={"follow_up_pending": False, "acknowledgement_required": False},
+    )
+    assert blocked.status_code == 409
+    assert blocked.json()["detail"] == "late_response_review_pending"
+
+    nurse_review = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/responses/{response['id']}/late-review",
+        headers=NURSE,
+    )
+    assert nurse_review.status_code == 403
+
+    reviewed = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/responses/{response['id']}/late-review",
+        headers=PHYSICIAN,
+    )
+    assert reviewed.status_code == 200
+    assert reviewed.json()["late_reviewed_by_id"] == "USR-DEMO-PHYS-01"
+
+    closed = client.post(
+        f"/api/internal-prototype/episodes/{episode_id}/close",
+        headers=PHYSICIAN,
+        json={"follow_up_pending": False, "acknowledgement_required": False},
+    )
+    assert closed.status_code == 200
+    assert closed.json()["status"] == "CERRADO"
+
+    audit = client.get("/api/internal-prototype/audit", headers=ADMIN).json()
+    serialized = str(audit)
+    assert "Respuesta sintética emitida después del traslado." not in serialized
+    assert "PATIENT_DISPOSITION_RECORDED" in serialized
+    assert "LATE_RESPONSE_REVIEWED" in serialized
+
+
 def test_closed_episode_rejects_level_change_and_addendum():
     episode = create_episode()
     episode_id = episode["id"]
