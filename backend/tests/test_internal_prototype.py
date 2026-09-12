@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 os.environ["ENABLE_INTERNAL_SYNTHETIC_PROTOTYPE"] = "true"
 
-from routes import internal_prototype  # noqa: E402
+from backend.routes import internal_prototype  # noqa: E402
 
 
 app = FastAPI()
