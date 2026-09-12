@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  frontend:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -32,3 +32,24 @@ jobs:
         env:
           CI: 'true'
         run: yarn test --watchAll=false --passWithNoTests
+
+  backend-prototype:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install minimal test dependencies
+        run: pip install fastapi starlette pydantic python-dotenv motor pytest httpx
+      - name: Synthetic API tests
+        env:
+          ENABLE_INTERNAL_SYNTHETIC_PROTOTYPE: 'true'
+          MONGO_URL: 'mongodb://localhost:27017'
+          DB_NAME: 'gasi_test'
+        run: pytest -q tests/test_internal_prototype.py
