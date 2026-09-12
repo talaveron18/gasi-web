@@ -1,7 +1,7 @@
 import React from 'react';
 import '@/App.css';
 import '@/index.css';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/sonner';
 import Layout from '@/components/Layout';
@@ -34,7 +34,8 @@ function AppRouter() {
         <Route path="/cobertura-sanitaria" element={<CoberturaSanitaria />} />
         <Route path="/formacion-sanitaria" element={<FormacionSanitaria />} />
         <Route path="/curso/:courseId" element={<CursoDetalle />} />
-        <Route path="/salud-laboral" element={<SaludLaboral />} />
+        <Route path="/servicios-sanitarios-organizaciones" element={<SaludLaboral />} />
+        <Route path="/salud-laboral" element={<Navigate to="/servicios-sanitarios-organizaciones" replace />} />
         <Route path="/sectores" element={<Sectores />} />
         <Route path="/contacto" element={<Contacto />} />
         <Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />
