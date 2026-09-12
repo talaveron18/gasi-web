@@ -37,7 +37,7 @@ const Chatbot = () => {
       }, 300);
     }
     if (isOpen && inputRef.current) inputRef.current.focus();
-  }, [isOpen]);
+  }, [isOpen, messages.length]);
 
   const addBot = (content, showButtons = false) => {
     setMessages(prev => [...prev, { role: 'assistant', content, showButtons }]);
