@@ -53,7 +53,7 @@ export function InternalPrototypeAuthProvider({ children }) {
       setSession((current) => current ? { ...current, centers: authoritative.centers, status: 'ACTIVE', centrallyValidatedAt: timestamp() } : current);
       setLastError('');
       return true;
-    } catch (error) {
+    } catch {
       setSession(null);
       setLastError('El servicio de validación no está disponible. Acceso bloqueado de forma segura; no se reutiliza la sesión por defecto.');
       appendAudit({ actorId: candidate.id, actor: candidate.displayName, action: 'SESSION_VALIDATION_UNAVAILABLE', targetId: candidate.id, detail: 'Fallo de comunicación con backend sintético.' });
@@ -99,22 +99,16 @@ export function InternalPrototypeAuthProvider({ children }) {
     const target = identities.find((item) => item.id === identityId);
     if (!target) return { ok: false, error: 'Identidad no encontrada.' };
     if (target.id === session.id && status === 'REVOKED') return { ok: false, error: 'El administrador activo no puede revocar su propia sesión desde este prototipo.' };
-
     if (backendSessionValidationEnabled()) {
       const baseUrl = backendBaseUrl();
       if (!baseUrl) return { ok: false, error: 'Backend sintético no configurado; cambio bloqueado.' };
       try {
-        const response = await fetch(`${baseUrl}/api/internal-prototype/workers/${encodeURIComponent(identityId)}/access`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Demo-Actor-Id': session.id },
-          body: JSON.stringify({ state: status }),
-        });
+        const response = await fetch(`${baseUrl}/api/internal-prototype/workers/${encodeURIComponent(identityId)}/access`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Demo-Actor-Id': session.id }, body: JSON.stringify({ state: status }) });
         if (!response.ok) return { ok: false, error: `El backend sintético rechazó el cambio (HTTP ${response.status}).` };
-      } catch (error) {
+      } catch {
         return { ok: false, error: 'No se pudo confirmar el cambio con el backend sintético; no se modifica el estado local.' };
       }
     }
-
     setIdentities((current) => current.map((item) => item.id === identityId ? { ...item, status, operationalStatus: status === 'ACTIVE' ? 'DEMO_PENDING_VALIDATION' : 'INACTIVE' } : item));
     appendAudit({ actorId: session.id, actor: session.displayName, action: status === 'ACTIVE' ? 'IDENTITY_REACTIVATED' : 'IDENTITY_REVOKED', targetId: identityId, detail: `${target.displayName} → ${status}.` });
     return { ok: true };
