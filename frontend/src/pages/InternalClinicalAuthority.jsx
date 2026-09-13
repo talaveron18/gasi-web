@@ -3,7 +3,7 @@ import InternalClinicalPrototype from '@/pages/InternalClinicalPrototype';
 import { useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
 import { createInternalClinicalApi } from '@/lib/internalClinicalApi';
 import { loadAuthoritativeEpisodes } from '@/lib/internalClinicalAuthority';
-import { changeAuthoritativeNurseLevel, submitAuthoritativePhysicianResponse } from '@/lib/internalClinicalActions';
+import { appendAuthoritativeClinicalAddendum, changeAuthoritativeNurseLevel, submitAuthoritativePhysicianResponse } from '@/lib/internalClinicalActions';
 
 function CentralClinicalView({ session }) {
   const api = useMemo(() => createInternalClinicalApi({ actorId: session.id }), [session.id]);
@@ -16,6 +16,9 @@ function CentralClinicalView({ session }) {
   const [responseErrorCode, setResponseErrorCode] = useState(null);
   const [levelState, setLevelState] = useState('IDLE');
   const [levelErrorCode, setLevelErrorCode] = useState(null);
+  const [addendumText, setAddendumText] = useState('');
+  const [addendumState, setAddendumState] = useState('IDLE');
+  const [addendumErrorCode, setAddendumErrorCode] = useState(null);
 
   const load = useCallback(async () => {
     setState('LOADING');
@@ -39,6 +42,7 @@ function CentralClinicalView({ session }) {
   const metadataOnly = session.role === 'admin';
   const canRespond = session.role === 'physician' && selected && selected.status !== 'CERRADO';
   const canChangeLevel = session.role === 'nurse' && selected && selected.status !== 'CERRADO';
+  const canAddAddendum = ['nurse', 'physician'].includes(session.role) && selected && selected.status !== 'CERRADO';
 
   const replaceEpisode = (episode) => {
     setEpisodes((current) => current.map((item) => item.id === episode.id ? episode : item));
@@ -86,12 +90,37 @@ function CentralClinicalView({ session }) {
     setLevelState('SAVED');
   };
 
+  const submitAddendum = async (event) => {
+    event.preventDefault();
+    if (!selected) return;
+    setAddendumState('SAVING');
+    setAddendumErrorCode(null);
+    const result = await appendAuthoritativeClinicalAddendum({
+      api,
+      session,
+      episodeId: selected.id,
+      text: addendumText,
+      status: selected.status,
+    });
+    if (!result.ok) {
+      setAddendumState('ERROR');
+      setAddendumErrorCode(result.errorCode);
+      return;
+    }
+    replaceEpisode(result.episode);
+    setAddendumText('');
+    setAddendumState('SAVED');
+  };
+
   const selectEpisode = (episodeId) => {
     setSelectedId(episodeId);
     setResponseState('IDLE');
     setResponseErrorCode(null);
     setLevelState('IDLE');
     setLevelErrorCode(null);
+    setAddendumText('');
+    setAddendumState('IDLE');
+    setAddendumErrorCode(null);
   };
 
   return (
@@ -214,6 +243,31 @@ function CentralClinicalView({ session }) {
                     ) : <p className="mt-3 text-sm text-slate-400">El episodio cerrado no admite nuevas respuestas.</p>}
                     {responseState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Respuesta registrada en la autoridad sintética y reflejada en el episodio.</p>}
                     {responseState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Operación bloqueada. Código mínimo: {responseErrorCode}.</p>}
+                  </div>
+                )}
+
+                {['nurse', 'physician'].includes(session.role) && (
+                  <div className="mt-6 border-t border-slate-800 pt-5">
+                    <h3 className="font-semibold">Corrección clínica mediante adenda</h3>
+                    <p className="text-xs text-slate-400 mt-1">Append-only: conserva el original y añade una entrada nueva atribuida. No sustituye ni borra contenido previo. Solo datos sintéticos.</p>
+                    {canAddAddendum ? (
+                      <form onSubmit={submitAddendum} className="mt-3 space-y-3">
+                        <textarea
+                          value={addendumText}
+                          onChange={(event) => setAddendumText(event.target.value)}
+                          rows={4}
+                          maxLength={4000}
+                          required
+                          placeholder="Adenda sintética de corrección o complemento. No usar datos reales."
+                          className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm"
+                        />
+                        <button type="submit" disabled={addendumState === 'SAVING'} className="rounded-lg border border-cyan-400/50 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-100 disabled:opacity-50">
+                          {addendumState === 'SAVING' ? 'Añadiendo…' : 'Añadir adenda sintética'}
+                        </button>
+                      </form>
+                    ) : <p className="mt-3 text-sm text-slate-400">El episodio cerrado conserva su contenido y no admite nuevas adendas en este prototipo.</p>}
+                    {addendumState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Adenda añadida de forma append-only en la autoridad sintética.</p>}
+                    {addendumState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Adenda bloqueada. Código mínimo: {addendumErrorCode}.</p>}
                   </div>
                 )}
 
