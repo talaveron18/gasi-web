@@ -15,10 +15,22 @@ export async function loadAuthoritativeEpisodes(api) {
 }
 
 const CLINICAL_ROLES = new Set(['nurse', 'physician']);
+const PENDING_STATUSES = new Set(['ABIERTO', 'RESPONDIDO']);
 
 export function selectAuthoritativeEpisodeById({ episodes, episodeId }) {
   if (!Array.isArray(episodes) || typeof episodeId !== 'string' || !episodeId.trim()) return null;
   return episodes.find((episode) => episode && episode.id === episodeId) || null;
+}
+
+export function partitionAuthoritativeEpisodes(episodes) {
+  if (!Array.isArray(episodes)) return { pending: [], closed: [] };
+
+  return episodes.reduce((groups, episode) => {
+    if (!episode || typeof episode !== 'object' || typeof episode.id !== 'string' || !episode.id) return groups;
+    if (PENDING_STATUSES.has(episode.status)) groups.pending.push(episode);
+    if (episode.status === 'CERRADO') groups.closed.push(episode);
+    return groups;
+  }, { pending: [], closed: [] });
 }
 
 export function selectAuthoritativeAddendaForDisplay({ episode, session }) {
