@@ -42,3 +42,25 @@ export async function changeAuthoritativeNurseLevel({ api, session, episodeId, c
     return { ok: false, errorCode: error?.code || 'operation_failed' };
   }
 }
+
+export async function appendAuthoritativeClinicalAddendum({ api, session, episodeId, text, status }) {
+  if (!session || !['nurse', 'physician'].includes(session.role)) {
+    return { ok: false, errorCode: 'role_not_allowed' };
+  }
+
+  const cleanEpisodeId = String(episodeId || '').trim();
+  const cleanText = String(text || '').trim();
+  if (!cleanEpisodeId || !cleanText) {
+    return { ok: false, errorCode: 'invalid_input' };
+  }
+  if (status === 'CERRADO') {
+    return { ok: false, errorCode: 'episode_closed' };
+  }
+
+  try {
+    const episode = await api.addAddendum(cleanEpisodeId, cleanText);
+    return { ok: true, episode };
+  } catch (error) {
+    return { ok: false, errorCode: error?.code || 'operation_failed' };
+  }
+}
