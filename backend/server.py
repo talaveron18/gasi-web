@@ -17,7 +17,7 @@ app = FastAPI()
 
 api_router = APIRouter(prefix="/api")
 
-from routes import auth, courses, chatbot, contact, payments, admin, internal_prototype
+from routes import auth, courses, chatbot, contact, payments, admin, internal_prototype, internal_access_prototype
 
 @api_router.get("/")
 async def root():
@@ -29,10 +29,11 @@ api_router.include_router(chatbot.router)
 api_router.include_router(contact.router)
 api_router.include_router(payments.router)
 api_router.include_router(admin.router)
-# Synthetic-only internal clinical prototype. The router itself returns 404 unless
-# ENABLE_INTERNAL_SYNTHETIC_PROTOTYPE=true. It uses memory only and is not a
-# production clinical data store.
+# Synthetic-only internal clinical prototype. These routers return 404 unless
+# ENABLE_INTERNAL_SYNTHETIC_PROTOTYPE=true. They use memory only and are not a
+# production clinical data store or production identity provider.
 api_router.include_router(internal_prototype.router)
+api_router.include_router(internal_access_prototype.router)
 
 app.include_router(api_router)
 
