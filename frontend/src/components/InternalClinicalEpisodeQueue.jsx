@@ -1,5 +1,5 @@
 import React from 'react';
-import { partitionAuthoritativeEpisodes } from '@/lib/internalClinicalAuthority';
+import { partitionAuthoritativeEpisodes } from '../lib/internalClinicalAuthority';
 
 function EpisodeButton({ episode, selectedId, onSelect }) {
   return (
