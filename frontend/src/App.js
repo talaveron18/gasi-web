@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import '@/App.css';
 import '@/index.css';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
@@ -25,8 +25,27 @@ import InternalProfile from '@/pages/InternalProfile';
 import NotFound from '@/pages/NotFound';
 
 function InternalAuthenticated({ children }) {
-  const { isAuthenticated } = useInternalPrototypeAuth();
-  return isAuthenticated ? children : <Navigate to="/interno/acceso" replace />;
+  const { isAuthenticated, session, centralValidationEnabled, validateSession } = useInternalPrototypeAuth();
+  const [validatedId, setValidatedId] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!centralValidationEnabled || !isAuthenticated || !session?.id) {
+      setValidatedId(session?.id || null);
+      return () => { mounted = false; };
+    }
+    setValidatedId(null);
+    validateSession(session).finally(() => {
+      if (mounted) setValidatedId(session.id);
+    });
+    return () => { mounted = false; };
+  }, [centralValidationEnabled, isAuthenticated, session?.id, validateSession]);
+
+  if (!isAuthenticated) return <Navigate to="/interno/acceso" replace />;
+  if (centralValidationEnabled && validatedId !== session?.id) {
+    return <main className="min-h-[50vh] flex items-center justify-center bg-slate-950 text-slate-200"><p role="status">Validando sesión sintética…</p></main>;
+  }
+  return children;
 }
 
 function InternalClinicalGuard() {
@@ -37,19 +56,18 @@ function InternalProfileGuard() {
   return <InternalAuthenticated><InternalProfile /></InternalAuthenticated>;
 }
 
-function InternalAdminGuard() {
-  const { isAuthenticated, session } = useInternalPrototypeAuth();
-  if (!isAuthenticated) return <Navigate to="/interno/acceso" replace />;
+function InternalAdminContent() {
+  const { session } = useInternalPrototypeAuth();
   return session?.role === 'admin' ? <InternalWorkers /> : <Navigate to="/interno/prototipo-clinico" replace />;
+}
+
+function InternalAdminGuard() {
+  return <InternalAuthenticated><InternalAdminContent /></InternalAuthenticated>;
 }
 
 function AppRouter() {
   const location = useLocation();
-
-  if (location.hash?.includes('session_id=')) {
-    return <AuthCallback />;
-  }
-
+  if (location.hash?.includes('session_id=')) return <AuthCallback />;
   return (
     <Layout>
       <Routes>
