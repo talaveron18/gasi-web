@@ -27,43 +27,39 @@ import NotFound from '@/pages/NotFound';
 function InternalAuthenticated({ children }) {
   const { isAuthenticated, session, centralValidationEnabled, validateSession } = useInternalPrototypeAuth();
   const [validatedId, setValidatedId] = useState(null);
+  const sessionId = session?.id || null;
+  const sessionRole = session?.role || null;
+  const sessionDisplayName = session?.displayName || '';
+  const sessionStatus = session?.status || null;
 
   useEffect(() => {
     let mounted = true;
-    if (!centralValidationEnabled || !isAuthenticated || !session?.id) {
-      setValidatedId(session?.id || null);
+    if (!centralValidationEnabled || !isAuthenticated || !sessionId) {
+      setValidatedId(sessionId);
       return () => { mounted = false; };
     }
+    const candidate = { id: sessionId, role: sessionRole, displayName: sessionDisplayName, status: sessionStatus };
     setValidatedId(null);
-    validateSession(session).finally(() => {
-      if (mounted) setValidatedId(session.id);
+    validateSession(candidate).finally(() => {
+      if (mounted) setValidatedId(sessionId);
     });
     return () => { mounted = false; };
-  }, [centralValidationEnabled, isAuthenticated, session?.id, validateSession]);
+  }, [centralValidationEnabled, isAuthenticated, sessionId, sessionRole, sessionDisplayName, sessionStatus, validateSession]);
 
   if (!isAuthenticated) return <Navigate to="/interno/acceso" replace />;
-  if (centralValidationEnabled && validatedId !== session?.id) {
+  if (centralValidationEnabled && validatedId !== sessionId) {
     return <main className="min-h-[50vh] flex items-center justify-center bg-slate-950 text-slate-200"><p role="status">Validando sesión sintética…</p></main>;
   }
   return children;
 }
 
-function InternalClinicalGuard() {
-  return <InternalAuthenticated><InternalClinicalPrototype /></InternalAuthenticated>;
-}
-
-function InternalProfileGuard() {
-  return <InternalAuthenticated><InternalProfile /></InternalAuthenticated>;
-}
-
+function InternalClinicalGuard() { return <InternalAuthenticated><InternalClinicalPrototype /></InternalAuthenticated>; }
+function InternalProfileGuard() { return <InternalAuthenticated><InternalProfile /></InternalAuthenticated>; }
 function InternalAdminContent() {
   const { session } = useInternalPrototypeAuth();
   return session?.role === 'admin' ? <InternalWorkers /> : <Navigate to="/interno/prototipo-clinico" replace />;
 }
-
-function InternalAdminGuard() {
-  return <InternalAuthenticated><InternalAdminContent /></InternalAuthenticated>;
-}
+function InternalAdminGuard() { return <InternalAuthenticated><InternalAdminContent /></InternalAuthenticated>; }
 
 function AppRouter() {
   const location = useLocation();
@@ -95,18 +91,7 @@ function AppRouter() {
 }
 
 function App() {
-  return (
-    <div className="App">
-      <BrowserRouter>
-        <AuthProvider>
-          <InternalPrototypeAuthProvider>
-            <AppRouter />
-            <Toaster position="top-right" />
-          </InternalPrototypeAuthProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </div>
-  );
+  return <div className="App"><BrowserRouter><AuthProvider><InternalPrototypeAuthProvider><AppRouter /><Toaster position="top-right" /></InternalPrototypeAuthProvider></AuthProvider></BrowserRouter></div>;
 }
 
 export default App;
