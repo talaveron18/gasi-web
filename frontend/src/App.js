@@ -19,7 +19,7 @@ import PoliticaPrivacidad from '@/pages/PoliticaPrivacidad';
 import Dashboard from '@/pages/Dashboard';
 import AuthCallback from '@/pages/AuthCallback';
 import InternalAccess from '@/pages/InternalAccess';
-import InternalClinicalPrototype from '@/pages/InternalClinicalPrototype';
+import InternalClinicalAuthority from '@/pages/InternalClinicalAuthority';
 import InternalWorkers from '@/pages/InternalWorkers';
 import InternalProfile from '@/pages/InternalProfile';
 import NotFound from '@/pages/NotFound';
@@ -53,7 +53,7 @@ function InternalAuthenticated({ children }) {
   return children;
 }
 
-function InternalClinicalGuard() { return <InternalAuthenticated><InternalClinicalPrototype /></InternalAuthenticated>; }
+function InternalClinicalGuard() { return <InternalAuthenticated><InternalClinicalAuthority /></InternalAuthenticated>; }
 function InternalProfileGuard() { return <InternalAuthenticated><InternalProfile /></InternalAuthenticated>; }
 function InternalAdminContent() {
   const { session } = useInternalPrototypeAuth();
