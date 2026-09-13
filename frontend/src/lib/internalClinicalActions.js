@@ -1,3 +1,35 @@
+export async function createAuthoritativeNurseEpisode({ api, session, patientRef, center, level, summary }) {
+  if (!session || session.role !== 'nurse') {
+    return { ok: false, errorCode: 'role_not_allowed' };
+  }
+
+  const cleanPatientRef = String(patientRef || '').trim();
+  const cleanCenter = String(center || '').trim();
+  const cleanSummary = String(summary || '').trim();
+  const parsedLevel = Number(level);
+
+  if (!cleanPatientRef || !cleanCenter || !cleanSummary || ![1, 2, 3].includes(parsedLevel)) {
+    return { ok: false, errorCode: 'invalid_input' };
+  }
+
+  const assignedCenters = Array.isArray(session.centers) ? session.centers : [];
+  if (!assignedCenters.includes(cleanCenter)) {
+    return { ok: false, errorCode: 'center_not_assigned' };
+  }
+
+  try {
+    const episode = await api.createEpisode({
+      patientRef: cleanPatientRef,
+      center: cleanCenter,
+      level: parsedLevel,
+      summary: cleanSummary,
+    });
+    return { ok: true, episode };
+  } catch (error) {
+    return { ok: false, errorCode: error?.code || 'operation_failed' };
+  }
+}
+
 export async function submitAuthoritativePhysicianResponse({ api, session, episodeId, text }) {
   if (!session || session.role !== 'physician') {
     return { ok: false, errorCode: 'role_not_allowed' };
