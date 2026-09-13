@@ -48,11 +48,14 @@ const ROLE_LABELS = {
 };
 
 const timestamp = () => new Date().toISOString();
+const backendSessionValidationEnabled = () => process.env.REACT_APP_INTERNAL_SYNTHETIC_API === 'true';
+const backendBaseUrl = () => String(process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '');
 
 export function InternalPrototypeAuthProvider({ children }) {
   const [identities, setIdentities] = useState(INITIAL_IDENTITIES);
   const [session, setSession] = useState(null);
   const [lastError, setLastError] = useState('');
+  const [sessionChecking, setSessionChecking] = useState(false);
   const [accessAudit, setAccessAudit] = useState([
     {
       id: 'AUD-DEMO-BOOT',
@@ -73,7 +76,60 @@ export function InternalPrototypeAuthProvider({ children }) {
     }]);
   };
 
-  const signInSynthetic = (identityId) => {
+  const validateSession = async (candidate = session) => {
+    if (!candidate) return false;
+    if (!backendSessionValidationEnabled()) return candidate.status === 'ACTIVE';
+
+    const baseUrl = backendBaseUrl();
+    if (!baseUrl) {
+      setSession(null);
+      setLastError('Validación central activada sin URL de backend configurada. Acceso bloqueado de forma segura.');
+      return false;
+    }
+
+    setSessionChecking(true);
+    try {
+      const response = await fetch(`${baseUrl}/api/internal-prototype/session`, {
+        method: 'GET',
+        headers: { 'X-Demo-Actor-Id': candidate.id },
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        setSession(null);
+        setLastError(response.status === 401
+          ? 'La identidad ya no está autorizada. La sesión sintética ha sido revocada.'
+          : 'No se pudo validar la sesión sintética. Acceso bloqueado de forma segura.');
+        appendAudit({ actorId: candidate.id, actor: candidate.displayName, action: 'SESSION_VALIDATION_DENIED', targetId: candidate.id, detail: `Backend HTTP ${response.status}.` });
+        return false;
+      }
+
+      const authoritative = await response.json();
+      if (!authoritative.active || authoritative.id !== candidate.id || authoritative.role !== candidate.role) {
+        setSession(null);
+        setLastError('La identidad o el rol ya no coinciden con la autorización central. Sesión cerrada.');
+        appendAudit({ actorId: candidate.id, actor: candidate.displayName, action: 'SESSION_IDENTITY_MISMATCH', targetId: candidate.id, detail: 'Identidad/rol no coincidente.' });
+        return false;
+      }
+
+      setSession((current) => current ? {
+        ...current,
+        centers: authoritative.centers,
+        status: 'ACTIVE',
+        centrallyValidatedAt: timestamp(),
+      } : current);
+      setLastError('');
+      return true;
+    } catch (error) {
+      setSession(null);
+      setLastError('El servicio de validación no está disponible. Acceso bloqueado de forma segura; no se reutiliza la sesión por defecto.');
+      appendAudit({ actorId: candidate.id, actor: candidate.displayName, action: 'SESSION_VALIDATION_UNAVAILABLE', targetId: candidate.id, detail: 'Fallo de comunicación con backend sintético.' });
+      return false;
+    } finally {
+      setSessionChecking(false);
+    }
+  };
+
+  const signInSynthetic = async (identityId) => {
     const identity = identities.find((item) => item.id === identityId);
     if (!identity) {
       setLastError('Identidad sintética no encontrada.');
@@ -88,6 +144,11 @@ export function InternalPrototypeAuthProvider({ children }) {
     }
 
     const nextSession = { ...identity, signedInAt: timestamp(), prototypeOnly: true };
+    if (backendSessionValidationEnabled()) {
+      const valid = await validateSession(nextSession);
+      if (!valid) return false;
+    }
+
     setSession(nextSession);
     setLastError('');
     appendAudit({ actorId: identity.id, actor: identity.displayName, action: 'LOGIN_SUCCESS', targetId: identity.id, detail: `Acceso sintético como ${identity.roleLabel}.` });
@@ -137,11 +198,14 @@ export function InternalPrototypeAuthProvider({ children }) {
     identities,
     accessAudit,
     lastError,
+    sessionChecking,
     signInSynthetic,
     signOut,
+    validateSession,
     addSyntheticIdentity,
     setIdentityStatus,
     isAuthenticated: Boolean(session),
+    centralValidationEnabled: backendSessionValidationEnabled(),
   };
 
   return (
