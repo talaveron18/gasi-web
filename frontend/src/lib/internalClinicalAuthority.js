@@ -16,6 +16,11 @@ export async function loadAuthoritativeEpisodes(api) {
 
 const CLINICAL_ROLES = new Set(['nurse', 'physician']);
 
+export function selectAuthoritativeEpisodeById({ episodes, episodeId }) {
+  if (!Array.isArray(episodes) || typeof episodeId !== 'string' || !episodeId.trim()) return null;
+  return episodes.find((episode) => episode && episode.id === episodeId) || null;
+}
+
 export function selectAuthoritativeAddendaForDisplay({ episode, session }) {
   if (!episode || !session || !CLINICAL_ROLES.has(session.role)) return [];
   if (!Array.isArray(episode.addenda)) return [];
