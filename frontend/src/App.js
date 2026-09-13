@@ -20,6 +20,7 @@ import Dashboard from '@/pages/Dashboard';
 import AuthCallback from '@/pages/AuthCallback';
 import InternalAccess from '@/pages/InternalAccess';
 import InternalClinicalAuthority from '@/pages/InternalClinicalAuthority';
+import InternalClinicalNewEpisode from '@/pages/InternalClinicalNewEpisode';
 import InternalWorkers from '@/pages/InternalWorkers';
 import InternalProfile from '@/pages/InternalProfile';
 import NotFound from '@/pages/NotFound';
@@ -54,6 +55,7 @@ function InternalAuthenticated({ children }) {
 }
 
 function InternalClinicalGuard() { return <InternalAuthenticated><InternalClinicalAuthority /></InternalAuthenticated>; }
+function InternalClinicalNewEpisodeGuard() { return <InternalAuthenticated><InternalClinicalNewEpisode /></InternalAuthenticated>; }
 function InternalProfileGuard() { return <InternalAuthenticated><InternalProfile /></InternalAuthenticated>; }
 function InternalAdminContent() {
   const { session } = useInternalPrototypeAuth();
@@ -83,6 +85,7 @@ function AppRouter() {
         <Route path="/interno/acceso" element={<InternalAccess />} />
         <Route path="/interno/perfil" element={<InternalProfileGuard />} />
         <Route path="/interno/prototipo-clinico" element={<InternalClinicalGuard />} />
+        <Route path="/interno/prototipo-clinico/nuevo" element={<InternalClinicalNewEpisodeGuard />} />
         <Route path="/interno/trabajadores" element={<InternalAdminGuard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
