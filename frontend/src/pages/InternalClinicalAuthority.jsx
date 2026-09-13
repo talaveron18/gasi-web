@@ -3,7 +3,14 @@ import InternalClinicalPrototype from '@/pages/InternalClinicalPrototype';
 import { useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
 import { createInternalClinicalApi } from '@/lib/internalClinicalApi';
 import { loadAuthoritativeEpisodes, selectAuthoritativeAddendaForDisplay } from '@/lib/internalClinicalAuthority';
-import { appendAuthoritativeClinicalAddendum, changeAuthoritativeNurseLevel, submitAuthoritativePhysicianResponse } from '@/lib/internalClinicalActions';
+import { appendAuthoritativeClinicalAddendum, changeAuthoritativeNurseLevel, closeAuthoritativeClinicalEpisode, submitAuthoritativePhysicianResponse } from '@/lib/internalClinicalActions';
+
+const EMPTY_CLOSURE_OPTIONS = {
+  followUpPending: false,
+  acknowledgementRequired: false,
+  handoffRequired: false,
+  handoffAcknowledged: false,
+};
 
 function CentralClinicalView({ session }) {
   const api = useMemo(() => createInternalClinicalApi({ actorId: session.id }), [session.id]);
@@ -19,6 +26,9 @@ function CentralClinicalView({ session }) {
   const [addendumText, setAddendumText] = useState('');
   const [addendumState, setAddendumState] = useState('IDLE');
   const [addendumErrorCode, setAddendumErrorCode] = useState(null);
+  const [closureOptions, setClosureOptions] = useState(EMPTY_CLOSURE_OPTIONS);
+  const [closureState, setClosureState] = useState('IDLE');
+  const [closureErrorCode, setClosureErrorCode] = useState(null);
 
   const load = useCallback(async () => {
     setState('LOADING');
@@ -47,6 +57,8 @@ function CentralClinicalView({ session }) {
   const canRespond = session.role === 'physician' && selected && selected.status !== 'CERRADO';
   const canChangeLevel = session.role === 'nurse' && selected && selected.status !== 'CERRADO';
   const canAddAddendum = ['nurse', 'physician'].includes(session.role) && selected && selected.status !== 'CERRADO';
+  const canClose = ['nurse', 'physician'].includes(session.role) && selected && selected.status === 'RESPONDIDO';
+  const latestResponse = selected?.responses?.[selected.responses.length - 1] || null;
 
   const replaceEpisode = (episode) => {
     setEpisodes((current) => current.map((item) => item.id === episode.id ? episode : item));
@@ -111,6 +123,38 @@ function CentralClinicalView({ session }) {
     setAddendumState('SAVED');
   };
 
+  const submitClosure = async (event) => {
+    event.preventDefault();
+    if (!selected) return;
+    setClosureState('SAVING');
+    setClosureErrorCode(null);
+    const result = await closeAuthoritativeClinicalEpisode({
+      api,
+      session,
+      episodeId: selected.id,
+      status: selected.status,
+      responses: selected.responses,
+      ...closureOptions,
+    });
+    if (!result.ok) {
+      setClosureState('ERROR');
+      setClosureErrorCode(result.errorCode);
+      return;
+    }
+    replaceEpisode(result.episode);
+    setClosureState('SAVED');
+  };
+
+  const updateClosureOption = (key, checked) => {
+    setClosureOptions((current) => ({
+      ...current,
+      [key]: checked,
+      ...(key === 'handoffRequired' && !checked ? { handoffAcknowledged: false } : {}),
+    }));
+    setClosureState('IDLE');
+    setClosureErrorCode(null);
+  };
+
   const selectEpisode = (episodeId) => {
     setSelectedId(episodeId);
     setResponseState('IDLE');
@@ -120,6 +164,9 @@ function CentralClinicalView({ session }) {
     setAddendumText('');
     setAddendumState('IDLE');
     setAddendumErrorCode(null);
+    setClosureOptions(EMPTY_CLOSURE_OPTIONS);
+    setClosureState('IDLE');
+    setClosureErrorCode(null);
   };
 
   return (
@@ -175,6 +222,7 @@ function CentralClinicalView({ session }) {
                   <div><dt className="text-slate-500">Respondido</dt><dd>{selected.respondedAt || '—'}</dd></div>
                   <div><dt className="text-slate-500">Respondedor</dt><dd>{selected.respondedById || '—'}</dd></div>
                   <div><dt className="text-slate-500">Cerrado</dt><dd>{selected.closedAt || '—'}</dd></div>
+                  <div><dt className="text-slate-500">Cerrado por</dt><dd>{selected.closedById || '—'}</dd></div>
                 </dl>
 
                 {!metadataOnly && (
@@ -292,6 +340,44 @@ function CentralClinicalView({ session }) {
                     ) : <p className="mt-3 text-sm text-slate-400">El episodio cerrado conserva su contenido y no admite nuevas adendas en este prototipo.</p>}
                     {addendumState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Adenda añadida de forma append-only en la autoridad sintética.</p>}
                     {addendumState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Adenda bloqueada. Código mínimo: {addendumErrorCode}.</p>}
+                  </div>
+                )}
+
+                {['nurse', 'physician'].includes(session.role) && (
+                  <div className="mt-6 border-t border-slate-800 pt-5" data-testid="authoritative-episode-closure">
+                    <h3 className="font-semibold">Cierre trazable del episodio</h3>
+                    <p className="text-xs text-slate-400 mt-1">El cierre no borra el episodio. Requiere respuesta facultativa previa y conserva quién cierra y cuándo. No acredita por sí mismo ejecución de indicaciones, prescripción ni resultado clínico.</p>
+                    {selected.status === 'CERRADO' ? (
+                      <p className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-100">Episodio cerrado por {selected.closedById || 'identidad no disponible'} a las {selected.closedAt || '—'}.</p>
+                    ) : !canClose ? (
+                      <p className="mt-3 text-sm text-slate-400">Para cerrar debe existir una respuesta facultativa autoritativa y el episodio debe estar en estado RESPONDIDO.</p>
+                    ) : (
+                      <form onSubmit={submitClosure} className="mt-3 space-y-3">
+                        <label className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm">
+                          <input type="checkbox" checked={closureOptions.followUpPending} onChange={(event) => updateClosureOption('followUpPending', event.target.checked)} className="mt-1" />
+                          <span><strong>Existe seguimiento pendiente.</strong> Si está marcado, el cierre queda bloqueado.</span>
+                        </label>
+                        <label className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm">
+                          <input type="checkbox" checked={closureOptions.acknowledgementRequired} onChange={(event) => updateClosureOption('acknowledgementRequired', event.target.checked)} className="mt-1" />
+                          <span><strong>Exigir lectura/acuse antes de cerrar.</strong> Última respuesta: {latestResponse?.status || 'sin estado'}.</span>
+                        </label>
+                        <label className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm">
+                          <input type="checkbox" checked={closureOptions.handoffRequired} onChange={(event) => updateClosureOption('handoffRequired', event.target.checked)} className="mt-1" />
+                          <span><strong>El episodio requiere relevo/handoff.</strong></span>
+                        </label>
+                        {closureOptions.handoffRequired && (
+                          <label className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm">
+                            <input type="checkbox" checked={closureOptions.handoffAcknowledged} onChange={(event) => updateClosureOption('handoffAcknowledged', event.target.checked)} className="mt-1" />
+                            <span><strong>Relevo recibido y confirmado de forma trazable.</strong></span>
+                          </label>
+                        )}
+                        <button type="submit" disabled={closureState === 'SAVING'} className="rounded-lg border border-emerald-400/50 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-100 disabled:opacity-50">
+                          {closureState === 'SAVING' ? 'Cerrando…' : 'Cerrar episodio sintético'}
+                        </button>
+                      </form>
+                    )}
+                    {closureState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Cierre registrado en la autoridad sintética con identidad y marca temporal.</p>}
+                    {closureState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Cierre bloqueado de forma segura. Código mínimo: {closureErrorCode}.</p>}
                   </div>
                 )}
 
