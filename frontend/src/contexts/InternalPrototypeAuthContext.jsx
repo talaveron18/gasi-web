@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
+import { interpretSessionAuthority } from '@/lib/internalSessionAuthority';
 
 const InternalPrototypeAuthContext = createContext(null);
 
@@ -37,25 +38,28 @@ export function InternalPrototypeAuthProvider({ children }) {
     setSessionChecking(true);
     try {
       const response = await fetch(`${baseUrl}/api/internal-prototype/session`, { method: 'GET', headers: { 'X-Demo-Actor-Id': candidate.id }, cache: 'no-store' });
-      if (!response.ok) {
+      let authoritative = null;
+      if (response.ok) authoritative = await response.json();
+      const outcome = interpretSessionAuthority({ candidate, httpStatus: response.status, authoritative });
+      if (!outcome.ok) {
         setSession(null);
-        setLastError(response.status === 401 ? 'La identidad ya no está autorizada. La sesión sintética ha sido revocada.' : 'No se pudo validar la sesión sintética. Acceso bloqueado de forma segura.');
-        appendAudit({ actorId: candidate.id, actor: candidate.displayName, action: 'SESSION_VALIDATION_DENIED', targetId: candidate.id, detail: `Backend HTTP ${response.status}.` });
+        setLastError(outcome.message);
+        appendAudit({
+          actorId: candidate.id,
+          actor: candidate.displayName,
+          action: outcome.code === 'REVOKED' ? 'SESSION_VALIDATION_DENIED' : outcome.code === 'MISMATCH' ? 'SESSION_IDENTITY_MISMATCH' : 'SESSION_VALIDATION_DENIED',
+          targetId: candidate.id,
+          detail: `Autoridad central: ${outcome.code}; HTTP ${response.status}.`,
+        });
         return false;
       }
-      const authoritative = await response.json();
-      if (!authoritative.active || authoritative.id !== candidate.id || authoritative.role !== candidate.role) {
-        setSession(null);
-        setLastError('La identidad o el rol ya no coinciden con la autorización central. Sesión cerrada.');
-        appendAudit({ actorId: candidate.id, actor: candidate.displayName, action: 'SESSION_IDENTITY_MISMATCH', targetId: candidate.id, detail: 'Identidad/rol no coincidente.' });
-        return false;
-      }
-      setSession((current) => current ? { ...current, centers: authoritative.centers, status: 'ACTIVE', centrallyValidatedAt: timestamp() } : current);
+      setSession((current) => current ? { ...current, centers: outcome.centers, status: 'ACTIVE', centrallyValidatedAt: timestamp() } : current);
       setLastError('');
       return true;
     } catch {
+      const outcome = interpretSessionAuthority({ candidate, networkError: true });
       setSession(null);
-      setLastError('El servicio de validación no está disponible. Acceso bloqueado de forma segura; no se reutiliza la sesión por defecto.');
+      setLastError(outcome.message);
       appendAudit({ actorId: candidate.id, actor: candidate.displayName, action: 'SESSION_VALIDATION_UNAVAILABLE', targetId: candidate.id, detail: 'Fallo de comunicación con backend sintético.' });
       return false;
     } finally {
