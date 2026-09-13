@@ -3,6 +3,7 @@ import InternalClinicalPrototype from '@/pages/InternalClinicalPrototype';
 import { useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
 import { createInternalClinicalApi } from '@/lib/internalClinicalApi';
 import { loadAuthoritativeEpisodes } from '@/lib/internalClinicalAuthority';
+import { submitAuthoritativePhysicianResponse } from '@/lib/internalClinicalActions';
 
 function CentralClinicalView({ session }) {
   const api = useMemo(() => createInternalClinicalApi({ actorId: session.id }), [session.id]);
@@ -10,6 +11,9 @@ function CentralClinicalView({ session }) {
   const [selectedId, setSelectedId] = useState(null);
   const [state, setState] = useState('LOADING');
   const [errorCode, setErrorCode] = useState(null);
+  const [responseText, setResponseText] = useState('');
+  const [responseState, setResponseState] = useState('IDLE');
+  const [responseErrorCode, setResponseErrorCode] = useState(null);
 
   const load = useCallback(async () => {
     setState('LOADING');
@@ -31,6 +35,28 @@ function CentralClinicalView({ session }) {
 
   const selected = episodes.find((item) => item.id === selectedId) || null;
   const metadataOnly = session.role === 'admin';
+  const canRespond = session.role === 'physician' && selected && selected.status !== 'CERRADO';
+
+  const submitResponse = async (event) => {
+    event.preventDefault();
+    if (!selected) return;
+    setResponseState('SAVING');
+    setResponseErrorCode(null);
+    const result = await submitAuthoritativePhysicianResponse({
+      api,
+      session,
+      episodeId: selected.id,
+      text: responseText,
+    });
+    if (!result.ok) {
+      setResponseState('ERROR');
+      setResponseErrorCode(result.errorCode);
+      return;
+    }
+    setEpisodes((current) => current.map((item) => item.id === result.episode.id ? result.episode : item));
+    setResponseText('');
+    setResponseState('SAVED');
+  };
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 py-10" data-testid="central-clinical-authority">
@@ -43,7 +69,7 @@ function CentralClinicalView({ session }) {
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold">Canal clínico sintético</h1>
-            <p className="text-slate-400 mt-1">Lectura autoritativa · identidad {session.id} · {session.roleLabel}</p>
+            <p className="text-slate-400 mt-1">Autoridad sintética · identidad {session.id} · {session.roleLabel}</p>
           </div>
           <button type="button" onClick={load} className="rounded-lg border border-slate-700 px-4 py-2 text-sm">Actualizar</button>
         </div>
@@ -63,7 +89,7 @@ function CentralClinicalView({ session }) {
               <h2 className="font-bold mb-3">Episodios visibles</h2>
               <div className="space-y-2">
                 {episodes.map((episode) => (
-                  <button key={episode.id} type="button" onClick={() => setSelectedId(episode.id)} className={`w-full text-left rounded-lg border p-3 ${episode.id === selectedId ? 'border-cyan-400 bg-cyan-400/10' : 'border-slate-800 bg-slate-950'}`}>
+                  <button key={episode.id} type="button" onClick={() => { setSelectedId(episode.id); setResponseState('IDLE'); setResponseErrorCode(null); }} className={`w-full text-left rounded-lg border p-3 ${episode.id === selectedId ? 'border-cyan-400 bg-cyan-400/10' : 'border-slate-800 bg-slate-950'}`}>
                     <p className="font-semibold">{episode.id}</p>
                     <p className="text-xs text-slate-400 mt-1">{episode.center} · N{episode.level} · {episode.status}</p>
                   </button>
@@ -95,7 +121,33 @@ function CentralClinicalView({ session }) {
                   </div>
                 )}
                 {metadataOnly && <p className="mt-5 rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100">Administración / Coordinación recibe solo metadatos operativos; no se presenta narrativa clínica.</p>}
-                <p className="mt-5 text-xs text-slate-500">Las mutaciones autoritativas se conectarán por etapas. Esta unidad evita dos fuentes de verdad antes de habilitarlas.</p>
+
+                {session.role === 'physician' && (
+                  <div className="mt-6 border-t border-slate-800 pt-5">
+                    <h3 className="font-semibold">Respuesta facultativa sintética</h3>
+                    <p className="text-xs text-slate-400 mt-1">La respuesta escrita queda atribuida al facultativo. RESPONDIDO/EMITIDA no acredita entrega, lectura ni ejecución.</p>
+                    {canRespond ? (
+                      <form onSubmit={submitResponse} className="mt-3 space-y-3">
+                        <textarea
+                          value={responseText}
+                          onChange={(event) => setResponseText(event.target.value)}
+                          rows={5}
+                          maxLength={4000}
+                          required
+                          placeholder="Contenido sintético de respuesta médica. No usar datos reales."
+                          className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm"
+                        />
+                        <button type="submit" disabled={responseState === 'SAVING'} className="rounded-lg bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50">
+                          {responseState === 'SAVING' ? 'Registrando…' : 'Registrar respuesta sintética'}
+                        </button>
+                      </form>
+                    ) : <p className="mt-3 text-sm text-slate-400">El episodio cerrado no admite nuevas respuestas.</p>}
+                    {responseState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Respuesta registrada en la autoridad sintética y reflejada en el episodio.</p>}
+                    {responseState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Operación bloqueada. Código mínimo: {responseErrorCode}.</p>}
+                  </div>
+                )}
+
+                <p className="mt-5 text-xs text-slate-500">Las demás mutaciones autoritativas se conectarán por etapas para evitar dos fuentes de verdad.</p>
               </section>
             )}
           </div>
