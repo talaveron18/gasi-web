@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import InternalClinicalPrototype from '@/pages/InternalClinicalPrototype';
 import { useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
 import { createInternalClinicalApi } from '@/lib/internalClinicalApi';
-import { loadAuthoritativeEpisodes } from '@/lib/internalClinicalAuthority';
+import { loadAuthoritativeEpisodes, selectAuthoritativeAddendaForDisplay } from '@/lib/internalClinicalAuthority';
 import { appendAuthoritativeClinicalAddendum, changeAuthoritativeNurseLevel, submitAuthoritativePhysicianResponse } from '@/lib/internalClinicalActions';
 
 function CentralClinicalView({ session }) {
@@ -40,6 +40,10 @@ function CentralClinicalView({ session }) {
 
   const selected = episodes.find((item) => item.id === selectedId) || null;
   const metadataOnly = session.role === 'admin';
+  const visibleAddenda = useMemo(
+    () => selectAuthoritativeAddendaForDisplay({ episode: selected, session }),
+    [selected, session],
+  );
   const canRespond = session.role === 'physician' && selected && selected.status !== 'CERRADO';
   const canChangeLevel = session.role === 'nurse' && selected && selected.status !== 'CERRADO';
   const canAddAddendum = ['nurse', 'physician'].includes(session.role) && selected && selected.status !== 'CERRADO';
@@ -53,12 +57,7 @@ function CentralClinicalView({ session }) {
     if (!selected) return;
     setResponseState('SAVING');
     setResponseErrorCode(null);
-    const result = await submitAuthoritativePhysicianResponse({
-      api,
-      session,
-      episodeId: selected.id,
-      text: responseText,
-    });
+    const result = await submitAuthoritativePhysicianResponse({ api, session, episodeId: selected.id, text: responseText });
     if (!result.ok) {
       setResponseState('ERROR');
       setResponseErrorCode(result.errorCode);
@@ -177,15 +176,40 @@ function CentralClinicalView({ session }) {
                   <div><dt className="text-slate-500">Respondedor</dt><dd>{selected.respondedById || '—'}</dd></div>
                   <div><dt className="text-slate-500">Cerrado</dt><dd>{selected.closedAt || '—'}</dd></div>
                 </dl>
+
                 {!metadataOnly && (
                   <div className="mt-5 space-y-4">
                     <div><p className="text-xs uppercase tracking-wide text-slate-500">Referencia sintética</p><p>{selected.patientRef || '—'}</p></div>
                     <div><p className="text-xs uppercase tracking-wide text-slate-500">Situación sintética</p><p className="whitespace-pre-wrap">{selected.summary || '—'}</p></div>
                     <div><p className="text-xs uppercase tracking-wide text-slate-500">Respuestas</p><p>{selected.responses?.length || 0}</p></div>
-                    <div><p className="text-xs uppercase tracking-wide text-slate-500">Adendas</p><p>{selected.addenda?.length || 0}</p></div>
+                    <div><p className="text-xs uppercase tracking-wide text-slate-500">Adendas</p><p>{visibleAddenda.length}</p></div>
                   </div>
                 )}
                 {metadataOnly && <p className="mt-5 rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100">Administración / Coordinación recibe solo metadatos operativos; no se presenta narrativa clínica.</p>}
+
+                {!metadataOnly && (
+                  <div className="mt-6 border-t border-slate-800 pt-5" data-testid="authoritative-addendum-history">
+                    <h3 className="font-semibold">Historial de adendas</h3>
+                    <p className="text-xs text-slate-400 mt-1">Registro append-only autoritativo. Una adenda complementa o corrige sin borrar ni sustituir el contenido original.</p>
+                    {visibleAddenda.length === 0 ? (
+                      <p className="mt-3 text-sm text-slate-400">No hay adendas sintéticas válidas registradas.</p>
+                    ) : (
+                      <ol className="mt-3 space-y-3">
+                        {visibleAddenda.map((addendum) => (
+                          <li key={addendum.id} className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                              <span>{addendum.createdAt}</span>
+                              <span>{addendum.authorId}</span>
+                              <span>{addendum.authorRole === 'nurse' ? 'Enfermería' : 'Facultativo'}</span>
+                              <span>{addendum.id}</span>
+                            </div>
+                            <p className="mt-2 whitespace-pre-wrap text-sm text-slate-200">{addendum.text}</p>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
+                )}
 
                 {session.role === 'nurse' && (
                   <div className="mt-6 border-t border-slate-800 pt-5">
