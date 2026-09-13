@@ -3,7 +3,7 @@ import InternalClinicalPrototype from '@/pages/InternalClinicalPrototype';
 import { useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
 import { createInternalClinicalApi } from '@/lib/internalClinicalApi';
 import { loadAuthoritativeEpisodes } from '@/lib/internalClinicalAuthority';
-import { submitAuthoritativePhysicianResponse } from '@/lib/internalClinicalActions';
+import { changeAuthoritativeNurseLevel, submitAuthoritativePhysicianResponse } from '@/lib/internalClinicalActions';
 
 function CentralClinicalView({ session }) {
   const api = useMemo(() => createInternalClinicalApi({ actorId: session.id }), [session.id]);
@@ -14,6 +14,8 @@ function CentralClinicalView({ session }) {
   const [responseText, setResponseText] = useState('');
   const [responseState, setResponseState] = useState('IDLE');
   const [responseErrorCode, setResponseErrorCode] = useState(null);
+  const [levelState, setLevelState] = useState('IDLE');
+  const [levelErrorCode, setLevelErrorCode] = useState(null);
 
   const load = useCallback(async () => {
     setState('LOADING');
@@ -36,6 +38,11 @@ function CentralClinicalView({ session }) {
   const selected = episodes.find((item) => item.id === selectedId) || null;
   const metadataOnly = session.role === 'admin';
   const canRespond = session.role === 'physician' && selected && selected.status !== 'CERRADO';
+  const canChangeLevel = session.role === 'nurse' && selected && selected.status !== 'CERRADO';
+
+  const replaceEpisode = (episode) => {
+    setEpisodes((current) => current.map((item) => item.id === episode.id ? episode : item));
+  };
 
   const submitResponse = async (event) => {
     event.preventDefault();
@@ -53,9 +60,38 @@ function CentralClinicalView({ session }) {
       setResponseErrorCode(result.errorCode);
       return;
     }
-    setEpisodes((current) => current.map((item) => item.id === result.episode.id ? result.episode : item));
+    replaceEpisode(result.episode);
     setResponseText('');
     setResponseState('SAVED');
+  };
+
+  const changeLevel = async (nextLevel) => {
+    if (!selected) return;
+    setLevelState('SAVING');
+    setLevelErrorCode(null);
+    const result = await changeAuthoritativeNurseLevel({
+      api,
+      session,
+      episodeId: selected.id,
+      currentLevel: selected.level,
+      nextLevel,
+      status: selected.status,
+    });
+    if (!result.ok) {
+      setLevelState('ERROR');
+      setLevelErrorCode(result.errorCode);
+      return;
+    }
+    replaceEpisode(result.episode);
+    setLevelState('SAVED');
+  };
+
+  const selectEpisode = (episodeId) => {
+    setSelectedId(episodeId);
+    setResponseState('IDLE');
+    setResponseErrorCode(null);
+    setLevelState('IDLE');
+    setLevelErrorCode(null);
   };
 
   return (
@@ -89,7 +125,7 @@ function CentralClinicalView({ session }) {
               <h2 className="font-bold mb-3">Episodios visibles</h2>
               <div className="space-y-2">
                 {episodes.map((episode) => (
-                  <button key={episode.id} type="button" onClick={() => { setSelectedId(episode.id); setResponseState('IDLE'); setResponseErrorCode(null); }} className={`w-full text-left rounded-lg border p-3 ${episode.id === selectedId ? 'border-cyan-400 bg-cyan-400/10' : 'border-slate-800 bg-slate-950'}`}>
+                  <button key={episode.id} type="button" onClick={() => selectEpisode(episode.id)} className={`w-full text-left rounded-lg border p-3 ${episode.id === selectedId ? 'border-cyan-400 bg-cyan-400/10' : 'border-slate-800 bg-slate-950'}`}>
                     <p className="font-semibold">{episode.id}</p>
                     <p className="text-xs text-slate-400 mt-1">{episode.center} · N{episode.level} · {episode.status}</p>
                   </button>
@@ -121,6 +157,40 @@ function CentralClinicalView({ session }) {
                   </div>
                 )}
                 {metadataOnly && <p className="mt-5 rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100">Administración / Coordinación recibe solo metadatos operativos; no se presenta narrativa clínica.</p>}
+
+                {session.role === 'nurse' && (
+                  <div className="mt-6 border-t border-slate-800 pt-5">
+                    <h3 className="font-semibold">Clasificación y prioridad de Enfermería</h3>
+                    <p className="text-xs text-slate-400 mt-1">Organiza prioridad y canal. No constituye diagnóstico, prescripción ni habilitación para ejecutar una indicación médica.</p>
+                    {canChangeLevel ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {[1, 2, 3].map((level) => (
+                          <button
+                            key={level}
+                            type="button"
+                            disabled={levelState === 'SAVING' || selected.level === level}
+                            onClick={() => changeLevel(level)}
+                            className="rounded-lg border border-slate-700 px-3 py-2 text-sm disabled:opacity-40"
+                          >
+                            {level === 1 ? 'N1 · Urgencia' : level === 2 ? 'N2 · Consulta no aguda' : 'N3 · Gestión'}
+                          </button>
+                        ))}
+                      </div>
+                    ) : <p className="mt-3 text-sm text-slate-400">El episodio cerrado no admite reclasificación.</p>}
+                    {selected.level === 1 && (
+                      <div className="mt-3 rounded-lg border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">
+                        <strong>Nivel 1:</strong> realizar llamada telefónica directa al facultativo. La web no sustituye ni retrasa esa llamada.
+                      </div>
+                    )}
+                    {selected.level === 3 && (
+                      <div className="mt-3 rounded-lg border border-amber-400/40 bg-amber-400/10 p-3 text-sm text-amber-100">
+                        Indicación médica remota, prescripción y actuación enfermera derivada permanecen <strong>BLOQUEADAS PARA ACTIVACIÓN REAL</strong> donde dependan de gates jurídicos pendientes.
+                      </div>
+                    )}
+                    {levelState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Nivel actualizado en la autoridad sintética; el historial se conserva en el episodio.</p>}
+                    {levelState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Reclasificación bloqueada. Código mínimo: {levelErrorCode}.</p>}
+                  </div>
+                )}
 
                 {session.role === 'physician' && (
                   <div className="mt-6 border-t border-slate-800 pt-5">
