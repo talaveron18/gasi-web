@@ -21,6 +21,7 @@ import AuthCallback from '@/pages/AuthCallback';
 import InternalAccess from '@/pages/InternalAccess';
 import InternalClinicalAuthority from '@/pages/InternalClinicalAuthority';
 import InternalClinicalNewEpisode from '@/pages/InternalClinicalNewEpisode';
+import InternalClinicalFocusedEpisode from '@/pages/InternalClinicalFocusedEpisode';
 import InternalWorkers from '@/pages/InternalWorkers';
 import InternalProfile from '@/pages/InternalProfile';
 import NotFound from '@/pages/NotFound';
@@ -56,6 +57,7 @@ function InternalAuthenticated({ children }) {
 
 function InternalClinicalGuard() { return <InternalAuthenticated><InternalClinicalAuthority /></InternalAuthenticated>; }
 function InternalClinicalNewEpisodeGuard() { return <InternalAuthenticated><InternalClinicalNewEpisode /></InternalAuthenticated>; }
+function InternalClinicalFocusedEpisodeGuard() { return <InternalAuthenticated><InternalClinicalFocusedEpisode /></InternalAuthenticated>; }
 function InternalProfileGuard() { return <InternalAuthenticated><InternalProfile /></InternalAuthenticated>; }
 function InternalAdminContent() {
   const { session } = useInternalPrototypeAuth();
@@ -86,6 +88,7 @@ function AppRouter() {
         <Route path="/interno/perfil" element={<InternalProfileGuard />} />
         <Route path="/interno/prototipo-clinico" element={<InternalClinicalGuard />} />
         <Route path="/interno/prototipo-clinico/nuevo" element={<InternalClinicalNewEpisodeGuard />} />
+        <Route path="/interno/prototipo-clinico/caso/:episodeId" element={<InternalClinicalFocusedEpisodeGuard />} />
         <Route path="/interno/trabajadores" element={<InternalAdminGuard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
