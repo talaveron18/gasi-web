@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import InternalClinicalPrototype from '@/pages/InternalClinicalPrototype';
 import { useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
 import { createInternalClinicalApi } from '@/lib/internalClinicalApi';
@@ -182,7 +183,17 @@ function CentralClinicalView({ session }) {
             <h1 className="text-3xl font-bold">Canal clínico sintético</h1>
             <p className="text-slate-400 mt-1">Autoridad sintética · identidad {session.id} · {session.roleLabel}</p>
           </div>
-          <button type="button" onClick={load} className="rounded-lg border border-slate-700 px-4 py-2 text-sm">Actualizar</button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {session.role === 'nurse' && (
+              <Link
+                to="/interno/prototipo-clinico/nuevo"
+                className="rounded-lg border border-cyan-400/50 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-100"
+              >
+                Abrir caso sintético
+              </Link>
+            )}
+            <button type="button" onClick={load} className="rounded-lg border border-slate-700 px-4 py-2 text-sm">Actualizar</button>
+          </div>
         </div>
 
         {state === 'LOADING' && <div role="status" className="rounded-xl border border-slate-800 bg-slate-900 p-5">Cargando episodios sintéticos…</div>}
@@ -288,100 +299,79 @@ function CentralClinicalView({ session }) {
                         Indicación médica remota, prescripción y actuación enfermera derivada permanecen <strong>BLOQUEADAS PARA ACTIVACIÓN REAL</strong> donde dependan de gates jurídicos pendientes.
                       </div>
                     )}
-                    {levelState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Nivel actualizado en la autoridad sintética; el historial se conserva en el episodio.</p>}
-                    {levelState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Reclasificación bloqueada. Código mínimo: {levelErrorCode}.</p>}
+                    {levelState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Nivel actualizado en la autoridad sintética; el cambio queda en su historial autoritativo.</p>}
+                    {levelState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Reclasificación no aplicada. Código mínimo: {levelErrorCode}.</p>}
+                  </div>
+                )}
+
+                {!metadataOnly && (
+                  <div className="mt-6 border-t border-slate-800 pt-5">
+                    <h3 className="font-semibold">Corrección / complemento mediante adenda</h3>
+                    <p className="text-xs text-slate-400 mt-1">No modifica ni elimina el original. Cada adenda queda como entrada separada y atribuida en la autoridad sintética.</p>
+                    {canAddAddendum ? (
+                      <form onSubmit={submitAddendum} className="mt-3 space-y-3">
+                        <textarea
+                          value={addendumText}
+                          onChange={(event) => setAddendumText(event.target.value)}
+                          rows={3}
+                          maxLength={2000}
+                          placeholder="Texto sintético de corrección o complemento"
+                          className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm"
+                        />
+                        <button type="submit" disabled={addendumState === 'SAVING'} className="rounded-lg border border-cyan-400/40 px-4 py-2 text-sm font-semibold text-cyan-100 disabled:opacity-40">
+                          {addendumState === 'SAVING' ? 'Registrando…' : 'Registrar adenda trazable'}
+                        </button>
+                      </form>
+                    ) : <p className="mt-3 text-sm text-slate-400">Un episodio cerrado no admite nuevas adendas en este prototipo.</p>}
+                    {addendumState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Adenda registrada como nueva entrada; el original permanece intacto.</p>}
+                    {addendumState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Adenda no registrada. Código mínimo: {addendumErrorCode}.</p>}
                   </div>
                 )}
 
                 {session.role === 'physician' && (
                   <div className="mt-6 border-t border-slate-800 pt-5">
                     <h3 className="font-semibold">Respuesta facultativa sintética</h3>
-                    <p className="text-xs text-slate-400 mt-1">La respuesta escrita queda atribuida al facultativo. RESPONDIDO/EMITIDA no acredita entrega, lectura ni ejecución.</p>
+                    <p className="text-xs text-slate-400 mt-1">Esta superficie documenta criterio escrito. No habilita prescripción electrónica ni acredita ejecución por Enfermería.</p>
                     {canRespond ? (
                       <form onSubmit={submitResponse} className="mt-3 space-y-3">
                         <textarea
                           value={responseText}
                           onChange={(event) => setResponseText(event.target.value)}
-                          rows={5}
+                          rows={4}
                           maxLength={4000}
-                          required
-                          placeholder="Contenido sintético de respuesta médica. No usar datos reales."
+                          placeholder="Respuesta sintética del facultativo"
                           className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm"
                         />
-                        <button type="submit" disabled={responseState === 'SAVING'} className="rounded-lg bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50">
-                          {responseState === 'SAVING' ? 'Registrando…' : 'Registrar respuesta sintética'}
+                        <button type="submit" disabled={responseState === 'SAVING'} className="rounded-lg border border-cyan-400/40 px-4 py-2 text-sm font-semibold text-cyan-100 disabled:opacity-40">
+                          {responseState === 'SAVING' ? 'Registrando…' : 'Registrar respuesta escrita'}
                         </button>
                       </form>
                     ) : <p className="mt-3 text-sm text-slate-400">El episodio cerrado no admite nuevas respuestas.</p>}
-                    {responseState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Respuesta registrada en la autoridad sintética y reflejada en el episodio.</p>}
-                    {responseState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Operación bloqueada. Código mínimo: {responseErrorCode}.</p>}
+                    {responseState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Respuesta registrada en la autoridad sintética. RESPONDIDO/EMITIDA no acredita lectura ni ejecución.</p>}
+                    {responseState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Respuesta no registrada. Código mínimo: {responseErrorCode}.</p>}
                   </div>
                 )}
 
-                {['nurse', 'physician'].includes(session.role) && (
+                {!metadataOnly && selected.status === 'RESPONDIDO' && (
                   <div className="mt-6 border-t border-slate-800 pt-5">
-                    <h3 className="font-semibold">Corrección clínica mediante adenda</h3>
-                    <p className="text-xs text-slate-400 mt-1">Append-only: conserva el original y añade una entrada nueva atribuida. No sustituye ni borra contenido previo. Solo datos sintéticos.</p>
-                    {canAddAddendum ? (
-                      <form onSubmit={submitAddendum} className="mt-3 space-y-3">
-                        <textarea
-                          value={addendumText}
-                          onChange={(event) => setAddendumText(event.target.value)}
-                          rows={4}
-                          maxLength={4000}
-                          required
-                          placeholder="Adenda sintética de corrección o complemento. No usar datos reales."
-                          className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm"
-                        />
-                        <button type="submit" disabled={addendumState === 'SAVING'} className="rounded-lg border border-cyan-400/50 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-100 disabled:opacity-50">
-                          {addendumState === 'SAVING' ? 'Añadiendo…' : 'Añadir adenda sintética'}
-                        </button>
-                      </form>
-                    ) : <p className="mt-3 text-sm text-slate-400">El episodio cerrado conserva su contenido y no admite nuevas adendas en este prototipo.</p>}
-                    {addendumState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Adenda añadida de forma append-only en la autoridad sintética.</p>}
-                    {addendumState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Adenda bloqueada. Código mínimo: {addendumErrorCode}.</p>}
-                  </div>
-                )}
-
-                {['nurse', 'physician'].includes(session.role) && (
-                  <div className="mt-6 border-t border-slate-800 pt-5" data-testid="authoritative-episode-closure">
-                    <h3 className="font-semibold">Cierre trazable del episodio</h3>
-                    <p className="text-xs text-slate-400 mt-1">El cierre no borra el episodio. Requiere respuesta facultativa previa y conserva quién cierra y cuándo. No acredita por sí mismo ejecución de indicaciones, prescripción ni resultado clínico.</p>
-                    {selected.status === 'CERRADO' ? (
-                      <p className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-100">Episodio cerrado por {selected.closedById || 'identidad no disponible'} a las {selected.closedAt || '—'}.</p>
-                    ) : !canClose ? (
-                      <p className="mt-3 text-sm text-slate-400">Para cerrar debe existir una respuesta facultativa autoritativa y el episodio debe estar en estado RESPONDIDO.</p>
-                    ) : (
+                    <h3 className="font-semibold">Cierre documental trazable</h3>
+                    <p className="text-xs text-slate-400 mt-1">Cerrar el episodio documenta el fin de este registro. No acredita ejecución de indicaciones, prescripción ni resultado clínico.</p>
+                    {canClose && (
                       <form onSubmit={submitClosure} className="mt-3 space-y-3">
-                        <label className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm">
-                          <input type="checkbox" checked={closureOptions.followUpPending} onChange={(event) => updateClosureOption('followUpPending', event.target.checked)} className="mt-1" />
-                          <span><strong>Existe seguimiento pendiente.</strong> Si está marcado, el cierre queda bloqueado.</span>
-                        </label>
-                        <label className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm">
-                          <input type="checkbox" checked={closureOptions.acknowledgementRequired} onChange={(event) => updateClosureOption('acknowledgementRequired', event.target.checked)} className="mt-1" />
-                          <span><strong>Exigir lectura/acuse antes de cerrar.</strong> Última respuesta: {latestResponse?.status || 'sin estado'}.</span>
-                        </label>
-                        <label className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm">
-                          <input type="checkbox" checked={closureOptions.handoffRequired} onChange={(event) => updateClosureOption('handoffRequired', event.target.checked)} className="mt-1" />
-                          <span><strong>El episodio requiere relevo/handoff.</strong></span>
-                        </label>
-                        {closureOptions.handoffRequired && (
-                          <label className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm">
-                            <input type="checkbox" checked={closureOptions.handoffAcknowledged} onChange={(event) => updateClosureOption('handoffAcknowledged', event.target.checked)} className="mt-1" />
-                            <span><strong>Relevo recibido y confirmado de forma trazable.</strong></span>
-                          </label>
-                        )}
-                        <button type="submit" disabled={closureState === 'SAVING'} className="rounded-lg border border-emerald-400/50 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-100 disabled:opacity-50">
-                          {closureState === 'SAVING' ? 'Cerrando…' : 'Cerrar episodio sintético'}
+                        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={closureOptions.followUpPending} onChange={(event) => updateClosureOption('followUpPending', event.target.checked)} />Existe seguimiento pendiente</label>
+                        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={closureOptions.acknowledgementRequired} onChange={(event) => updateClosureOption('acknowledgementRequired', event.target.checked)} />La última respuesta exige acuse/lectura antes de cierre</label>
+                        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={closureOptions.handoffRequired} onChange={(event) => updateClosureOption('handoffRequired', event.target.checked)} />Relevo requerido antes de cierre</label>
+                        {closureOptions.handoffRequired && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={closureOptions.handoffAcknowledged} onChange={(event) => updateClosureOption('handoffAcknowledged', event.target.checked)} />Relevo confirmado de forma trazable</label>}
+                        {closureOptions.acknowledgementRequired && latestResponse && <p className="text-xs text-slate-400">Última respuesta: {latestResponse.deliveryStatus || 'EMITIDA'}.</p>}
+                        <button type="submit" disabled={closureState === 'SAVING'} className="rounded-lg border border-emerald-400/40 px-4 py-2 text-sm font-semibold text-emerald-100 disabled:opacity-40">
+                          {closureState === 'SAVING' ? 'Cerrando…' : 'Cerrar episodio autoritativo'}
                         </button>
                       </form>
                     )}
-                    {closureState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Cierre registrado en la autoridad sintética con identidad y marca temporal.</p>}
-                    {closureState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Cierre bloqueado de forma segura. Código mínimo: {closureErrorCode}.</p>}
+                    {closureState === 'SAVED' && <p role="status" className="mt-3 text-sm text-emerald-300">Episodio cerrado en la autoridad sintética con identidad y timestamp atribuidos.</p>}
+                    {closureState === 'ERROR' && <p role="alert" className="mt-3 text-sm text-red-300">Cierre no aplicado. Código mínimo: {closureErrorCode}.</p>}
                   </div>
                 )}
-
-                <p className="mt-5 text-xs text-slate-500">Las demás mutaciones autoritativas se conectarán por etapas para evitar dos fuentes de verdad.</p>
               </section>
             )}
           </div>
@@ -392,8 +382,8 @@ function CentralClinicalView({ session }) {
 }
 
 export default function InternalClinicalAuthority() {
-  const { session, centralValidationEnabled } = useInternalPrototypeAuth();
-  if (!centralValidationEnabled) return <InternalClinicalPrototype />;
+  const { session, centralizedClinicalApiEnabled } = useInternalPrototypeAuth();
+  if (!centralizedClinicalApiEnabled) return <InternalClinicalPrototype />;
   if (!session) return null;
   return <CentralClinicalView session={session} />;
 }
