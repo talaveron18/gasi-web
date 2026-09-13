@@ -1,4 +1,4 @@
-import { loadAuthoritativeEpisodes } from './internalClinicalAuthority';
+import { loadAuthoritativeEpisodes, selectAuthoritativeAddendaForDisplay } from './internalClinicalAuthority';
 
 describe('internalClinicalAuthority', () => {
   test('returns only episodes supplied by the central synthetic authority', async () => {
@@ -30,5 +30,41 @@ describe('internalClinicalAuthority', () => {
       episodes: [],
       errorCode: 'invalid_authority_payload',
     });
+  });
+
+  test('exposes complete append-only addendum history to clinical roles in timestamp order', () => {
+    const episode = {
+      addenda: [
+        { id: 'DEMO-EP-0001-A2', text: 'DEMO complemento 2', authorId: 'USR-DEMO-PHYS-01', authorRole: 'physician', createdAt: '2026-09-13T10:02:00Z' },
+        { id: 'DEMO-EP-0001-A1', text: 'DEMO complemento 1', authorId: 'USR-DEMO-NURSE-01', authorRole: 'nurse', createdAt: '2026-09-13T10:01:00Z' },
+      ],
+    };
+
+    expect(selectAuthoritativeAddendaForDisplay({ episode, session: { role: 'nurse' } })).toEqual([
+      { id: 'DEMO-EP-0001-A1', text: 'DEMO complemento 1', authorId: 'USR-DEMO-NURSE-01', authorRole: 'nurse', createdAt: '2026-09-13T10:01:00Z' },
+      { id: 'DEMO-EP-0001-A2', text: 'DEMO complemento 2', authorId: 'USR-DEMO-PHYS-01', authorRole: 'physician', createdAt: '2026-09-13T10:02:00Z' },
+    ]);
+  });
+
+  test('never exposes addendum narrative to administration', () => {
+    const episode = {
+      addenda: [{ id: 'DEMO-EP-0001-A1', text: 'DEMO narrativa clínica', authorId: 'USR-DEMO-NURSE-01', authorRole: 'nurse', createdAt: '2026-09-13T10:01:00Z' }],
+    };
+
+    expect(selectAuthoritativeAddendaForDisplay({ episode, session: { role: 'admin' } })).toEqual([]);
+  });
+
+  test('drops malformed addenda instead of rendering partial or unattributed clinical corrections', () => {
+    const episode = {
+      addenda: [
+        { id: 'DEMO-EP-0001-A1', text: 'DEMO válida', authorId: 'USR-DEMO-NURSE-01', authorRole: 'nurse', createdAt: '2026-09-13T10:01:00Z' },
+        { id: 'DEMO-EP-0001-A2', text: 'DEMO sin autor', authorRole: 'nurse', createdAt: '2026-09-13T10:02:00Z' },
+        { id: 'DEMO-EP-0001-A3', text: 'DEMO rol desconocido', authorId: 'USR-DEMO-X', authorRole: 'other', createdAt: '2026-09-13T10:03:00Z' },
+      ],
+    };
+
+    expect(selectAuthoritativeAddendaForDisplay({ episode, session: { role: 'physician' } })).toEqual([
+      { id: 'DEMO-EP-0001-A1', text: 'DEMO válida', authorId: 'USR-DEMO-NURSE-01', authorRole: 'nurse', createdAt: '2026-09-13T10:01:00Z' },
+    ]);
   });
 });
