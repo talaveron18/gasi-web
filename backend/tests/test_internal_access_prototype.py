@@ -39,6 +39,28 @@ def test_session_validation_returns_minimal_synthetic_identity():
     assert payload["real_data_allowed"] is False
 
 
+def test_profile_returns_only_minimal_non_clinical_operational_fields():
+    response = client.get("/api/internal-prototype/profile", headers=NURSE)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload == {
+        "id": "USR-DEMO-NURSE-01",
+        "role": "nurse",
+        "display_name": "Enfermera Demo 01",
+        "centers": ["Centro ficticio Madrid 01"],
+        "operational_state": "ACTIVE",
+        "prototype_only": True,
+        "real_data_allowed": False,
+    }
+    serialized = response.text.lower()
+    assert "colegi" not in serialized
+    assert "titul" not in serialized
+    assert "patient" not in serialized
+    assert "summary" not in serialized
+    assert internal_prototype.AUDIT[-1]["action"] == "PROFILE_VIEWED"
+    assert internal_prototype.AUDIT[-1]["episode_id"] is None
+
+
 def test_admin_can_revoke_and_revoked_identity_is_immediately_rejected():
     changed = client.post(
         "/api/internal-prototype/workers/USR-DEMO-NURSE-01/access",
@@ -51,6 +73,10 @@ def test_admin_can_revoke_and_revoked_identity_is_immediately_rejected():
     rejected = client.get("/api/internal-prototype/session", headers=NURSE)
     assert rejected.status_code == 401
     assert rejected.json()["detail"] == "invalid_or_revoked_identity"
+
+    profile_rejected = client.get("/api/internal-prototype/profile", headers=NURSE)
+    assert profile_rejected.status_code == 401
+    assert profile_rejected.json()["detail"] == "invalid_or_revoked_identity"
 
 
 def test_non_admin_cannot_change_worker_access():
