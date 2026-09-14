@@ -1,4 +1,4 @@
-import { loadAuthoritativeEpisodes, partitionAuthoritativeEpisodes, selectAuthoritativeAddendaForDisplay, selectAuthoritativeEpisodeById } from './internalClinicalAuthority';
+import { loadAuthoritativeEpisodes, partitionAuthoritativeEpisodes, selectAuthoritativeAddendaForDisplay, selectAuthoritativeEpisodeById, selectPreferredAuthoritativeEpisodeId } from './internalClinicalAuthority';
 
 describe('internalClinicalAuthority', () => {
   test('returns only episodes supplied by the central synthetic authority', async () => {
@@ -37,6 +37,18 @@ describe('internalClinicalAuthority', () => {
       closed: [closed],
     });
     expect(partitionAuthoritativeEpisodes(null)).toEqual({ pending: [], closed: [] });
+  });
+
+  test('prioritizes a pending episode for initial selection while preserving an existing valid selection', () => {
+    const closed = { id: 'DEMO-EP-CLOSED', status: 'CERRADO' };
+    const answered = { id: 'DEMO-EP-ANSWERED', status: 'RESPONDIDO' };
+    const open = { id: 'DEMO-EP-OPEN', status: 'ABIERTO' };
+
+    expect(selectPreferredAuthoritativeEpisodeId({ episodes: [closed, answered, open] })).toBe('DEMO-EP-ANSWERED');
+    expect(selectPreferredAuthoritativeEpisodeId({ episodes: [closed, answered, open], currentId: closed.id })).toBe(closed.id);
+    expect(selectPreferredAuthoritativeEpisodeId({ episodes: [closed], currentId: 'MISSING' })).toBe(closed.id);
+    expect(selectPreferredAuthoritativeEpisodeId({ episodes: [{ id: 'UNKNOWN', status: 'OTRO' }] })).toBeNull();
+    expect(selectPreferredAuthoritativeEpisodeId({ episodes: null })).toBeNull();
   });
 
   test('exposes complete append-only addendum history to clinical roles in timestamp order', () => {
