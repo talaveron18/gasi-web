@@ -20,6 +20,19 @@ def _actor(actor_id: Optional[str]):
     return internal_prototype._actor(actor_id)
 
 
+def _profile(actor):
+    """Return the minimum non-clinical professional profile needed by the prototype."""
+    return {
+        "id": actor.id,
+        "role": actor.role,
+        "display_name": actor.display_name,
+        "centers": actor.centers,
+        "operational_state": "ACTIVE" if actor.active else "REVOKED",
+        "prototype_only": True,
+        "real_data_allowed": False,
+    }
+
+
 @router.get("/session")
 def session_status(x_demo_actor_id: Optional[str] = Header(default=None)):
     """Validate the synthetic identity against the authoritative in-memory actor store."""
@@ -34,6 +47,14 @@ def session_status(x_demo_actor_id: Optional[str] = Header(default=None)):
         "prototype_only": True,
         "real_data_allowed": False,
     }
+
+
+@router.get("/profile")
+def professional_profile(x_demo_actor_id: Optional[str] = Header(default=None)):
+    """Expose only the signed-in worker's minimal synthetic operational profile."""
+    actor = _actor(x_demo_actor_id)
+    internal_prototype._audit(actor, "PROFILE_VIEWED")
+    return _profile(actor)
 
 
 @router.post("/workers/{worker_id}/access")
