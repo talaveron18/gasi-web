@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import InternalClinicalEpisodeQueue from '../components/InternalClinicalEpisodeQueue';
 import InternalClinicalPrototype from '@/pages/InternalClinicalPrototype';
 import { useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
 import { createInternalClinicalApi } from '@/lib/internalClinicalApi';
@@ -207,17 +208,11 @@ function CentralClinicalView({ session }) {
 
         {state === 'READY' && episodes.length > 0 && (
           <div className="grid lg:grid-cols-[320px_1fr] gap-5">
-            <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-              <h2 className="font-bold mb-3">Episodios visibles</h2>
-              <div className="space-y-2">
-                {episodes.map((episode) => (
-                  <button key={episode.id} type="button" onClick={() => selectEpisode(episode.id)} className={`w-full text-left rounded-lg border p-3 ${episode.id === selectedId ? 'border-cyan-400 bg-cyan-400/10' : 'border-slate-800 bg-slate-950'}`}>
-                    <p className="font-semibold">{episode.id}</p>
-                    <p className="text-xs text-slate-400 mt-1">{episode.center} · N{episode.level} · {episode.status}</p>
-                  </button>
-                ))}
-              </div>
-            </section>
+            <InternalClinicalEpisodeQueue
+              episodes={episodes}
+              selectedId={selectedId}
+              onSelect={selectEpisode}
+            />
 
             {selected && (
               <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
