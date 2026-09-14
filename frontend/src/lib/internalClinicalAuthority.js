@@ -33,6 +33,18 @@ export function partitionAuthoritativeEpisodes(episodes) {
   }, { pending: [], closed: [] });
 }
 
+export function selectPreferredAuthoritativeEpisodeId({ episodes, currentId = null }) {
+  if (!Array.isArray(episodes)) return null;
+
+  const current = typeof currentId === 'string' && currentId
+    ? episodes.find((episode) => episode && episode.id === currentId)
+    : null;
+  if (current) return current.id;
+
+  const { pending, closed } = partitionAuthoritativeEpisodes(episodes);
+  return pending[0]?.id || closed[0]?.id || null;
+}
+
 export function selectAuthoritativeAddendaForDisplay({ episode, session }) {
   if (!episode || !session || !CLINICAL_ROLES.has(session.role)) return [];
   if (!Array.isArray(episode.addenda)) return [];
