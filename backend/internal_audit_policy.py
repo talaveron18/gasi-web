@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from datetime import datetime, timezone
+from typing import Any, Mapping, MutableSequence
 
 # Technical/audit logs must never become a shadow clinical record.
 # Keep this deny-list deliberately broad and fail closed for nested structures.
@@ -44,3 +45,53 @@ def sanitize_audit_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any
             raise ValueError("audit_metadata_must_be_scalar")
         clean[key] = value
     return clean
+
+
+def build_audit_event(
+    *,
+    actor_id: str,
+    actor_role: str,
+    action: str,
+    episode_id: str | None = None,
+    metadata: Mapping[str, Any] | None = None,
+    at: str | None = None,
+) -> dict[str, Any]:
+    """Build one metadata-only audit event and reject unsafe input.
+
+    The caller supplies identity and action metadata only. Clinical narrative is
+    never accepted here. ``at`` exists for deterministic tests; production callers
+    should omit it so UTC time is generated centrally.
+    """
+    if not actor_id.strip() or not actor_role.strip() or not action.strip():
+        raise ValueError("audit_identity_or_action_missing")
+    return {
+        "at": at or datetime.now(timezone.utc).isoformat(),
+        "actor_id": actor_id.strip(),
+        "actor_role": actor_role.strip(),
+        "action": action.strip(),
+        "episode_id": episode_id,
+        "metadata": sanitize_audit_metadata(metadata),
+    }
+
+
+def append_audit_event(
+    stream: MutableSequence[dict[str, Any]],
+    *,
+    actor_id: str,
+    actor_role: str,
+    action: str,
+    episode_id: str | None = None,
+    metadata: Mapping[str, Any] | None = None,
+    at: str | None = None,
+) -> dict[str, Any]:
+    """Append exactly one validated event; unsafe events never reach the stream."""
+    event = build_audit_event(
+        actor_id=actor_id,
+        actor_role=actor_role,
+        action=action,
+        episode_id=episode_id,
+        metadata=metadata,
+        at=at,
+    )
+    stream.append(event)
+    return event
