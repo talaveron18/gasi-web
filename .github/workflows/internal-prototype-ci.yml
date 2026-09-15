@@ -3,7 +3,7 @@ name: Internal Prototype CI
 on:
   push:
     branches:
-      - automation/web-internal-clinical-20260912-01
+      - 'automation/web-internal-clinical-*'
   workflow_dispatch:
 
 permissions:
