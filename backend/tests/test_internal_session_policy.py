@@ -28,8 +28,18 @@ def test_idle_timeout_fails_closed():
     assert validate_session(session, ACTOR, NOW) == "IDLE_TIMEOUT"
 
 
+def test_idle_timeout_expires_at_exact_boundary():
+    session = make_session(last_seen_at=NOW - timedelta(minutes=15))
+    assert validate_session(session, ACTOR, NOW) == "IDLE_TIMEOUT"
+
+
 def test_absolute_timeout_fails_closed():
     session = make_session(issued_at=NOW - timedelta(hours=9))
+    assert validate_session(session, ACTOR, NOW) == "ABSOLUTE_TIMEOUT"
+
+
+def test_absolute_timeout_expires_at_exact_boundary():
+    session = make_session(issued_at=NOW - timedelta(hours=8))
     assert validate_session(session, ACTOR, NOW) == "ABSOLUTE_TIMEOUT"
 
 
@@ -45,3 +55,13 @@ def test_session_cannot_be_reused_by_another_identity():
 def test_future_timestamps_fail_closed():
     session = make_session(last_seen_at=NOW + timedelta(seconds=1))
     assert validate_session(session, ACTOR, NOW) == "INVALID_CLOCK"
+
+
+def test_naive_session_timestamp_fails_closed_without_runtime_error():
+    session = make_session(last_seen_at=datetime(2026, 9, 15, 11, 59))
+    assert validate_session(session, ACTOR, NOW) == "INVALID_CLOCK"
+
+
+def test_naive_current_time_fails_closed_without_runtime_error():
+    naive_now = datetime(2026, 9, 15, 12, 0)
+    assert validate_session(make_session(), ACTOR, naive_now) == "INVALID_CLOCK"
