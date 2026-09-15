@@ -56,12 +56,7 @@ def build_audit_event(
     metadata: Mapping[str, Any] | None = None,
     at: str | None = None,
 ) -> dict[str, Any]:
-    """Build one metadata-only audit event and reject unsafe input.
-
-    The caller supplies identity and action metadata only. Clinical narrative is
-    never accepted here. ``at`` exists for deterministic tests; production callers
-    should omit it so UTC time is generated centrally.
-    """
+    """Build one metadata-only audit event and reject unsafe input."""
     if not actor_id.strip() or not actor_role.strip() or not action.strip():
         raise ValueError("audit_identity_or_action_missing")
     return {
@@ -95,3 +90,29 @@ def append_audit_event(
     )
     stream.append(event)
     return event
+
+
+class ValidatedAuditStream(list[dict[str, Any]]):
+    """In-memory prototype stream that validates every append at the boundary.
+
+    This deliberately accepts the event shape emitted by the current synthetic
+    route, then rebuilds it through ``build_audit_event``. A caller cannot bypass
+    metadata controls merely by calling ``append`` directly. This remains
+    prototype-only storage and is BLOQUEADA PARA ACTIVACION REAL.
+    """
+
+    def append(self, event: dict[str, Any]) -> None:
+        if not isinstance(event, Mapping):
+            raise ValueError("audit_event_must_be_mapping")
+        allowed_keys = {"at", "actor_id", "actor_role", "action", "episode_id", "metadata"}
+        if set(event) - allowed_keys:
+            raise ValueError("audit_event_unexpected_field")
+        validated = build_audit_event(
+            actor_id=str(event.get("actor_id") or ""),
+            actor_role=str(event.get("actor_role") or ""),
+            action=str(event.get("action") or ""),
+            episode_id=event.get("episode_id"),
+            metadata=event.get("metadata"),
+            at=event.get("at"),
+        )
+        super().append(validated)
