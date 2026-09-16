@@ -11,10 +11,14 @@ from backend.internal_audit_policy import ValidatedAuditStream
 
 router = APIRouter(prefix="/internal-prototype", tags=["internal-prototype"])
 
-Role = Literal["nurse", "physician", "admin"]
+Role = Literal["nurse", "physician", "psychologist", "physiotherapist", "admin"]
 EpisodeStatus = Literal["ABIERTO", "RESPONDIDO", "CERRADO"]
 MessageStatus = Literal["EMITIDA", "ENTREGADA", "LEIDA"]
 DispositionKind = Literal["SALIDA_CENTRO", "TRASLADO", "DECISION_POSTERIOR"]
+EpisodeDiscipline = Literal["nursing", "psychology", "physiotherapy"]
+CLINICAL_ROLES = frozenset({"nurse", "physician", "psychologist", "physiotherapist"})
+EPISODE_CREATORS = frozenset({"nurse", "psychologist", "physiotherapist"})
+ROLE_DISCIPLINE = {"nurse": "nursing", "psychologist": "psychology", "physiotherapist": "physiotherapy"}
 
 
 def _enabled() -> bool:
@@ -84,6 +88,8 @@ class CloseInput(BaseModel):
 ACTORS: Dict[str, Actor] = {
     "USR-DEMO-NURSE-01": Actor(id="USR-DEMO-NURSE-01", role="nurse", display_name="Enfermera Demo 01", centers=["Centro ficticio Madrid 01"]),
     "USR-DEMO-PHYS-01": Actor(id="USR-DEMO-PHYS-01", role="physician", display_name="Dr. Demo 01", centers=["Centro ficticio Madrid 01"]),
+    "USR-DEMO-PSY-01": Actor(id="USR-DEMO-PSY-01", role="psychologist", display_name="Psicóloga Demo 01", centers=["Centro ficticio Madrid 01"]),
+    "USR-DEMO-PHYSIO-01": Actor(id="USR-DEMO-PHYSIO-01", role="physiotherapist", display_name="Fisioterapeuta Demo 01", centers=["Centro ficticio Madrid 01"]),
     "USR-DEMO-ADMIN-01": Actor(id="USR-DEMO-ADMIN-01", role="admin", display_name="Coordinación Demo 01", centers=[]),
 }
 
@@ -113,7 +119,7 @@ def _episode_or_404(episode_id: str) -> dict:
 def _can_access(actor: Actor, episode: dict) -> bool:
     if actor.role == "admin":
         return True
-    return episode["center"] in actor.centers
+    return actor.role in CLINICAL_ROLES and episode["center"] in actor.centers
 
 
 def _require_episode_access(actor: Actor, episode: dict) -> None:
@@ -122,13 +128,13 @@ def _require_episode_access(actor: Actor, episode: dict) -> None:
 
 
 def _admin_view(episode: dict) -> dict:
-    return {key: episode.get(key) for key in ("id", "center", "level", "status", "created_at", "created_by_id", "responded_at", "responded_by_id", "closed_at", "closed_by_id", "disposition_events")}
+    return {key: episode.get(key) for key in ("id", "center", "discipline", "level", "status", "created_at", "created_by_id", "responded_at", "responded_by_id", "closed_at", "closed_by_id", "disposition_events")}
 
 
 @router.get("/health")
 def prototype_health():
     _require_enabled()
-    return {"enabled": True, "storage": "memory_only", "real_data_allowed": False}
+    return {"enabled": True, "storage": "memory_only", "real_data_allowed": False, "activation": "BLOQUEADA PARA ACTIVACIÓN REAL"}
 
 
 @router.get("/workers")
@@ -143,17 +149,17 @@ def list_workers(x_demo_actor_id: Optional[str] = Header(default=None)):
 @router.post("/episodes", status_code=status.HTTP_201_CREATED)
 def create_episode(payload: CreateEpisode, x_demo_actor_id: Optional[str] = Header(default=None)):
     actor = _actor(x_demo_actor_id)
-    if actor.role != "nurse":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="nurse_only")
+    if actor.role not in EPISODE_CREATORS:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="episode_creator_role_required")
     patient_ref = _require_synthetic(payload.patient_ref, "patient_ref")
     center = _require_synthetic(payload.center, "center")
     if center not in actor.centers:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="center_not_assigned")
     episode_id = f"DEMO-EP-{len(EPISODES) + 1:04d}"
     at = _now()
-    episode = {"id": episode_id, "patient_ref": patient_ref, "center": center, "level": payload.level, "status": "ABIERTO", "summary": payload.summary.strip(), "created_at": at, "created_by_id": actor.id, "responses": [], "addenda": [], "level_history": [], "disposition_events": [], "closed_at": None, "closed_by_id": None}
+    episode = {"id": episode_id, "patient_ref": patient_ref, "center": center, "discipline": ROLE_DISCIPLINE[actor.role], "level": payload.level, "status": "ABIERTO", "summary": payload.summary.strip(), "created_at": at, "created_by_id": actor.id, "created_by_role": actor.role, "responses": [], "addenda": [], "level_history": [], "disposition_events": [], "closed_at": None, "closed_by_id": None}
     EPISODES[episode_id] = episode
-    _audit(actor, "EPISODE_CREATED", episode_id, {"level": payload.level})
+    _audit(actor, "EPISODE_CREATED", episode_id, {"level": payload.level, "discipline": episode["discipline"]})
     return episode
 
 
@@ -162,9 +168,7 @@ def list_episodes(x_demo_actor_id: Optional[str] = Header(default=None)):
     actor = _actor(x_demo_actor_id)
     visible = [episode for episode in EPISODES.values() if _can_access(actor, episode)]
     _audit(actor, "EPISODES_LIST_VIEWED", metadata={"count": len(visible)})
-    if actor.role == "admin":
-        return [_admin_view(item) for item in visible]
-    return visible
+    return [_admin_view(item) for item in visible] if actor.role == "admin" else visible
 
 
 @router.get("/episodes/{episode_id}")
@@ -198,7 +202,7 @@ def change_level(episode_id: str, payload: LevelChangeInput, x_demo_actor_id: Op
 @router.post("/episodes/{episode_id}/disposition")
 def record_disposition(episode_id: str, payload: DispositionInput, x_demo_actor_id: Optional[str] = Header(default=None)):
     actor = _actor(x_demo_actor_id)
-    if actor.role not in ("nurse", "physician"):
+    if actor.role not in CLINICAL_ROLES:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="clinical_role_required")
     episode = _episode_or_404(episode_id)
     _require_episode_access(actor, episode)
@@ -221,13 +225,12 @@ def respond(episode_id: str, payload: ResponseInput, x_demo_actor_id: Optional[s
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="response_not_allowed")
     at = _now()
     latest_disposition = episode["disposition_events"][-1] if episode["disposition_events"] else None
-    late_after_disposition = latest_disposition is not None
-    response = {"id": f"{episode_id}-R{len(episode['responses']) + 1}", "text": payload.text.strip(), "author_id": actor.id, "created_at": at, "status": "EMITIDA", "status_history": [{"at": at, "from": "BORRADOR", "to": "EMITIDA", "evidence": None}], "late_after_disposition": late_after_disposition, "disposition_event_id": latest_disposition["id"] if latest_disposition else None, "late_reviewed_at": None, "late_reviewed_by_id": None}
+    response = {"id": f"{episode_id}-R{len(episode['responses']) + 1}", "text": payload.text.strip(), "author_id": actor.id, "created_at": at, "status": "EMITIDA", "status_history": [{"at": at, "from": "BORRADOR", "to": "EMITIDA", "evidence": None}], "late_after_disposition": latest_disposition is not None, "disposition_event_id": latest_disposition["id"] if latest_disposition else None, "late_reviewed_at": None, "late_reviewed_by_id": None}
     episode["responses"].append(response)
     episode["status"] = "RESPONDIDO"
     episode["responded_at"] = at
     episode["responded_by_id"] = actor.id
-    _audit(actor, "CLINICAL_RESPONSE_ISSUED", episode_id, {"response_id": response["id"], "late_after_disposition": late_after_disposition})
+    _audit(actor, "CLINICAL_RESPONSE_ISSUED", episode_id, {"response_id": response["id"], "late_after_disposition": response["late_after_disposition"]})
     return episode
 
 
@@ -254,7 +257,7 @@ def review_late_response(episode_id: str, response_id: str, x_demo_actor_id: Opt
 @router.post("/episodes/{episode_id}/addenda")
 def add_addendum(episode_id: str, payload: AddendumInput, x_demo_actor_id: Optional[str] = Header(default=None)):
     actor = _actor(x_demo_actor_id)
-    if actor.role not in ("nurse", "physician"):
+    if actor.role not in CLINICAL_ROLES:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="clinical_role_required")
     episode = _episode_or_404(episode_id)
     _require_episode_access(actor, episode)
@@ -272,7 +275,7 @@ def mark_delivery(episode_id: str, response_id: str, evidence: EvidenceInput, x_
     actor = _actor(x_demo_actor_id)
     episode = _episode_or_404(episode_id)
     _require_episode_access(actor, episode)
-    if actor.role == "admin":
+    if actor.role not in CLINICAL_ROLES:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="clinical_role_required")
     response = next((item for item in episode["responses"] if item["id"] == response_id), None)
     if not response:
@@ -281,8 +284,9 @@ def mark_delivery(episode_id: str, response_id: str, evidence: EvidenceInput, x_
     next_status = "ENTREGADA" if response["status"] == "EMITIDA" else "LEIDA"
     if evidence.kind != expected or response["status"] not in ("EMITIDA", "ENTREGADA"):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="invalid_message_transition")
+    previous = response["status"]
     response["status"] = next_status
-    response["status_history"].append({"at": _now(), "from": "EMITIDA" if next_status == "ENTREGADA" else "ENTREGADA", "to": next_status, "evidence": {"kind": evidence.kind, "at": evidence.at}})
+    response["status_history"].append({"at": _now(), "from": previous, "to": next_status, "evidence": {"kind": evidence.kind, "at": evidence.at}})
     _audit(actor, f"MESSAGE_{next_status}", episode_id, {"response_id": response_id, "evidence_kind": evidence.kind})
     return response
 
@@ -290,7 +294,7 @@ def mark_delivery(episode_id: str, response_id: str, evidence: EvidenceInput, x_
 @router.post("/episodes/{episode_id}/close")
 def close_episode(episode_id: str, payload: CloseInput, x_demo_actor_id: Optional[str] = Header(default=None)):
     actor = _actor(x_demo_actor_id)
-    if actor.role not in ("nurse", "physician"):
+    if actor.role not in CLINICAL_ROLES:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="clinical_role_required")
     episode = _episode_or_404(episode_id)
     _require_episode_access(actor, episode)
