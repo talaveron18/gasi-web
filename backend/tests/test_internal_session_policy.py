@@ -57,6 +57,24 @@ def test_future_timestamps_fail_closed():
     assert validate_session(session, ACTOR, NOW) == "INVALID_CLOCK"
 
 
+def test_last_seen_cannot_precede_session_issuance():
+    issued = NOW - timedelta(hours=1)
+    session = make_session(issued_at=issued, last_seen_at=issued - timedelta(seconds=1))
+    assert validate_session(session, ACTOR, NOW) == "INVALID_CLOCK"
+
+
+def test_empty_session_identifier_fails_closed():
+    assert validate_session(make_session(session_id=""), ACTOR, NOW) == "INVALID_IDENTITY"
+
+
+def test_empty_bound_actor_identifier_fails_closed():
+    assert validate_session(make_session(actor_id=""), ACTOR, NOW) == "INVALID_IDENTITY"
+
+
+def test_empty_request_actor_identifier_fails_closed():
+    assert validate_session(make_session(), "", NOW) == "INVALID_IDENTITY"
+
+
 def test_naive_session_timestamp_fails_closed_without_runtime_error():
     session = make_session(last_seen_at=datetime(2026, 9, 15, 11, 59))
     assert validate_session(session, ACTOR, NOW) == "INVALID_CLOCK"
