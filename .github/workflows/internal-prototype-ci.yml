@@ -47,14 +47,14 @@ jobs:
           python-version: '3.12'
       - name: Install minimal test dependencies
         run: pip install fastapi starlette pydantic python-dotenv motor pytest httpx
-      - name: Synthetic API tests
+      - name: Internal synthetic and security tests
         env:
           ENABLE_INTERNAL_SYNTHETIC_PROTOTYPE: 'true'
-        run: pytest -q tests/test_internal_prototype.py --junitxml=synthetic-api-junit.xml
-      - name: Preserve synthetic API diagnostics
+        run: pytest -q tests/test_internal_*.py --junitxml=internal-prototype-junit.xml
+      - name: Preserve internal prototype diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: synthetic-api-test-results
-          path: backend/synthetic-api-junit.xml
+          name: internal-prototype-test-results
+          path: backend/internal-prototype-junit.xml
           if-no-files-found: warn
