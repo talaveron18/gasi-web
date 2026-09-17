@@ -37,7 +37,7 @@ def _can(a,e):return a['role']=='admin'or(a['role']in CLINICAL_ROLES and e['cent
 def _access(a,e):
  if not _can(a,e):raise HTTPException(403,'episode_forbidden')
 def _can_write(a,e):
- if a['role']in('nurse','physician'):return e['center']in a.get('centers',[])
+ if a['role']in('nurse','physician'):return e['center']in a.get('centers',[])and e.get('discipline')=='nursing'
  return a['role']in('psychologist','physiotherapist')and e['center']in a.get('centers',[])and e.get('discipline')==ROLE_DISCIPLINE[a['role']]
 def _write_access(a,e):
  _access(a,e)
