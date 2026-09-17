@@ -6,11 +6,13 @@ const InternalPrototypeAuthContext = createContext(null);
 const INITIAL_IDENTITIES = [
   { id: 'USR-DEMO-NURSE-01', displayName: 'Enfermera Demo 01', role: 'nurse', roleLabel: 'Enfermería', centers: ['Centro ficticio Madrid 01'], status: 'ACTIVE', operationalStatus: 'DEMO_READY' },
   { id: 'USR-DEMO-PHYS-01', displayName: 'Dr. Demo 01', role: 'physician', roleLabel: 'Facultativo', centers: ['Centro ficticio Madrid 01'], status: 'ACTIVE', operationalStatus: 'DEMO_READY' },
+  { id: 'USR-DEMO-PSYCH-01', displayName: 'Psicología Demo 01', role: 'psychologist', roleLabel: 'Psicología', centers: ['Centro ficticio Madrid 01'], status: 'ACTIVE', operationalStatus: 'DEMO_READY' },
+  { id: 'USR-DEMO-PHYSIO-01', displayName: 'Fisioterapia Demo 01', role: 'physiotherapist', roleLabel: 'Fisioterapia', centers: ['Centro ficticio Madrid 01'], status: 'ACTIVE', operationalStatus: 'DEMO_READY' },
   { id: 'USR-DEMO-ADMIN-01', displayName: 'Coordinación Demo 01', role: 'admin', roleLabel: 'Administración / Coordinación', centers: ['Centro ficticio Madrid 01'], status: 'ACTIVE', operationalStatus: 'DEMO_READY' },
   { id: 'USR-DEMO-REVOKED-01', displayName: 'Profesional Revocado Demo', role: 'nurse', roleLabel: 'Enfermería', centers: ['Centro ficticio Madrid 01'], status: 'REVOKED', operationalStatus: 'INACTIVE' },
 ];
 
-const ROLE_LABELS = { nurse: 'Enfermería', physician: 'Facultativo', admin: 'Administración / Coordinación' };
+const ROLE_LABELS = { nurse: 'Enfermería', physician: 'Facultativo', psychologist: 'Psicología', physiotherapist: 'Fisioterapia', admin: 'Administración / Coordinación' };
 const timestamp = () => new Date().toISOString();
 const backendSessionValidationEnabled = () => process.env.REACT_APP_INTERNAL_SYNTHETIC_API === 'true';
 const backendBaseUrl = () => String(process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '');
@@ -44,13 +46,7 @@ export function InternalPrototypeAuthProvider({ children }) {
       if (!outcome.ok) {
         setSession(null);
         setLastError(outcome.message);
-        appendAudit({
-          actorId: candidate.id,
-          actor: candidate.displayName,
-          action: outcome.code === 'REVOKED' ? 'SESSION_VALIDATION_DENIED' : outcome.code === 'MISMATCH' ? 'SESSION_IDENTITY_MISMATCH' : 'SESSION_VALIDATION_DENIED',
-          targetId: candidate.id,
-          detail: `Autoridad central: ${outcome.code}; HTTP ${response.status}.`,
-        });
+        appendAudit({ actorId: candidate.id, actor: candidate.displayName, action: outcome.code === 'MISMATCH' ? 'SESSION_IDENTITY_MISMATCH' : 'SESSION_VALIDATION_DENIED', targetId: candidate.id, detail: `Autoridad central: ${outcome.code}; HTTP ${response.status}.` });
         return false;
       }
       setSession((current) => current ? { ...current, centers: outcome.centers, status: 'ACTIVE', centrallyValidatedAt: timestamp() } : current);
