@@ -29,9 +29,8 @@ api_router.include_router(chatbot.router)
 api_router.include_router(contact.router)
 api_router.include_router(payments.router)
 api_router.include_router(admin.router)
-# Synthetic-only internal clinical prototype. These routers return 404 unless
-# ENABLE_INTERNAL_SYNTHETIC_PROTOTYPE=true. They use memory only and are not a
-# production clinical data store or production identity provider.
+# Internal GASI services. Access control, auditability and clinical role
+# separation remain enforced by their respective routers.
 api_router.include_router(internal_prototype.router)
 api_router.include_router(internal_access_prototype.router)
 
