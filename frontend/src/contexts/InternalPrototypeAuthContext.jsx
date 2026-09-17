@@ -65,7 +65,7 @@ export function InternalPrototypeAuthProvider({ children }) {
 
   useEffect(() => {
     if (session && centralEnabled() && (session.role === 'admin' || session.delegatedPrivileges?.includes('worker_access_management'))) refreshDirectory(session);
-  }, [session?.id, session?.role, session?.delegatedPrivileges, refreshDirectory]);
+  }, [session, refreshDirectory]);
 
   const grantPrivilege = async (id, privilege, grant = true) => {
     if (session?.id !== MASTER_ID) return { ok: false, error: 'Solo la cuenta maestra puede cambiar privilegios.' };
