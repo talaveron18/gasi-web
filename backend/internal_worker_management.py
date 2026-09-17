@@ -21,18 +21,20 @@ class WorkerAccess:
     master_admin: bool = False
 
 
-def _synthetic(value: str, field: str) -> str:
+def _required(value: str, field: str) -> str:
     normalized = (value or "").strip()
-    if not normalized or not any(token in normalized.upper() for token in ("DEMO", "FICTICIO", "SYNTH")):
-        raise WorkerAccessError(f"{field}_must_be_synthetic")
+    if not normalized:
+        raise WorkerAccessError(f"{field}_required")
+    if len(normalized) > 160:
+        raise WorkerAccessError(f"{field}_too_long")
     return normalized
 
 
 def build_worker_access(*, worker_id: str, role: str, centers: Iterable[str] = (), active: bool = True, master_admin: bool = False) -> WorkerAccess:
-    safe_id = _synthetic(worker_id, "worker_id")
+    safe_id = _required(worker_id, "worker_id")
     if role not in ALL_ROLES:
         raise WorkerAccessError("unsupported_role")
-    safe_centers = tuple(dict.fromkeys(_synthetic(center, "center") for center in centers))
+    safe_centers = tuple(dict.fromkeys(_required(center, "center") for center in centers))
     if role in PROFESSIONAL_ROLES and active and not safe_centers:
         raise WorkerAccessError("professional_requires_assigned_center")
     if role == "admin" and safe_centers:
