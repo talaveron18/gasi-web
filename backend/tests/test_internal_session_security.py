@@ -11,7 +11,7 @@ from backend.internal_session_security import (
 )
 
 NOW = datetime(2026, 9, 17, 5, 0, tzinfo=timezone.utc)
-WORKER = "DEMO-WORKER-SECURITY"
+WORKER = "GASI-WORKER-SECURITY"
 
 
 def test_session_expires_and_auth_version_revokes_it():
@@ -37,6 +37,12 @@ def test_recovery_rejects_wrong_or_expired_token():
         consume_password_recovery(challenge=challenge, raw_token=token, current_auth_version=2, now=NOW + timedelta(minutes=15))
 
 
-def test_real_identity_is_rejected_in_prototype():
-    with pytest.raises(SessionSecurityError, match="worker_id_must_be_synthetic"):
-        issue_session(worker_id="real-user@example.com", auth_version=1, now=NOW)
+def test_operational_identity_is_accepted():
+    session = issue_session(worker_id="GASI-NURSE-01", auth_version=1, now=NOW)
+    assert session.worker_id == "GASI-NURSE-01"
+    assert session.session_id.startswith("GASI-SESSION-")
+
+
+def test_blank_identity_is_rejected():
+    with pytest.raises(SessionSecurityError, match="worker_id_required"):
+        issue_session(worker_id=" ", auth_version=1, now=NOW)
