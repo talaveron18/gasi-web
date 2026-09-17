@@ -19,9 +19,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Install dependencies
         run: yarn install --non-interactive
       - name: Build
@@ -35,9 +35,6 @@ jobs:
 
   backend-clinical:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,7 +45,9 @@ jobs:
       - name: Install test dependencies
         run: pip install fastapi starlette pydantic python-dotenv motor pytest pytest-asyncio httpx
       - name: Internal clinical and security tests
-        run: pytest -q tests/test_internal_*.py --junitxml=internal-clinical-junit.xml
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest -q backend/tests/test_internal_*.py --junitxml=backend/internal-clinical-junit.xml
       - name: Preserve internal clinical diagnostics
         if: always()
         uses: actions/upload-artifact@v4
