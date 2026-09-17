@@ -1,19 +1,27 @@
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Header, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from routes import internal_prototype
 
 router = APIRouter(prefix="/internal-prototype", tags=["internal-prototype-access"])
 
 AccessState = Literal["ACTIVE", "REVOKED"]
+WorkerRole = Literal["nurse", "physician", "psychologist", "physiotherapist", "admin"]
 
 
 class AccessChangeInput(BaseModel):
     state: AccessState
+
+
+class WorkerCreateInput(BaseModel):
+    id: str = Field(min_length=3, max_length=120)
+    display_name: str = Field(min_length=1, max_length=160)
+    role: WorkerRole
+    centers: List[str] = Field(default_factory=list, max_length=50)
 
 
 def _actor(actor_id: Optional[str]):
@@ -35,7 +43,6 @@ def _profile(actor):
 
 @router.get("/session")
 def session_status(x_demo_actor_id: Optional[str] = Header(default=None)):
-    """Validate the synthetic identity against the authoritative in-memory actor store."""
     actor = _actor(x_demo_actor_id)
     internal_prototype._audit(actor, "SESSION_VALIDATED")
     return {
@@ -51,10 +58,47 @@ def session_status(x_demo_actor_id: Optional[str] = Header(default=None)):
 
 @router.get("/profile")
 def professional_profile(x_demo_actor_id: Optional[str] = Header(default=None)):
-    """Expose only the signed-in worker's minimal synthetic operational profile."""
     actor = _actor(x_demo_actor_id)
     internal_prototype._audit(actor, "PROFILE_VIEWED")
     return _profile(actor)
+
+
+@router.post("/workers", status_code=status.HTTP_201_CREATED)
+def create_worker(payload: WorkerCreateInput, x_demo_actor_id: Optional[str] = Header(default=None)):
+    actor = _actor(x_demo_actor_id)
+    if actor.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin_only")
+
+    worker_id = internal_prototype._require_synthetic(payload.id, "worker_id")
+    display_name = internal_prototype._require_synthetic(payload.display_name, "display_name")
+    if worker_id in internal_prototype.ACTORS:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="worker_already_exists")
+
+    if payload.role == "admin":
+        if payload.centers:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="admin_cannot_have_clinical_centers")
+        centers = []
+    else:
+        if not payload.centers:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="clinical_worker_requires_center")
+        centers = [internal_prototype._require_synthetic(center, "center") for center in payload.centers]
+        if len(set(centers)) != len(centers):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="duplicate_centers")
+
+    worker = internal_prototype.Actor(
+        id=worker_id,
+        role=payload.role,
+        display_name=display_name,
+        centers=centers,
+        active=True,
+    )
+    internal_prototype.ACTORS[worker.id] = worker
+    internal_prototype._audit(
+        actor,
+        "IDENTITY_CREATED",
+        metadata={"target_actor_id": worker.id, "target_role": worker.role, "center_count": len(worker.centers)},
+    )
+    return _profile(worker)
 
 
 @router.post("/workers/{worker_id}/access")
