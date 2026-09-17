@@ -25,7 +25,7 @@ def build_identity_state(*, worker: WorkerAccess, auth_version: int = 1) -> Iden
     return IdentityState(worker=worker, auth_version=auth_version)
 
 
-def authenticate_synthetic_identity(*, identity: IdentityState, now: datetime | None = None, ttl_minutes: int = 30) -> SessionState:
+def issue_identity_session(*, identity: IdentityState, now: datetime | None = None, ttl_minutes: int = 30) -> SessionState:
     if not identity.worker.active:
         raise IdentityAccessError("inactive_worker_cannot_authenticate")
     return issue_session(
@@ -58,10 +58,4 @@ def revoke_identity(identity: IdentityState, *, actor: WorkerAccess) -> Identity
         active=False,
         master_admin=identity.worker.master_admin,
     )
-    # Incrementar auth_version invalida inmediatamente todas las sesiones previas.
     return IdentityState(worker=revoked, auth_version=identity.auth_version + 1)
-
-
-# BLOQUEADA PARA ACTIVACION REAL: esta capa solo integra identidades y sesiones
-# sinteticas. Requiere proveedor de identidad, correo corporativo verificado,
-# MFA/reautenticacion y gates juridicos/tecnicos cerrados antes de datos reales.
