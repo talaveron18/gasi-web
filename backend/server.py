@@ -18,6 +18,9 @@ app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
 from routes import auth, courses, chatbot, contact, payments, admin, internal_prototype, internal_access_prototype
+from internal_clinical_store import InternalClinicalStore
+
+clinical_store = InternalClinicalStore(db)
 
 @api_router.get("/")
 async def root():
@@ -29,8 +32,6 @@ api_router.include_router(chatbot.router)
 api_router.include_router(contact.router)
 api_router.include_router(payments.router)
 api_router.include_router(admin.router)
-# Internal GASI services. Access control, auditability and clinical role
-# separation remain enforced by their respective routers.
 api_router.include_router(internal_prototype.router)
 api_router.include_router(internal_access_prototype.router)
 
@@ -49,6 +50,14 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+@app.on_event("startup")
+async def initialize_internal_clinical_store():
+    await clinical_store.ensure_indexes()
+    await clinical_store.seed_master(
+        os.environ.get('GASI_MASTER_ACTOR_ID', 'GASI-MASTER-01'),
+        os.environ.get('GASI_MASTER_DISPLAY_NAME', 'Administración maestra GASI'),
+    )
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
