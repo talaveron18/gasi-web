@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from routes import internal_prototype
 
-router = APIRouter(prefix="/internal-prototype", tags=["internal-prototype-access"])
+router = APIRouter(prefix="/internal-clinical", tags=["internal-clinical-access"])
 AccessState = Literal["ACTIVE", "REVOKED"]
 WorkerRole = Literal["nurse", "physician", "psychologist", "physiotherapist", "admin"]
 
@@ -37,14 +37,12 @@ def _profile(actor):
         "display_name": actor.display_name,
         "centers": actor.centers,
         "operational_state": "ACTIVE" if actor.active else "REVOKED",
-        "prototype_only": True,
-        "real_data_allowed": False,
         "delegated_privileges": sorted(internal_prototype.DELEGATED_PRIVILEGES.get(actor.id, set())),
     }
 
 @router.get("/session")
-def session_status(x_demo_actor_id: Optional[str] = Header(default=None)):
-    actor = _actor(x_demo_actor_id)
+def session_status(x_actor_id: Optional[str] = Header(default=None)):
+    actor = _actor(x_actor_id)
     internal_prototype._audit(actor, "SESSION_VALIDATED")
     return {
         "id": actor.id,
@@ -53,22 +51,20 @@ def session_status(x_demo_actor_id: Optional[str] = Header(default=None)):
         "centers": actor.centers,
         "active": actor.active,
         "delegated_privileges": sorted(internal_prototype.DELEGATED_PRIVILEGES.get(actor.id, set())),
-        "prototype_only": True,
-        "real_data_allowed": False,
     }
 
 @router.get("/profile")
-def professional_profile(x_demo_actor_id: Optional[str] = Header(default=None)):
-    actor = _actor(x_demo_actor_id)
+def professional_profile(x_actor_id: Optional[str] = Header(default=None)):
+    actor = _actor(x_actor_id)
     internal_prototype._audit(actor, "PROFILE_VIEWED")
     return _profile(actor)
 
 @router.post("/workers", status_code=status.HTTP_201_CREATED)
-def create_worker(payload: WorkerCreateInput, x_demo_actor_id: Optional[str] = Header(default=None)):
-    actor = _actor(x_demo_actor_id)
+def create_worker(payload: WorkerCreateInput, x_actor_id: Optional[str] = Header(default=None)):
+    actor = _actor(x_actor_id)
     _require_worker_manager(actor)
-    worker_id = internal_prototype._require_synthetic(payload.id, "worker_id")
-    display_name = internal_prototype._require_synthetic(payload.display_name, "display_name")
+    worker_id = internal_prototype._required(payload.id, "worker_id")
+    display_name = internal_prototype._required(payload.display_name, "display_name")
     if worker_id in internal_prototype.ACTORS:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="worker_already_exists")
     if payload.role == "admin":
@@ -78,7 +74,7 @@ def create_worker(payload: WorkerCreateInput, x_demo_actor_id: Optional[str] = H
     else:
         if not payload.centers:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="clinical_worker_requires_center")
-        centers = [internal_prototype._require_synthetic(center, "center") for center in payload.centers]
+        centers = [internal_prototype._required(center, "center") for center in payload.centers]
         if len(set(centers)) != len(centers):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="duplicate_centers")
     worker = internal_prototype.Actor(id=worker_id, role=payload.role, display_name=display_name, centers=centers, active=True)
@@ -87,8 +83,8 @@ def create_worker(payload: WorkerCreateInput, x_demo_actor_id: Optional[str] = H
     return _profile(worker)
 
 @router.post("/workers/{worker_id}/access")
-def change_worker_access(worker_id: str, payload: AccessChangeInput, x_demo_actor_id: Optional[str] = Header(default=None)):
-    actor = _actor(x_demo_actor_id)
+def change_worker_access(worker_id: str, payload: AccessChangeInput, x_actor_id: Optional[str] = Header(default=None)):
+    actor = _actor(x_actor_id)
     _require_worker_manager(actor)
     target = internal_prototype.ACTORS.get(worker_id)
     if not target:
