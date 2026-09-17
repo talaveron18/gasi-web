@@ -19,14 +19,23 @@ client = TestClient(app)
 
 NURSE = {"x-demo-actor-id": "USR-DEMO-NURSE-01"}
 ADMIN = {"x-demo-actor-id": "USR-DEMO-ADMIN-01"}
+CREATED_IDS = [
+    "USR-DEMO-PSY-NEW-01",
+    "USR-DEMO-PHYSIO-NEW-01",
+    "USR-DEMO-ADMIN-NEW-01",
+]
 
 
 @pytest.fixture(autouse=True)
 def reset_access_state():
     internal_prototype.AUDIT.clear()
+    for actor_id in CREATED_IDS:
+        internal_prototype.ACTORS.pop(actor_id, None)
     for actor in internal_prototype.ACTORS.values():
         actor.active = True
     yield
+    for actor_id in CREATED_IDS:
+        internal_prototype.ACTORS.pop(actor_id, None)
 
 
 def test_session_validation_returns_minimal_synthetic_identity():
@@ -59,6 +68,59 @@ def test_profile_returns_only_minimal_non_clinical_operational_fields():
     assert "summary" not in serialized
     assert internal_prototype.AUDIT[-1]["action"] == "PROFILE_VIEWED"
     assert internal_prototype.AUDIT[-1]["episode_id"] is None
+
+
+def test_admin_can_create_psychology_worker_with_assigned_center():
+    response = client.post(
+        "/api/internal-prototype/workers",
+        headers=ADMIN,
+        json={"id": "USR-DEMO-PSY-NEW-01", "display_name": "Psicología Demo Nueva", "role": "psychologist", "centers": ["Centro ficticio Madrid 01"]},
+    )
+    assert response.status_code == 201
+    assert response.json()["role"] == "psychologist"
+    assert response.json()["centers"] == ["Centro ficticio Madrid 01"]
+    assert internal_prototype.ACTORS["USR-DEMO-PSY-NEW-01"].active is True
+    assert internal_prototype.AUDIT[-1]["action"] == "IDENTITY_CREATED"
+
+
+def test_admin_can_create_physiotherapy_worker_with_assigned_center():
+    response = client.post(
+        "/api/internal-prototype/workers",
+        headers=ADMIN,
+        json={"id": "USR-DEMO-PHYSIO-NEW-01", "display_name": "Fisioterapia Demo Nueva", "role": "physiotherapist", "centers": ["Centro ficticio Madrid 01"]},
+    )
+    assert response.status_code == 201
+    assert response.json()["role"] == "physiotherapist"
+
+
+def test_non_admin_cannot_create_worker():
+    response = client.post(
+        "/api/internal-prototype/workers",
+        headers=NURSE,
+        json={"id": "USR-DEMO-PSY-NEW-01", "display_name": "Psicología Demo Nueva", "role": "psychologist", "centers": ["Centro ficticio Madrid 01"]},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "admin_only"
+
+
+def test_clinical_worker_requires_assigned_center():
+    response = client.post(
+        "/api/internal-prototype/workers",
+        headers=ADMIN,
+        json={"id": "USR-DEMO-PSY-NEW-01", "display_name": "Psicología Demo Nueva", "role": "psychologist", "centers": []},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == "clinical_worker_requires_center"
+
+
+def test_admin_worker_cannot_receive_clinical_center_scope():
+    response = client.post(
+        "/api/internal-prototype/workers",
+        headers=ADMIN,
+        json={"id": "USR-DEMO-ADMIN-NEW-01", "display_name": "Administración Demo Nueva", "role": "admin", "centers": ["Centro ficticio Madrid 01"]},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == "admin_cannot_have_clinical_centers"
 
 
 def test_admin_can_revoke_and_revoked_identity_is_immediately_rejected():
