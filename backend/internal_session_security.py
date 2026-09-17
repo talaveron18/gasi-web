@@ -40,20 +40,22 @@ def _utc(now: datetime | None = None) -> datetime:
     return value.astimezone(timezone.utc)
 
 
-def _synthetic(value: str, field: str) -> str:
+def _required(value: str, field: str) -> str:
     normalized = (value or "").strip()
-    if not normalized or not any(token in normalized.upper() for token in ("DEMO", "FICTICIO", "SYNTH")):
-        raise SessionSecurityError(f"{field}_must_be_synthetic")
+    if not normalized:
+        raise SessionSecurityError(f"{field}_required")
+    if len(normalized) > 160:
+        raise SessionSecurityError(f"{field}_too_long")
     return normalized
 
 
 def issue_session(*, worker_id: str, auth_version: int, now: datetime | None = None, ttl_minutes: int = 30) -> SessionState:
-    safe_worker = _synthetic(worker_id, "worker_id")
+    safe_worker = _required(worker_id, "worker_id")
     if auth_version < 1 or ttl_minutes < 1 or ttl_minutes > 480:
         raise SessionSecurityError("invalid_session_policy")
     issued = _utc(now)
     return SessionState(
-        session_id=f"SYNTH-SESSION-{secrets.token_urlsafe(18)}",
+        session_id=f"GASI-SESSION-{secrets.token_urlsafe(18)}",
         worker_id=safe_worker,
         issued_at=issued,
         expires_at=issued + timedelta(minutes=ttl_minutes),
@@ -67,7 +69,7 @@ def session_is_valid(session: SessionState, *, current_auth_version: int, now: d
 
 
 def begin_password_recovery(*, worker_id: str, account_kind: AccountKind, auth_version: int, now: datetime | None = None) -> tuple[str, RecoveryChallenge]:
-    safe_worker = _synthetic(worker_id, "worker_id")
+    safe_worker = _required(worker_id, "worker_id")
     if auth_version < 1:
         raise SessionSecurityError("invalid_auth_version")
     issued = _utc(now)
@@ -79,10 +81,6 @@ def begin_password_recovery(*, worker_id: str, account_kind: AccountKind, auth_v
         expires_at=issued + timedelta(minutes=15),
         auth_version=auth_version,
     )
-    # BLOQUEADA PARA ACTIVACION REAL: el master_admin requerira proveedor de identidad,
-    # correo corporativo verificado y MFA/reautenticacion definidos antes de produccion.
-    if account_kind == "master_admin":
-        return raw_token, challenge
     return raw_token, challenge
 
 
