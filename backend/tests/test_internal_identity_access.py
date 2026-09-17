@@ -54,11 +54,13 @@ def test_master_revocation_invalidates_existing_session():
 def test_non_master_cannot_revoke_identity():
     identity = build_identity_state(worker=_worker())
     admin = build_worker_access(worker_id="DEMO-ADMIN-01", role="admin")
-    with pytest.raises(WorkerAccessError, match="master_admin_required"):
+    with pytest.raises(WorkerAccessError) as exc:
         revoke_identity(identity, actor=admin)
+    assert str(exc.value) == "master_admin_required"
 
 
 def test_inactive_worker_cannot_build_authentication_state():
     inactive = build_worker_access(worker_id="DEMO-NURSE-OFF", role="nurse", active=False)
-    with pytest.raises(IdentityAccessError, match="inactive_worker_cannot_authenticate"):
+    with pytest.raises(IdentityAccessError) as exc:
         build_identity_state(worker=inactive)
+    assert str(exc.value) == "inactive_worker_cannot_authenticate"
