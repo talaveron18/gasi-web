@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, BadgeCheck, Ban, ClipboardList, Plus, ShieldCheck, UserCog } from 'lucide-react';
 import { useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
 
-const ROLE_OPTIONS = [['nurse', 'Enfermería'], ['physician', 'Facultativo'], ['admin', 'Administración / Coordinación']];
+const ROLE_OPTIONS = [
+  ['nurse', 'Enfermería'],
+  ['physician', 'Facultativo'],
+  ['psychologist', 'Psicología'],
+  ['physiotherapist', 'Fisioterapia'],
+  ['admin', 'Administración / Coordinación'],
+];
 
 export default function InternalWorkers() {
   const navigate = useNavigate();
@@ -36,7 +42,7 @@ export default function InternalWorkers() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4 mb-6 flex gap-3 items-start"><AlertTriangle className="w-5 h-5 text-amber-300 mt-0.5 shrink-0" /><div><p className="font-semibold text-amber-200">GESTIÓN SINTÉTICA DE TRABAJADORES</p><p className="text-sm text-amber-100/80">No sustituye alta profesional, colegiación, habilitación, documentación laboral ni autenticación de producción. No contiene datos reales.</p></div></div>
         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-8"><div><div className="flex items-center gap-2 text-cyan-300 text-sm font-semibold"><UserCog className="w-4 h-4" /> GASI · Zona interna</div><h1 className="text-3xl md:text-4xl font-bold mt-2">Trabajadores y accesos</h1><p className="text-slate-400 mt-2">Alta lógica, rol, centro/contexto, revocación y auditoría de acceso del prototipo.</p><p className="text-xs text-slate-500 mt-2">Autoridad sintética: {centralValidationEnabled ? 'BACKEND ACTIVO · cambios de acceso confirmados antes de reflejarse localmente' : 'LOCAL · maqueta en memoria'}.</p></div><button type="button" onClick={() => navigate('/interno/prototipo-clinico')} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2"><ArrowLeft className="w-4 h-4" />Panel clínico</button></header>
-        {message && <div className="mb-6 rounded-xl border border-slate-700 bg-slate-900 p-4 text-sm">{message}</div>}
+        {message && <div role="status" aria-live="polite" className="mb-6 rounded-xl border border-slate-700 bg-slate-900 p-4 text-sm">{message}</div>}
         <section className="grid lg:grid-cols-3 gap-6 mb-8">
           <form onSubmit={createIdentity} className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
             <h2 className="text-xl font-bold flex items-center gap-2"><Plus className="w-5 h-5 text-cyan-300" />Alta sintética</h2>
