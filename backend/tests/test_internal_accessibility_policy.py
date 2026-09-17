@@ -9,7 +9,7 @@ from backend.internal_accessibility_policy import (
 
 def valid_gate(**changes):
     values = {
-        "workflow": "synthetic-clinical-handoff",
+        "workflow": "clinical-handoff",
         "interactions": frozenset({"keyboard", "pointer", "screen_reader"}),
         "has_programmatic_labels": True,
         "has_visible_focus": True,
@@ -21,14 +21,17 @@ def valid_gate(**changes):
     return InternalWorkflowAccessibility(**values)
 
 
-def test_complete_synthetic_workflow_is_accepted():
-    assert validate_internal_workflow_accessibility(valid_gate()).synthetic_only
+def test_complete_workflow_is_accepted():
+    assert validate_internal_workflow_accessibility(valid_gate()).workflow == "clinical-handoff"
 
 
-@pytest.mark.parametrize(
-    "missing",
-    ["keyboard", "pointer", "screen_reader"],
-)
+@pytest.mark.parametrize("synthetic_only", [True, False])
+def test_accessibility_gate_is_data_mode_neutral(synthetic_only):
+    gate = validate_internal_workflow_accessibility(valid_gate(synthetic_only=synthetic_only))
+    assert gate.synthetic_only is synthetic_only
+
+
+@pytest.mark.parametrize("missing", ["keyboard", "pointer", "screen_reader"])
 def test_missing_interaction_mode_fails_closed(missing):
     interactions = frozenset({"keyboard", "pointer", "screen_reader"}) - {missing}
     with pytest.raises(AccessibilityGateViolation, match="interaction_modes_incomplete"):
@@ -47,8 +50,3 @@ def test_missing_interaction_mode_fails_closed(missing):
 def test_required_accessibility_control_fails_closed(field, reason):
     with pytest.raises(AccessibilityGateViolation, match=reason):
         validate_internal_workflow_accessibility(valid_gate(**{field: False}))
-
-
-def test_real_activation_is_blocked():
-    with pytest.raises(AccessibilityGateViolation, match="real_activation_blocked"):
-        validate_internal_workflow_accessibility(valid_gate(synthetic_only=False))

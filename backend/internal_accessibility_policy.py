@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import FrozenSet, Literal
 
-# Synthetic prototype only. BLOQUEADO PARA ACTIVACION REAL until identity,
-# infrastructure, clinical and legal gates are explicitly closed.
+# Accessibility is a technical quality gate. It does not decide whether clinical
+# production activation is legally/operationally authorised; that decision is
+# enforced by the deployment/readiness gates outside this policy.
 Interaction = Literal["keyboard", "pointer", "screen_reader"]
 
 
@@ -33,8 +34,6 @@ def validate_internal_workflow_accessibility(
 ) -> InternalWorkflowAccessibility:
     if not gate.workflow.strip():
         raise AccessibilityGateViolation("workflow_name_required")
-    if not gate.synthetic_only:
-        raise AccessibilityGateViolation("real_activation_blocked")
     if gate.interactions != _REQUIRED_INTERACTIONS:
         raise AccessibilityGateViolation("interaction_modes_incomplete")
     if not gate.has_programmatic_labels:
