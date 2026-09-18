@@ -10,7 +10,7 @@ export default function InternalProfile(){
  if(!session||!token)return null;
 
  const changePassword=async e=>{e.preventDefault();setMessage('');if(nextPassword!==confirm){setMessage('Las contraseñas nuevas no coinciden.');return;}if(nextPassword.length<12){setMessage('La nueva contraseña debe tener al menos 12 caracteres.');return;}setBusy(true);try{
-  const r=await fetch('/api/internal-clinical/profile/password',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({current_password:currentPassword,new_password:nextPassword})});
+  const r=await fetch('/api/internal-clinical/password',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({current_password:currentPassword,new_password:nextPassword})});
   const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail==='invalid_current_password'?'La contraseña actual no es correcta.':d.detail||'No se ha podido cambiar la contraseña.');
   setCurrentPassword('');setNextPassword('');setConfirm('');setMessage('Contraseña actualizada. Debes iniciar sesión de nuevo.');
   await signOut();nav('/interno/acceso',{replace:true});
