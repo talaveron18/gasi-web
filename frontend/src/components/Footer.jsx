@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Mail } from 'lucide-react';
+import GasiBrand from './GasiBrand';
 
 const Footer = () => {
   return (
@@ -8,11 +9,7 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <img 
-              src="https://customer-assets.emergentagent.com/job_f98f3724-6c7c-43ce-a711-d735c45e5317/artifacts/9tonzp4x_Dise%C3%B1o%20sin%20t%C3%ADtulo%20%281%29.png" 
-              alt="GASI Logo" 
-              className="h-16 w-auto mb-4 brightness-0 invert"
-            />
+            <div className="mb-4"><GasiBrand inverse /></div>
             <p className="text-gray-400 text-sm">
               Grupo de Asistencia Sanitaria Integral. Servicios sanitarios y formación para empresas y organizaciones.
             </p>
