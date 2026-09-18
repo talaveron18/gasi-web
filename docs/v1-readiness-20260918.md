@@ -39,15 +39,28 @@ Producción actual: conserva el último deploy válido de Netlify. Los nuevos de
 - [x] Navegación y footer limpios.
 - [x] Mejoras básicas de accesibilidad.
 - [x] Zona profesional visible desde navegación.
+- [x] Zona profesional separada del layout comercial.
+- [x] Login, perfil, cambio de contraseña y cierre de sesión contra la API same-origin real.
+- [x] Eliminado runtime antiguo de aula, OAuth, dashboard y fallback clínico de prototipo.
+- [x] Navegación profesional común para clínica, perfil, trabajadores y control horario.
+- [x] Aviso legal completo con razón social, NIF, domicilio e inscripción registral verificados.
+- [x] Política de privacidad y política de cookies alineadas con los flujos actuales.
+- [x] SEO básico: títulos/descripciones por ruta, canonical público, noindex interno, sitemap y robots.
+- [x] Cabeceras de seguridad CSP, anti-frame, permissions policy y cacheado estático.
+- [x] Branding propio sin dependencia del logo/CDN de la herramienta de maqueta.
+- [x] Eliminada integración y dependencia de visual-edits heredada.
 
 ## Control horario
 
-- [x] Terminales vinculados a centro.
+- [x] Un único PC fijo activo por centro.
 - [x] Código de activación de un solo uso.
-- [x] Cookie de terminal HttpOnly/Secure/SameSite=Strict.
-- [x] Login de trabajador por credenciales en el terminal.
-- [x] Fichaje no disponible únicamente por tener sesión interna.
+- [x] Cookie de PC fijo HttpOnly/Secure/SameSite=Strict.
+- [x] PC vinculado a la red/IP de activación del centro.
+- [x] Login individual del profesional en el PC fijo al inicio de cada turno.
+- [x] El profesional ve identidad, centro, hora oficial, último evento y próxima acción.
+- [x] Fichaje no disponible únicamente por tener credenciales o sesión fuera del PC autorizado.
 - [x] Bloqueo adicional de clientes móviles.
+- [x] Requisito operativo documentado: PC sin RDP/AnyDesk/TeamViewer/VPN de simulación.
 - [x] Hora tomada del servidor.
 - [x] Secuencia Entrada → Salida → Entrada.
 - [x] Eventos append-only.
@@ -60,7 +73,7 @@ Producción actual: conserva el último deploy válido de Netlify. Los nuevos de
 - [ ] Prueba física desde PC fijo del centro.
 - [ ] Prueba negativa desde teléfono real.
 - [ ] Definir canal de contingencia operativo antes del primer cliente.
-- [ ] Exportación específica de registro horario para inspección/gestión laboral.
+- [x] Exportación CSV específica de registro horario para inspección/gestión laboral.
 
 ## Pendiente de desplegar / probar el día del reset de Netlify
 
@@ -84,8 +97,8 @@ Producción actual: conserva el último deploy válido de Netlify. Los nuevos de
 - [ ] Modificar/eliminar datos sintéticos.
 - [ ] Restaurar snapshot.
 - [ ] Comprobar clínica + usuarios + fichajes + contador + auditoría después del restore.
-- [ ] Activar terminal de fichaje de prueba.
-- [ ] Fichar entrada/salida desde terminal.
+- [ ] Activar PC fijo de fichaje de prueba.
+- [ ] Fichar entrada/salida desde el PC fijo y confirmar hora de servidor.
 - [ ] Intentar fichar desde móvil y confirmar 403.
 - [ ] Confirmar /dashboard y /interno/acceso.
 - [ ] Confirmar formulario y chatbot con entrega real de correo.
@@ -93,9 +106,8 @@ Producción actual: conserva el último deploy válido de Netlify. Los nuevos de
 ## Pendiente antes de considerar V1 cerrada
 
 - [ ] Revisión visual final en desktop y móvil.
-- [ ] Revisión de contraste/foco/teclado de las páginas internas.
+- [ ] Revisión visual y de contraste/foco/teclado de las páginas internas sobre el deploy real.
 - [ ] Decidir si las fotografías externas de Pexels se descargan al repositorio para evitar dependencia de hotlink.
-- [ ] Preparar exportación de registro horario.
 - [ ] Confirmar procedimiento laboral de implantación/consulta que corresponda.
 - [ ] Documentar recovery probado con evidencia reproducible.
 
