@@ -1,4 +1,5 @@
 import React,{useState}from'react';
+import InternalTopbar from'@/components/InternalTopbar';
 import{Link,useNavigate}from'react-router-dom';
 import{BadgeCheck,Building2,Clock3,IdCard,KeyRound,LogOut,ShieldCheck,UserRound}from'lucide-react';
 import{useInternalAuth}from'@/contexts/InternalAuthContext';
@@ -17,7 +18,7 @@ export default function InternalProfile(){
  }catch(err){setMessage(err.message||'No se ha podido cambiar la contraseña.');}finally{setBusy(false);}};
 
  const logout=async()=>{await signOut();nav('/interno/acceso',{replace:true});};
- return <main className="min-h-screen bg-slate-950 text-slate-100 py-10" data-testid="internal-profile"><div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+ return <><InternalTopbar/><main className="min-h-screen bg-slate-950 text-slate-100 py-10" data-testid="internal-profile"><div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
   <header className="flex flex-wrap items-start justify-between gap-4 mb-7"><div><div className="flex items-center gap-2 text-cyan-300 text-sm font-semibold"><ShieldCheck className="w-4 h-4"/>GASI · Zona profesional</div><h1 className="text-3xl font-bold mt-2">Mi perfil</h1><p className="text-slate-400 mt-2">Identidad, alcance de acceso y seguridad de tu cuenta.</p></div><div className="flex gap-2"><Link to="/interno/clinica" className="rounded-xl border border-slate-700 px-4 py-2 text-sm">Volver al canal</Link><button onClick={logout} className="rounded-xl border border-rose-400/30 px-4 py-2 text-sm text-rose-200 inline-flex items-center gap-2"><LogOut className="w-4 h-4"/>Cerrar sesión</button></div></header>
 
   {message&&<p role="status" className="mb-5 rounded-xl border border-slate-700 bg-slate-900 p-4">{message}</p>}
@@ -43,5 +44,5 @@ export default function InternalProfile(){
     </form>
    </section>
   </div>
- </div></main>;
+ </div></main></>;
 }
