@@ -91,4 +91,4 @@ jobs:
       - name: Run Netlify production build
         env:
           CI: 'false'
-        run: npx -y netlify-cli@latest build
+        run: npx -y netlify-cli@latest build --offline
