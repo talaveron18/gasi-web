@@ -1,78 +1,19 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Activity, Heart, Users, Stethoscope, Brain, GraduationCap } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React from'react';
+import{Link}from'react-router-dom';
+import{ArrowRight,Brain,Heart,Network,Stethoscope,Users}from'lucide-react';
 
-const SaludLaboral = () => {
-  const services = [
-    { icon: <Activity className="w-8 h-8" />, title: 'Enfermería presencial', desc: 'Cobertura enfermera en el centro o dispositivo definido para el servicio.' },
-    { icon: <Stethoscope className="w-8 h-8" />, title: 'Apoyo médico remoto', desc: 'Apoyo médico remoto asociado cuando el servicio y la autorización aplicable lo permitan.' },
-    { icon: <Heart className="w-8 h-8" />, title: 'Fisioterapia', desc: 'Atención de fisioterapia dentro del alcance contratado y autorizado.' },
-    { icon: <Brain className="w-8 h-8" />, title: 'Psicología', desc: 'Atención psicológica dentro del alcance contratado y autorizado.' },
-    { icon: <GraduationCap className="w-8 h-8" />, title: 'Formación sanitaria', desc: 'Formación sanitaria adaptada a las necesidades acordadas con cada organización.' },
-    { icon: <Users className="w-8 h-8" />, title: 'Coordinación asistencial', desc: 'Organización de los recursos sanitarios incluidos en el servicio contratado.' }
-  ];
+const services=[
+ {icon:Stethoscope,title:'Enfermería presencial',text:'Puede actuar como núcleo del dispositivo sanitario del centro cuando la cobertura lo requiere.'},
+ {icon:Network,title:'Apoyo médico remoto',text:'Se incorpora cuando la configuración necesita apoyo facultativo para valoración, coordinación o escalado.'},
+ {icon:Heart,title:'Fisioterapia',text:'Puede añadirse en centros donde la carga física o el perfil de actividad justifiquen este recurso.'},
+ {icon:Brain,title:'Psicología',text:'Atención puntual cuando una persona necesita apoyo dentro del marco acordado. El seguimiento continuado se deriva fuera del servicio corporativo ordinario.'},
+ {icon:Users,title:'Coordinación asistencial',text:'Profesionales y circuitos se organizan como un servicio único, con responsabilidades y accesos diferenciados.'}
+];
 
-  return (
-    <div data-testid="salud-laboral-page">
-      <section className="bg-gradient-to-br from-[#005EB8] to-[#327BBD] text-white py-20">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-          <h1 className="text-4xl lg:text-5xl font-bold mb-6" data-testid="page-title">
-            Servicios sanitarios para organizaciones
-          </h1>
-          <p className="text-xl opacity-90">
-            Recursos sanitarios adaptados a cada servicio y sujetos a la habilitación o autorización que corresponda.
-          </p>
-        </div>
-      </section>
-
-      <section className="py-20 bg-white">
-        <div className="max-w-5xl mx-auto px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Cobertura sanitaria adaptada a cada organización</h2>
-          <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-            GASI organiza servicios de enfermería presencial y, cuando proceda, apoyo médico remoto asociado, fisioterapia, psicología y formación sanitaria. La configuración concreta se define para cada cliente y centro antes del inicio del servicio.
-          </p>
-          <p className="text-lg text-[#64748B] leading-relaxed">
-            GASI no presta servicios de prevención ajeno ni atribuye a esta oferta la vigilancia de la salud, los reconocimientos médicos laborales, la evaluación de riesgos o la gestión de bajas. La disponibilidad de cada actividad sanitaria está condicionada a los requisitos profesionales y administrativos aplicables al servicio y al lugar de prestación.
-          </p>
-        </div>
-      </section>
-
-      <section className="py-20 bg-[#F8FAFC]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-12 text-center">
-            Líneas de servicio
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map((service, index) => (
-              <Card key={index} className="p-6 hover-lift" data-testid={`service-${index}`}>
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-[#005EB8]/10 rounded-full text-[#005EB8] mb-4">
-                  {service.icon}
-                </div>
-                <h3 className="font-bold text-[#0F172A] mb-2">{service.title}</h3>
-                <p className="text-[#64748B] text-sm">{service.desc}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Cuéntenos qué cobertura necesita</h2>
-          <p className="text-lg text-[#64748B] mb-8">
-            Revisaremos el centro, el alcance y los recursos necesarios antes de confirmar la configuración del servicio.
-          </p>
-          <Link to="/contacto">
-            <Button size="lg" className="bg-[#005EB8] text-white hover:bg-[#004A92]" data-testid="cta-contact">
-              Solicitar información
-            </Button>
-          </Link>
-        </div>
-      </section>
-    </div>
-  );
-};
-
-export default SaludLaboral;
+export default function SaludLaboral(){
+ return <div data-testid="salud-laboral-page">
+  <section className="bg-slate-950 text-white py-20"><div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-[1fr_.9fr] gap-12 items-center"><div><p className="text-cyan-300 font-semibold uppercase tracking-wide text-sm">Servicios sanitarios para organizaciones</p><h1 className="text-4xl lg:text-6xl font-bold mt-3">Más allá de la enfermería cuando el centro realmente lo necesita</h1><p className="text-xl text-slate-300 mt-6">Fisioterapia, psicología y apoyo médico remoto pueden integrarse en una cobertura sanitaria concreta. No se ofrecen como un catálogo automático: se incorporan cuando tienen sentido operativo y asistencial.</p><Link to="/contacto" className="inline-flex items-center mt-8 bg-white text-[#005EB8] font-bold px-6 py-3 rounded-xl">Estudiar una configuración <ArrowRight className="ml-2 w-5 h-5"/></Link></div><div className="grid grid-cols-2 gap-4"><img src="https://images.pexels.com/photos/5793695/pexels-photo-5793695.jpeg?auto=compress&dpr=1&h=750&w=1260" alt="Sesión de fisioterapia" className="w-full h-[360px] object-cover rounded-3xl col-span-2"/><img src="https://images.pexels.com/photos/3881422/pexels-photo-3881422.jpeg?auto=compress&dpr=1&h=750&w=1260" alt="Profesional sanitario trabajando con apoyo digital" className="w-full h-48 object-cover rounded-2xl"/><div className="rounded-2xl bg-[#005EB8] p-6 flex items-end"><p className="font-semibold text-lg">Un mismo servicio, con recursos distintos según cada centro.</p></div></div></div></section>
+  <section className="py-20 bg-white"><div className="max-w-7xl mx-auto px-6"><div className="max-w-3xl"><h2 className="text-3xl lg:text-4xl font-bold text-slate-900">Líneas que pueden formar parte de la cobertura</h2><p className="text-lg text-slate-600 mt-5">La propuesta identifica qué recurso se incorpora, con qué función y en qué condiciones. Eso evita solapamientos y mantiene claro qué puede hacer cada profesional.</p></div><div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">{services.map(({icon:Icon,title,text})=><article key={title} className="rounded-2xl border p-7"><div className="w-12 h-12 rounded-xl bg-[#005EB8]/10 text-[#005EB8] flex items-center justify-center"><Icon className="w-6 h-6"/></div><h3 className="text-xl font-bold text-slate-900 mt-5">{title}</h3><p className="text-slate-600 mt-3 leading-relaxed">{text}</p></article>)}</div></div></section>
+  <section className="py-20 bg-[#F3F7FB]"><div className="max-w-6xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-start"><div><p className="text-[#005EB8] font-semibold uppercase tracking-wide text-sm">Qué no es este servicio</p><h2 className="text-3xl font-bold text-slate-900 mt-2">Límites claros desde la propuesta</h2><p className="text-lg text-slate-600 mt-5">GASI no presenta esta oferta como servicio de prevención ajeno ni como vigilancia de la salud. Tampoco incluye reconocimientos médicos laborales, evaluación de riesgos ni gestión de bajas.</p></div><div className="rounded-3xl bg-white border p-8"><h3 className="text-xl font-bold text-slate-900">La pregunta útil no es “qué podemos meter”, sino “qué necesita este centro”.</h3><p className="text-slate-600 mt-4">Carga física, turnicidad, distribución de trabajadores, tipo de actividad y patrón de incidencias ayudan a decidir si conviene añadir fisioterapia, psicología, apoyo médico u otros recursos.</p></div></div></section>
+ </div>;
+}
