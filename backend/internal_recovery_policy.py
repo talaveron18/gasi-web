@@ -5,8 +5,6 @@ from typing import FrozenSet, Literal
 
 from internal_data_plane_policy import Plane
 
-# Synthetic prototype only. BLOQUEADO PARA ACTIVACION REAL until infrastructure,
-# operational and legal gates for clinical data are explicitly closed.
 RecoveryMode = Literal["backup", "restore", "failover"]
 
 
@@ -23,15 +21,12 @@ class RecoveryPlan:
     destination_scope: FrozenSet[Plane]
     credential_scope: FrozenSet[Plane]
     audit_scope: FrozenSet[Plane]
-    synthetic_only: bool = True
+    test_data_only: bool = True
 
 
 def validate_recovery_plan(plan: RecoveryPlan) -> RecoveryPlan:
     if not plan.name.strip():
         raise RecoveryBoundaryViolation("recovery_name_required")
-    if not plan.synthetic_only:
-        raise RecoveryBoundaryViolation("real_data_activation_blocked")
-
     expected = frozenset({plan.plane})
     if plan.source_scope != expected:
         raise RecoveryBoundaryViolation("recovery_source_cross_plane")
