@@ -33,7 +33,7 @@ jobs:
           openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:8192 -out /tmp/netlify-relay-private.pem >/dev/null 2>&1
           openssl pkey -in /tmp/netlify-relay-private.pem -pubout -out /tmp/netlify-relay-public.pem
           PUB="$(base64 -w0 /tmp/netlify-relay-public.pem)"
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_RELAY_PUBLIC_KEY:${PUB}" >/dev/null
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_RELAY_PUBLIC_KEY_${GITHUB_RUN_ID}:${PUB}" >/dev/null
 
       - name: Await encrypted deploy capability and deploy main
         env:
@@ -42,7 +42,7 @@ jobs:
           set -euo pipefail
           PAYLOAD=""
           for i in $(seq 1 180); do
-            PAYLOAD="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/30/comments" --jq '.[].body' | sed -n 's/^NETLIFY_RELAY_CIPHERTEXT://p' | tail -n 1)"
+            PAYLOAD="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/30/comments" --jq '.[].body' | sed -n "s/^NETLIFY_RELAY_CIPHERTEXT_${GITHUB_RUN_ID}://p" | tail -n 1)"
             if [ -n "${PAYLOAD}" ]; then
               break
             fi
@@ -61,4 +61,4 @@ jobs:
           npx -y @netlify/mcp@latest --site-id 1bcad18d-bdaf-4d23-a119-ff8cdeb3e03b --proxy-path "${PROXY_PATH}"
           unset PROXY_PATH
           rm -f /tmp/netlify-relay-private.pem /tmp/netlify-relay-public.pem /tmp/netlify-relay-cipher.bin
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_RELAY_DONE" >/dev/null
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_RELAY_DONE_${GITHUB_RUN_ID}" >/dev/null
