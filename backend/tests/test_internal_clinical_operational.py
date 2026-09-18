@@ -186,5 +186,5 @@ def test_master_privileged_access_records_actor_reason_reference_and_episode():
     event=next(x for x in reversed(store.audit) if x["action"]=="PRIVILEGED_CLINICAL_RECORD_ACCESSED")
     assert event["actor_id"]=="GASI-MASTER-01"
     assert event["episode_id"]==eid
-    assert event["reason"]=="incident_review"
-    assert event["reference"]=="INC-E2E-001"
+    assert event["metadata"]["reason"]=="incident_review"
+    assert event["metadata"]["reference"]=="INC-E2E-001"
