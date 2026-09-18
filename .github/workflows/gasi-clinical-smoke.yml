@@ -16,5 +16,7 @@ jobs:
         run: curl --fail --silent --show-error https://deploy-preview-32--gasi-clinical.netlify.app/api/_diag/ping
       - name: Verify Netlify Database
         run: curl --silent --show-error --include https://deploy-preview-32--gasi-clinical.netlify.app/api/_diag/db
+      - name: Verify bcrypt runtime
+        run: curl --silent --show-error --include https://deploy-preview-32--gasi-clinical.netlify.app/api/_diag/bcrypt
       - name: Verify clinical health
         run: curl --silent --show-error --include https://deploy-preview-32--gasi-clinical.netlify.app/api/internal-clinical/health
