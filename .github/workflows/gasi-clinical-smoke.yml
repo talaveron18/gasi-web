@@ -20,3 +20,5 @@ jobs:
         run: curl --silent --show-error --include https://deploy-preview-32--gasi-clinical.netlify.app/api/_diag/bcrypt
       - name: Verify clinical health
         run: curl --silent --show-error --include https://deploy-preview-32--gasi-clinical.netlify.app/api/internal-clinical/health
+
+# rerun latest clinical preview
