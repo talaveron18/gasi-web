@@ -1,116 +1,20 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Shield, Users, Clock, Building, CheckCircle, FileText } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React from'react';
+import{Link}from'react-router-dom';
+import{ArrowRight,Clock3,HeartPulse,Network,ShieldCheck,Stethoscope}from'lucide-react';
 
-const CoberturaSanitaria = () => {
-  const features = [
-    { icon: <Users className="w-6 h-6" />, title: 'Personal Sanitario Cualificado', desc: 'Enfermeros/as y técnicos con experiencia en salud laboral' },
-    { icon: <Clock className="w-6 h-6" />, title: 'Horarios Flexibles', desc: 'Adaptamos nuestros horarios a sus turnos de trabajo' },
-    { icon: <Building className="w-6 h-6" />, title: 'En Sus Instalaciones', desc: 'Sala de primeros auxilios y enfermería en su centro' },
-    { icon: <Shield className="w-6 h-6" />, title: 'Atención Preventiva', desc: 'Reducción de riesgos y accidentes laborales' },
-    { icon: <FileText className="w-6 h-6" />, title: 'Gestión Documental', desc: 'Informes y registros sanitarios completos' },
-    { icon: <CheckCircle className="w-6 h-6" />, title: 'Cumplimiento Legal', desc: 'Aseguramos normativa de prevención de riesgos' }
-  ];
+const items=[
+ {icon:Stethoscope,title:'Enfermería presencial',text:'Profesionales asignados al centro dentro del horario y alcance acordados.'},
+ {icon:Network,title:'Apoyo médico remoto asociado',text:'Cuando el servicio lo contempla, enfermería puede disponer de un circuito de apoyo médico remoto para valoración y coordinación.'},
+ {icon:HeartPulse,title:'Atención sanitaria en el centro',text:'Valoración inicial, cuidados dentro de competencia profesional y escalado cuando la situación lo requiere.'},
+ {icon:Clock3,title:'Cobertura adaptada a turnos',text:'El horario se dimensiona según actividad, distribución de trabajadores y necesidades operativas del cliente.'},
+ {icon:ShieldCheck,title:'Trazabilidad y protocolos',text:'Accesos, registros y cambios se diseñan con trazabilidad y separación entre información clínica y administrativa.'}
+];
 
-  return (
-    <div data-testid="cobertura-page">
-      <section className="bg-gradient-to-br from-[#005EB8] to-[#327BBD] text-white py-20">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-          <h1 className="text-4xl lg:text-5xl font-bold mb-6" data-testid="page-title">
-            Cobertura Sanitaria en Empresas
-          </h1>
-          <p className="text-xl opacity-90">
-            Personal sanitario trabajando en sus instalaciones para el cuidado de sus trabajadores
-          </p>
-        </div>
-      </section>
-
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-[#0F172A] mb-6">¿Qué es nuestro servicio de cobertura sanitaria?</h2>
-          <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-            GASI proporciona <strong>personal sanitario cualificado</strong> que trabaja directamente dentro de sus instalaciones empresariales. No somos un servicio de emergencias ni de ambulancias: somos su <strong>equipo sanitario interno</strong>.
-          </p>
-          <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-            Nuestros profesionales se integran en su centro de trabajo, estableciendo una <strong>sala de primeros auxilios</strong> completamente equipada y ofreciendo atención sanitaria básica, preventiva y de apoyo a la seguridad laboral.
-          </p>
-          <p className="text-lg text-[#64748B] leading-relaxed">
-            Este servicio es especialmente valorado por centros logísticos, almacenes industriales, plataformas de distribución y empresas con alta densidad de trabajadores.
-          </p>
-        </div>
-      </section>
-
-      <section className="py-20 bg-[#F8FAFC]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-12 text-center">
-            Características del Servicio
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, index) => (
-              <Card key={index} className="p-6 hover-lift" data-testid={`feature-${index}`}>
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-[#005EB8]/10 rounded-full text-[#005EB8] mb-4">
-                  {feature.icon}
-                </div>
-                <h3 className="font-bold text-[#0F172A] mb-2">{feature.title}</h3>
-                <p className="text-[#64748B] text-sm">{feature.desc}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-[#0F172A] mb-8 text-center">¿Para qué empresas está diseñado?</h2>
-          <div className="space-y-6">
-            <Card className="p-6">
-              <h3 className="font-bold text-xl text-[#0F172A] mb-3">📦 Centros Logísticos y Almacenes</h3>
-              <p className="text-[#64748B]">
-                Empresas como Amazon, GXO o DHL que requieren personal sanitario disponible para atender incidencias durante operaciones 24/7.
-              </p>
-            </Card>
-            <Card className="p-6">
-              <h3 className="font-bold text-xl text-[#0F172A] mb-3">🏭 Industria y Manufactura</h3>
-              <p className="text-[#64748B]">
-                Fábricas y plantas industriales con trabajadores expuestos a riesgos laborales que necesitan respuesta sanitaria inmediata.
-              </p>
-            </Card>
-            <Card className="p-6">
-              <h3 className="font-bold text-xl text-[#0F172A] mb-3">🏬 Retail y Grandes Superficies</h3>
-              <p className="text-[#64748B]">
-                Centros comerciales como Leroy Merlin o Decathlon con alta afluencia de empleados y necesidad de atención sanitaria preventiva.
-              </p>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 bg-gradient-to-r from-[#005EB8] to-[#327BBD] text-white">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold mb-6">
-            ¿Necesita cobertura sanitaria en su empresa?
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
-            Solicite información personalizada sin compromiso
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/contacto">
-              <Button size="lg" className="bg-white text-[#005EB8] hover:bg-gray-100" data-testid="cta-contact">
-                Solicitar Presupuesto
-              </Button>
-            </Link>
-            <a href="tel:622822101">
-              <Button size="lg" variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#005EB8]" data-testid="cta-call">
-                Llamar: 622 822 101
-              </Button>
-            </a>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-};
-
-export default CoberturaSanitaria;
+export default function CoberturaSanitaria(){
+ return <div data-testid="cobertura-page">
+  <section className="bg-slate-950 text-white"><div className="max-w-7xl mx-auto px-6 py-20 grid lg:grid-cols-2 gap-12 items-center"><div><p className="text-cyan-300 font-semibold uppercase tracking-wide text-sm">Cobertura sanitaria en empresas</p><h1 className="text-4xl lg:text-6xl font-bold mt-3">Un recurso sanitario integrado en el centro de trabajo</h1><p className="text-xl text-slate-300 mt-6 leading-relaxed">Configuramos presencia enfermera y los circuitos de apoyo necesarios para que el centro disponga de una respuesta sanitaria organizada durante el horario contratado.</p><Link to="/contacto" className="inline-flex items-center mt-8 bg-white text-[#005EB8] font-bold px-6 py-3 rounded-xl">Solicitar estudio del centro <ArrowRight className="ml-2 w-5 h-5"/></Link></div><img src="https://images.pexels.com/photos/3952137/pexels-photo-3952137.jpeg?auto=compress&dpr=1&h=750&w=1260" alt="Profesional sanitario trabajando en un puesto asistencial" className="w-full h-[440px] object-cover rounded-3xl shadow-2xl"/></div></section>
+  <section className="py-20 bg-white"><div className="max-w-7xl mx-auto px-6"><div className="max-w-3xl"><h2 className="text-3xl lg:text-4xl font-bold text-slate-900">Qué significa “cobertura sanitaria” en GASI</h2><p className="text-lg text-slate-600 leading-relaxed mt-5">No es un servicio de ambulancias ni un servicio de prevención ajeno. Es una prestación sanitaria organizada para un centro concreto, con profesionales, horarios, recursos y circuitos definidos antes del inicio.</p></div><div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">{items.map(({icon:Icon,title,text})=><article key={title} className="rounded-2xl border p-7 bg-slate-50"><div className="w-12 h-12 rounded-xl bg-[#005EB8]/10 text-[#005EB8] flex items-center justify-center"><Icon className="w-6 h-6"/></div><h3 className="text-xl font-bold text-slate-900 mt-5">{title}</h3><p className="text-slate-600 mt-3">{text}</p></article>)}</div></div></section>
+  <section className="py-20 bg-[#F3F7FB]"><div className="max-w-6xl mx-auto px-6 grid lg:grid-cols-2 gap-12"><div><p className="text-[#005EB8] font-semibold uppercase tracking-wide text-sm">Antes de arrancar</p><h2 className="text-3xl font-bold text-slate-900 mt-2">El servicio se dimensiona, no se copia</h2><p className="text-lg text-slate-600 mt-5">Revisamos actividad, turnos, número de trabajadores, distribución física, incidencias previsibles y capacidad del propio centro. Con esa información se define la propuesta.</p></div><div className="space-y-4">{['Centro y horarios de cobertura','Perfil y número de profesionales','Equipamiento sanitario necesario','Circuito de apoyo y escalado','Accesos, documentación y coordinación con el cliente'].map((x,i)=><div key={x} className="flex gap-4 rounded-xl bg-white border p-5"><span className="w-8 h-8 rounded-full bg-[#005EB8] text-white flex items-center justify-center font-bold shrink-0">{i+1}</span><span className="text-slate-700 font-medium">{x}</span></div>)}</div></div></section>
+  <section className="py-20 bg-[#005EB8] text-white"><div className="max-w-4xl mx-auto px-6 text-center"><h2 className="text-3xl lg:text-4xl font-bold">¿Quiere saber qué cobertura tendría sentido en su centro?</h2><p className="text-xl text-white/85 mt-5">Cuéntenos la operativa y preparamos una propuesta ajustada al alcance real.</p><Link to="/contacto" className="inline-flex items-center mt-8 bg-white text-[#005EB8] font-bold px-7 py-3 rounded-xl">Hablar con GASI <ArrowRight className="ml-2 w-5 h-5"/></Link></div></section>
+ </div>;
+}
