@@ -1,6 +1,7 @@
 import type { Config, Context } from "@netlify/functions";
 import { getDatabase } from "@netlify/database";
 import crypto from "node:crypto";
+import bcrypt from "bcryptjs";
 
 const MASTER=()=>Netlify.env.get("GASI_MASTER_ACTOR_ID")||"GASI-MASTER-01";
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json","cache-control":"no-store"}});
