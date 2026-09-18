@@ -146,13 +146,16 @@ const Navbar = () => {
             className="lg:hidden text-[#0F172A]"
             onClick={() => setIsOpen(!isOpen)}
             data-testid="mobile-menu-button"
+            aria-label={isOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
+            aria-expanded={isOpen}
+            aria-controls="mobile-navigation"
           >
             {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
         {isOpen && (
-          <div className="lg:hidden py-4 border-t" data-testid="mobile-menu">
+          <div id="mobile-navigation" className="lg:hidden py-4 border-t" data-testid="mobile-menu">
             <div className="flex flex-col space-y-2">
               <Link to="/" onClick={() => setIsOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">Inicio</Button>
