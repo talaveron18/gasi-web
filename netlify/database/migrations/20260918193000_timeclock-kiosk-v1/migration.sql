@@ -41,3 +41,7 @@ CREATE TABLE IF NOT EXISTS internal_timeclock_corrections (
 
 CREATE INDEX IF NOT EXISTS idx_internal_timeclock_corrections_event
   ON internal_timeclock_corrections(event_id, corrected_at DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_internal_timeclock_one_active_device_per_center
+  ON internal_timeclock_devices(center)
+  WHERE active = TRUE;
