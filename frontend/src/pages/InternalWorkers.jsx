@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import InternalTopbar from'@/components/InternalTopbar';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BadgeCheck, Ban, KeyRound, Plus, ShieldCheck, UserCog } from 'lucide-react';
+import { BadgeCheck, Ban, KeyRound, Plus, ShieldCheck, UserCog } from 'lucide-react';
 import { useInternalAuth } from '@/contexts/InternalAuthContext';
 
 const ROLE_OPTIONS = [['nurse','Enfermería'],['physician','Facultativo'],['psychologist','Psicología'],['physiotherapist','Fisioterapia'],['admin','Administración / Coordinación']];
 const PRIVS = [['worker_access_management','Jefe de servicio / gestión de trabajadores'],['clinical_record_privileged_read','Lectura clínica privilegiada']];
 
 export default function InternalWorkers() {
-  const nav = useNavigate();
   const { session, identities, addIdentity, setIdentityStatus, grantPrivilege, isMaster } = useInternalAuth();
   const [form,setForm] = useState({displayName:'',role:'nurse',center:'',temporaryPassword:''});
   const [message,setMessage] = useState('');
@@ -29,7 +27,7 @@ export default function InternalWorkers() {
   const privilege = async (id,p,on) => { setBusy(`${id}-${p}`); const r=await grantPrivilege(id,p,on); setMessage(r.ok?`${on?'Privilegio concedido':'Privilegio retirado'} y auditado.`:r.error); setBusy(''); };
 
   return <><InternalTopbar/><main className="min-h-screen bg-slate-950 text-slate-100 py-10"><div className="max-w-7xl mx-auto px-4">
-    <header className="flex justify-between mb-8"><div><p className="text-cyan-300">GASI · Zona interna</p><h1 className="text-3xl font-bold">Trabajadores, roles y privilegios</h1><p className="text-slate-400">Una identidad conserva su rol profesional y puede acumular privilegios delegados.</p></div><button aria-label="Volver" onClick={()=>nav('/interno/clinica')}><ArrowLeft/></button></header>
+    <header className="flex justify-between mb-8"><div><p className="text-cyan-300">GASI · Zona interna</p><h1 className="text-3xl font-bold">Trabajadores, roles y privilegios</h1><p className="text-slate-400">Una identidad conserva su rol profesional y puede acumular privilegios delegados.</p></div></header>
     {message&&<div role="status" aria-live="polite" className="mb-5 p-3 bg-slate-900 rounded">{message}</div>}
     <section className="grid lg:grid-cols-3 gap-6">
       <form onSubmit={create} className="bg-slate-900 rounded-xl p-5"><h2 className="font-bold flex gap-2"><Plus/>Alta</h2><label className="block mt-4 text-sm">Nombre<input required placeholder="Nombre del profesional" value={form.displayName} onChange={e=>setForm({...form,displayName:e.target.value})} className="w-full mt-1 p-2 bg-slate-950 border border-slate-700 rounded"/></label><label className="block mt-3 text-sm">Rol base<select value={form.role} onChange={e=>setForm({...form,role:e.target.value})} className="w-full mt-1 p-2 bg-slate-950 border border-slate-700 rounded">{ROLE_OPTIONS.map(x=><option key={x[0]} value={x[0]}>{x[1]}</option>)}</select></label>{form.role!=='admin'&&<label className="block mt-3 text-sm">Centro<input required value={form.center} onChange={e=>setForm({...form,center:e.target.value})} className="w-full mt-1 p-2 bg-slate-950 border border-slate-700 rounded"/></label>}<label className="block mt-3 text-sm">Contraseña inicial<input type="password" minLength={12} required value={form.temporaryPassword} onChange={e=>setForm({...form,temporaryPassword:e.target.value})} className="w-full mt-1 p-2 bg-slate-950 border border-slate-700 rounded"/></label><button disabled={busy==='create'} className="w-full mt-4 bg-cyan-400 text-slate-950 p-2 rounded font-bold">Crear identidad</button></form>
