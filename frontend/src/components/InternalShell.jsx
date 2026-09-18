@@ -9,6 +9,7 @@ export default function InternalShell({children}){
  const{session,signOut,isMaster,canManageWorkers}=useInternalPrototypeAuth();
  const logout=async()=>{await signOut();nav('/interno/acceso',{replace:true});};
  return <div className="min-h-screen bg-slate-950 text-slate-100">
+  <a href="#professional-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-slate-950">Saltar al contenido profesional</a>
   <header className="border-b border-slate-800 bg-slate-950/95 backdrop-blur sticky top-0 z-40">
    <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
     <Link to="/interno/clinica" aria-label="GASI zona profesional"><GasiBrand inverse compact/></Link>
@@ -18,7 +19,7 @@ export default function InternalShell({children}){
      {(isMaster||canManageWorkers)&&<Link to="/interno/trabajadores" className="rounded-lg px-3 py-2 hover:bg-slate-800 inline-flex items-center gap-2"><UserCog className="w-4 h-4"/>Trabajadores</Link>}
      {(isMaster||canManageWorkers)&&<Link to="/interno/control-horario" className="rounded-lg px-3 py-2 hover:bg-slate-800 inline-flex items-center gap-2"><Clock3 className="w-4 h-4"/>Control horario</Link>}
     </nav>}
-    <div className="flex items-center gap-3">{session&&<span className="hidden lg:inline text-xs text-slate-500"><ShieldCheck className="w-3 h-3 inline mr-1"/>{session.displayName}</span>}<button onClick={logout} className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 inline-flex items-center gap-2"><LogOut className="w-4 h-4"/><span className="hidden sm:inline">Salir</span></button></div>
+    <div className="flex items-center gap-3">{session&&<><span className="hidden lg:inline text-xs text-slate-500"><ShieldCheck className="w-3 h-3 inline mr-1"/>{session.displayName}</span><button onClick={logout} className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 inline-flex items-center gap-2"><LogOut className="w-4 h-4"/><span className="hidden sm:inline">Salir</span></button></>}</div>
    </div>
    {session&&<nav className="md:hidden border-t border-slate-800 px-3 py-2 flex gap-2 overflow-x-auto text-xs" aria-label="Navegación profesional móvil">
     <Link to="/interno/clinica" className="whitespace-nowrap rounded-lg border border-slate-800 px-3 py-2">Clínica</Link>
@@ -27,6 +28,6 @@ export default function InternalShell({children}){
     {(isMaster||canManageWorkers)&&<Link to="/interno/control-horario" className="whitespace-nowrap rounded-lg border border-slate-800 px-3 py-2">Control horario</Link>}
    </nav>}
   </header>
-  {children}
+  <div id="professional-content" tabIndex="-1">{children}</div>
  </div>;
 }
