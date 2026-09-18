@@ -1,5 +1,3 @@
-import { assertSyntheticClinicalInput } from './syntheticDataGuard';
-
 const EPISODE_CREATORS = ['nurse', 'psychologist', 'physiotherapist'];
 const ADDENDUM_ROLES = ['nurse', 'physician', 'psychologist', 'physiotherapist'];
 const CLOSING_ROLES = ['nurse', 'physician', 'psychologist', 'physiotherapist'];
@@ -13,8 +11,6 @@ export async function createAuthoritativeClinicalEpisode({ api, session, patient
   if (!cleanPatientRef || !cleanCenter || !cleanSummary || ![1, 2, 3].includes(parsedLevel)) return { ok: false, errorCode: 'invalid_input' };
   const assignedCenters = Array.isArray(session.centers) ? session.centers : [];
   if (!assignedCenters.includes(cleanCenter)) return { ok: false, errorCode: 'center_not_assigned' };
-  const syntheticGate = assertSyntheticClinicalInput({ patientRef: cleanPatientRef, center: cleanCenter });
-  if (!syntheticGate.ok) return syntheticGate;
   try {
     const episode = await api.createEpisode({ patientRef: cleanPatientRef, center: cleanCenter, level: parsedLevel, summary: cleanSummary });
     return { ok: true, episode };
