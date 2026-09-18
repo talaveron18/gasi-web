@@ -21,7 +21,7 @@ No se habilita el fichaje ordinario desde:
 - geolocalización del teléfono;
 - enlace remoto fuera del terminal del centro.
 
-La posibilidad de acceder desde móvil a otras funciones de la zona interna no concede capacidad de fichaje.
+La posibilidad de acceder desde móvil a otras funciones de la zona interna no concede capacidad de fichaje. Como defensa adicional, el backend rechaza clientes identificados como móviles tanto en la activación del terminal como en el registro de entrada/salida. Esta comprobación complementa, pero no sustituye, la credencial de terminal.
 
 ## 3. Identificación
 
