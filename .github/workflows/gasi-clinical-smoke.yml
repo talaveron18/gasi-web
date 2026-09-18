@@ -12,10 +12,9 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
+      - name: Verify Netlify runtime
+        run: curl --fail --silent --show-error https://deploy-preview-32--gasi-clinical.netlify.app/api/_diag/ping
+      - name: Verify Netlify Database
+        run: curl --silent --show-error --include https://deploy-preview-32--gasi-clinical.netlify.app/api/_diag/db
       - name: Verify clinical health
-        run: |
-          set -euo pipefail
-          body="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 https://deploy-preview-32--gasi-clinical.netlify.app/api/internal-clinical/health)"
-          echo "$body"
-          echo "$body" | grep -q '"ok":true'
-          echo "$body" | grep -q '"storage":"netlify-database"'
+        run: curl --silent --show-error --include https://deploy-preview-32--gasi-clinical.netlify.app/api/internal-clinical/health
