@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import { auditMetadata, canonical, canRead, canWrite, decodeKiosk, has, publicEpisode, signKiosk, validRecoverySnapshot } from "./internal-clinical.mts";
+import { auditMetadata, canonical, canRead, canWrite, decodeKiosk, has, isMobileRequest, publicEpisode, signKiosk, validRecoverySnapshot } from "./internal-clinical.mts";
 
 process.env.GASI_MASTER_ACTOR_ID="GASI-MASTER-01";
 process.env.GASI_INTERNAL_SESSION_SECRET="test-only-session-secret-with-more-than-32-bytes";
@@ -120,4 +120,14 @@ test("timeclock kiosk credential is required and signed independently",()=>{
   const decoded=decodeKiosk(token);
   assert.equal(decoded.did,"GASI-KIOSK-A");
   assert.equal(decoded.av,7);
+});
+
+
+test("mobile clients are rejected for attendance terminals",()=>{
+  const mobile=new Request("https://gasisalud.com/api/internal-clinical/timeclock/punch",{headers:{"user-agent":"Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile"}});
+  const clientHint=new Request("https://gasisalud.com/api/internal-clinical/timeclock/punch",{headers:{"sec-ch-ua-mobile":"?1","user-agent":"Desktop"}});
+  const desktop=new Request("https://gasisalud.com/api/internal-clinical/timeclock/punch",{headers:{"user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140"}});
+  assert.equal(isMobileRequest(mobile),true);
+  assert.equal(isMobileRequest(clientHint),true);
+  assert.equal(isMobileRequest(desktop),false);
 });
