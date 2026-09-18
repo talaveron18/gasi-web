@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS internal_timeclock_devices (
   token_hash TEXT NOT NULL,
   active BOOLEAN NOT NULL DEFAULT TRUE,
   auth_version INTEGER NOT NULL DEFAULT 1,
+  activation_ip TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_seen_at TIMESTAMPTZ
 );
