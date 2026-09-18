@@ -1,11 +1,11 @@
 import React,{useState}from'react';
 import{Link,useNavigate}from'react-router-dom';
 import{BadgeCheck,Building2,Clock3,IdCard,KeyRound,LogOut,ShieldCheck,UserRound}from'lucide-react';
-import{useInternalPrototypeAuth}from'@/contexts/InternalPrototypeAuthContext';
+import{useInternalAuth}from'@/contexts/InternalAuthContext';
 
 export default function InternalProfile(){
  const nav=useNavigate();
- const{session,token,signOut}=useInternalPrototypeAuth();
+ const{session,token,signOut}=useInternalAuth();
  const[currentPassword,setCurrentPassword]=useState(''),[nextPassword,setNextPassword]=useState(''),[confirm,setConfirm]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  if(!session||!token)return null;
 
