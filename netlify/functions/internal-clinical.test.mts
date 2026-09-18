@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import { auditMetadata, canonical, canRead, canWrite, has, publicEpisode, validRecoverySnapshot } from "./internal-clinical.mts";
+import { auditMetadata, canonical, canRead, canWrite, decodeKiosk, has, publicEpisode, signKiosk, validRecoverySnapshot } from "./internal-clinical.mts";
 
 process.env.GASI_MASTER_ACTOR_ID="GASI-MASTER-01";
+process.env.GASI_INTERNAL_SESSION_SECRET="test-only-session-secret-with-more-than-32-bytes";
 
 const genesis="0".repeat(64);
 const makeSnapshot=()=>{
@@ -109,4 +110,14 @@ test("attendance corrections cannot point to missing events",()=>{
   const snap=makeSnapshot();
   snap.timeclock_corrections[0].event_id="33333333-3333-4333-8333-333333333333";
   assert.equal(validRecoverySnapshot(snap),false);
+});
+
+
+test("timeclock kiosk credential is required and signed independently",()=>{
+  assert.throws(()=>decodeKiosk(""),/kiosk_required/);
+  assert.throws(()=>decodeKiosk("v1.invalid.invalid"),/kiosk_required/);
+  const token=signKiosk({id:"GASI-KIOSK-A",auth_version:7});
+  const decoded=decodeKiosk(token);
+  assert.equal(decoded.did,"GASI-KIOSK-A");
+  assert.equal(decoded.av,7);
 });
