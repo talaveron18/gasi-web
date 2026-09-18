@@ -25,7 +25,8 @@ class DeliveryState:
     status: str = DELIVERY_PENDING
     delivered_at: Optional[datetime] = None
     read_at: Optional[datetime] = None
-    delivered_to_identity: Optional[str] = None\n    failure_reason: Optional[str] = None
+    delivered_to_identity: Optional[str] = None
+    failure_reason: Optional[str] = None
 
 
 def _aware_utc(value: datetime) -> bool:
