@@ -179,4 +179,4 @@ export default async (req:Request,_context:Context)=>{const url=new URL(req.url)
  return json({detail:"netlify_clinical_route_not_migrated"},501);
 }catch(e:any){const code=String(e?.message||"internal_error");if(["missing_session","invalid_session_token","session_expired_or_revoked"].includes(code))return json({detail:code},401);if(["kiosk_not_found","timeclock_event_not_found"].includes(code))return json({detail:code},404);if(code.endsWith("_required")||code.endsWith("_too_long")||code==="invalid_temporary_password")return json({detail:code},422);return json({detail:"internal_error"},500);}};
 export const config:Config={path:"/api/internal-clinical/*"};
-export { auditMetadata, canonical, canRead, canWrite, has, publicEpisode, validRecoverySnapshot };
+export { auditMetadata, canonical, canRead, canWrite, decodeKiosk, has, publicEpisode, signKiosk, validRecoverySnapshot };
