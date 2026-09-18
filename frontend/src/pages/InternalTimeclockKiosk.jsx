@@ -7,7 +7,7 @@ export default function InternalTimeclockKiosk(){
  const submit=async e=>{e.preventDefault();setLoading(true);setError('');setResult(null);try{
   const r=await fetch('/api/internal-clinical/timeclock/punch',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({worker_id:workerId.trim(),password})});
   const data=await r.json().catch(()=>({}));
-  if(!r.ok){const map={kiosk_required:'Este equipo no está habilitado como terminal de fichaje.',mobile_timeclock_forbidden:'El fichaje desde teléfonos o dispositivos móviles está bloqueado.',invalid_credentials_or_center:'Credenciales incorrectas o trabajador no asignado a este centro.',invalid_timeclock_transition:'La secuencia de fichaje no es válida.'};throw new Error(map[data.detail]||'No se ha podido registrar el fichaje.');}
+  if(!r.ok){const map={kiosk_required:'Este equipo no está habilitado como terminal de fichaje.',mobile_timeclock_forbidden:'El fichaje desde teléfonos o dispositivos móviles está bloqueado.',kiosk_network_mismatch:'Este terminal no está conectado desde la red autorizada del centro.',invalid_credentials_or_center:'Credenciales incorrectas o trabajador no asignado a este centro.',invalid_timeclock_transition:'La secuencia de fichaje no es válida.'};throw new Error(map[data.detail]||'No se ha podido registrar el fichaje.');}
   setResult(data.event);setPassword('');
  }catch(err){setError(err.message||'No se ha podido registrar el fichaje.');}finally{setLoading(false);}};
  return <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4 py-10">
