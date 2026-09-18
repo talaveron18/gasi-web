@@ -145,3 +145,17 @@ Al inicio de cada turno, el profesional se identifica en el PC fijo del centro c
 - acción disponible: entrada o salida.
 
 Cerrar la sesión en ese PC elimina la sesión local del profesional, pero no revoca sus credenciales ni afecta a otros usos legítimos de su cuenta.
+
+
+## 13. Requisito del PC fijo: sin acceso remoto
+
+Para que el PC fijo funcione como evidencia de presencia en el centro, debe impedirse el acceso remoto al equipo.
+
+El PC de fichaje no debe permitir:
+- Escritorio remoto de Windows o equivalente;
+- AnyDesk, TeamViewer u otras herramientas de control remoto;
+- túneles o VPN utilizados para simular la red del centro;
+- tethering o cambio deliberado de red para el proceso de fichaje;
+- perfiles de navegador sincronizados que permitan trasladar credenciales del fichador.
+
+El navegador del PC conserva una credencial HttpOnly vinculada al equipo y el servidor comprueba además la red de activación del centro. Estas medidas reducen el riesgo de fichaje remoto, pero la prohibición técnica de acceso remoto al PC forma parte del control completo.
