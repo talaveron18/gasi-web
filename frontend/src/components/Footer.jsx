@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, Mail, MapPin, Facebook, Linkedin, Twitter } from 'lucide-react';
+import { Phone, Mail } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -11,10 +11,10 @@ const Footer = () => {
             <img 
               src="https://customer-assets.emergentagent.com/job_f98f3724-6c7c-43ce-a711-d735c45e5317/artifacts/9tonzp4x_Dise%C3%B1o%20sin%20t%C3%ADtulo%20%281%29.png" 
               alt="GASI Logo" 
-              className="h-80 w-auto mb-4 brightness-0 invert"
+              className="h-16 w-auto mb-4 brightness-0 invert"
             />
             <p className="text-gray-400 text-sm">
-              Grupo de Asistencia Sanitaria Integral. Proveedor sanitario profesional para empresas.
+              Grupo de Asistencia Sanitaria Integral. Servicios sanitarios y formación para empresas y organizaciones.
             </p>
           </div>
 
@@ -32,8 +32,8 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/salud-laboral" className="text-gray-400 hover:text-white transition-colors">
-                  Salud Laboral y Reconocimientos
+                <Link to="/servicios-sanitarios-organizaciones" className="text-gray-400 hover:text-white transition-colors">
+                  Servicios sanitarios complementarios
                 </Link>
               </li>
             </ul>
@@ -62,6 +62,11 @@ const Footer = () => {
                   Política de Protección de Datos
                 </Link>
               </li>
+              <li>
+                <Link to="/interno/acceso" className="text-gray-400 hover:text-white transition-colors">
+                  Zona profesional
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -87,17 +92,6 @@ const Footer = () => {
                 </a>
               </li>
             </ul>
-            <div className="flex gap-4 mt-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                <Linkedin className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                <Twitter className="w-5 h-5" />
-              </a>
-            </div>
           </div>
         </div>
 
