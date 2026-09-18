@@ -31,7 +31,7 @@ const Navbar = () => {
             <img 
               src="https://customer-assets.emergentagent.com/job_f98f3724-6c7c-43ce-a711-d735c45e5317/artifacts/9tonzp4x_Dise%C3%B1o%20sin%20t%C3%ADtulo%20%281%29.png" 
               alt="GASI Logo" 
-              className="h-80 w-auto"
+              className="h-14 w-auto"
             />
           </Link>
 
@@ -134,9 +134,9 @@ const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link to="/formacion-sanitaria" data-testid="nav-login-button">
+              <Link to="/interno/acceso" data-testid="nav-login-button">
                 <Button className="bg-[#005EB8] hover:bg-[#004a92] text-white">
-                  Acceder a Formación
+                  Zona profesional
                 </Button>
               </Link>
             )}
@@ -169,6 +169,11 @@ const Navbar = () => {
               <Link to="/contacto" onClick={() => setIsOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">Contacto</Button>
               </Link>
+              {!user && (
+                <Link to="/interno/acceso" onClick={() => setIsOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start">Zona profesional</Button>
+                </Link>
+              )}
               {user && (
                 <>
                   <Link to="/dashboard" onClick={() => setIsOpen(false)}>
