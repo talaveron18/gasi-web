@@ -67,12 +67,20 @@ const PoliticaPrivacidad = () => {
           GASI aplica medidas técnicas y organizativas orientadas a proteger los datos frente a acceso, alteración, pérdida o divulgación no autorizados. Los secretos de los servicios de la web no deben incorporarse al código público ni a los formularios.
         </p>
 
-        <h2 className="text-2xl font-bold text-[#0F172A] mb-4">8. Cookies y analítica</h2>
+        <h2 className="text-2xl font-bold text-[#0F172A] mb-4">8. Zona profesional y control horario</h2>
+        <p className="text-[#64748B] mb-4">
+          La zona profesional puede tratar identificadores de usuario, roles, centros asignados, eventos de autenticación y registros técnicos de seguridad necesarios para controlar el acceso y mantener la trazabilidad.
+        </p>
+        <p className="text-[#64748B] mb-6">
+          Cuando se utilice el módulo de control horario, se registrarán la identidad profesional, el centro, el PC fijo autorizado, el tipo de fichaje, la hora del servidor y las correcciones posteriores que procedan. Este flujo es laboral y administrativo y permanece separado de la información clínica.
+        </p>
+
+        <h2 className="text-2xl font-bold text-[#0F172A] mb-4">9. Cookies y analítica</h2>
         <p className="text-[#64748B] mb-6">
           La versión actual de la web no carga analítica de comportamiento ni grabación de sesiones. Se utilizan mecanismos técnicos estrictamente necesarios para funciones solicitadas por el usuario, como autenticación profesional y protección del control horario. Si se incorpora analítica u otra tecnología no necesaria, deberá revisarse esta información y el mecanismo de consentimiento aplicable antes de activarla.
         </p>
 
-        <h2 className="text-2xl font-bold text-[#0F172A] mb-4">9. Contacto</h2>
+        <h2 className="text-2xl font-bold text-[#0F172A] mb-4">10. Contacto</h2>
         <p className="text-[#64748B] mb-2">
           Para cualquier cuestión sobre esta política de privacidad, puede contactarnos en:
         </p>
