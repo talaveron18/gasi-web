@@ -100,7 +100,7 @@ class InternalClinicalStore:
         cursor = self.audit.find({}).sort("at", -1).limit(limit)
         return [self.clean(row) async for row in cursor]
 
-    async def seed_master(self, master_id: str, display_name: str) -> None:
+    async def seed_master(self, master_id: str, display_name: str, password_hash: str) -> None:
         await self.workers.update_one(
             {"id": master_id},
             {"$setOnInsert": {
@@ -111,6 +111,7 @@ class InternalClinicalStore:
                 "active": True,
                 "auth_version": 1,
                 "delegated_privileges": [],
+                "password_hash": password_hash,
             }},
             upsert=True,
         )
