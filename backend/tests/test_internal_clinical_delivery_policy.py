@@ -5,11 +5,15 @@ import pytest
 from internal_clinical_delivery_policy import (
     DELIVERED,
     DELIVERY_PENDING,
+    DELIVERY_FAILED,
+    ALTERNATE_CHANNEL_REQUIRED,
     READ,
     DeliveryPolicyError,
     DeliveryState,
     execution_is_proven,
     mark_delivered,
+    mark_delivery_failed,
+    require_alternate_channel,
     mark_read,
 )
 
@@ -60,3 +64,27 @@ def test_naive_timestamps_and_empty_identity_fail_closed():
         mark_delivered(DeliveryState(), identity_id=" ", at=now())
     with pytest.raises(DeliveryPolicyError, match="INVALID_CLOCK"):
         mark_delivered(DeliveryState(), identity_id="nurse-01", at=datetime(2026, 9, 16, 5, 0))
+
+
+def test_network_delivery_failure_requires_explicit_alternate_channel_transition():
+    failed = mark_delivery_failed(DeliveryState(), reason="network_unavailable")
+    assert failed.status == DELIVERY_FAILED
+    assert failed.delivered_at is None
+    assert failed.read_at is None
+    assert execution_is_proven(failed) is False
+    alternate = require_alternate_channel(failed)
+    assert alternate.status == ALTERNATE_CHANNEL_REQUIRED
+    assert alternate.failure_reason == "network_unavailable"
+
+
+def test_alternate_channel_cannot_be_claimed_without_recorded_delivery_failure():
+    with pytest.raises(DeliveryPolicyError, match="DELIVERY_FAILURE_REQUIRED"):
+        require_alternate_channel(DeliveryState())
+
+
+def test_delivery_failure_requires_reason_and_cannot_overwrite_delivery_proof():
+    with pytest.raises(DeliveryPolicyError, match="FAILURE_REASON_REQUIRED"):
+        mark_delivery_failed(DeliveryState(), reason=" ")
+    delivered = mark_delivered(DeliveryState(), identity_id="nurse-01", at=now())
+    with pytest.raises(DeliveryPolicyError, match="INVALID_TRANSITION"):
+        mark_delivery_failed(delivered, reason="network_unavailable")
