@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: '24'
       - name: Install dependencies
-        run: yarn install --non-interactive
+        run: yarn install --non-interactive --frozen-lockfile
       - name: Build
         env:
           CI: 'true'
