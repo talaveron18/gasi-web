@@ -1,0 +1,94 @@
+name: Internal Clinical CI
+
+on:
+  push:
+    branches:
+      - 'automation/web-internal-clinical-*'
+      - 'work/web-infra-v1-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: yarn install --non-interactive
+      - name: Build
+        env:
+          CI: 'true'
+        run: yarn build
+      - name: Tests
+        env:
+          CI: 'true'
+        run: yarn test --watchAll=false --passWithNoTests
+
+  backend-clinical:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: pip install fastapi starlette pydantic python-dotenv motor pytest pytest-asyncio httpx
+      - name: Internal clinical and security tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest -q backend/tests/test_internal_*.py --junitxml=backend/internal-clinical-junit.xml
+      - name: Preserve internal clinical diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: internal-clinical-test-results
+          path: backend/internal-clinical-junit.xml
+          if-no-files-found: warn
+
+  netlify-clinical:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: netlify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Install Netlify function dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck clinical function
+        run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-clinical.mts
+
+
+  netlify-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Install frontend dependencies
+        run: yarn --cwd frontend install --non-interactive --frozen-lockfile
+      - name: Install Netlify function dependencies
+        run: npm --prefix netlify ci --ignore-scripts --no-audit --no-fund
+      - name: Run Netlify production build
+        env:
+          CI: 'false'
+        run: npx -y netlify-cli@latest build --offline

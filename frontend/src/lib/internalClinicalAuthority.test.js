@@ -1,0 +1,80 @@
+import { loadAuthoritativeEpisodes, partitionAuthoritativeEpisodes, selectAuthoritativeAddendaForDisplay, selectAuthoritativeEpisodeById, selectPreferredAuthoritativeEpisodeId } from './internalClinicalAuthority';
+
+describe('internalClinicalAuthority', () => {
+  test('returns only episodes supplied by the central synthetic authority', async () => {
+    const episodes = [{ id: 'DEMO-EP-0001', status: 'ABIERTO' }];
+    const api = { listEpisodes: jest.fn().mockResolvedValue(episodes) };
+
+    await expect(loadAuthoritativeEpisodes(api)).resolves.toEqual({ ok: true, episodes, errorCode: null });
+  });
+
+  test('fails closed and never returns local fallback episodes when authority is unavailable', async () => {
+    const api = { listEpisodes: jest.fn().mockRejectedValue({ code: 'network_unavailable' }) };
+    await expect(loadAuthoritativeEpisodes(api)).resolves.toEqual({ ok: false, episodes: [], errorCode: 'network_unavailable' });
+  });
+
+  test('rejects malformed authority payloads', async () => {
+    const api = { listEpisodes: jest.fn().mockResolvedValue({ id: 'not-a-list' }) };
+    await expect(loadAuthoritativeEpisodes(api)).resolves.toEqual({ ok: false, episodes: [], errorCode: 'invalid_authority_payload' });
+  });
+
+  test('selects a requested episode only when it exists in the authoritative visible set', () => {
+    const episodes = [{ id: 'DEMO-EP-0001' }, { id: 'DEMO-EP-0002' }];
+    expect(selectAuthoritativeEpisodeById({ episodes, episodeId: 'DEMO-EP-0002' })).toEqual({ id: 'DEMO-EP-0002' });
+    expect(selectAuthoritativeEpisodeById({ episodes, episodeId: 'DEMO-EP-9999' })).toBeNull();
+    expect(selectAuthoritativeEpisodeById({ episodes: null, episodeId: 'DEMO-EP-0002' })).toBeNull();
+  });
+
+  test('separates pending ABIERTO/RESPONDIDO episodes from closed history without duplicating or promoting unknown states', () => {
+    const open = { id: 'DEMO-EP-0001', status: 'ABIERTO' };
+    const answered = { id: 'DEMO-EP-0002', status: 'RESPONDIDO' };
+    const closed = { id: 'DEMO-EP-0003', status: 'CERRADO' };
+    const unknown = { id: 'DEMO-EP-0004', status: 'OTRO' };
+    const malformed = { status: 'ABIERTO' };
+
+    expect(partitionAuthoritativeEpisodes([open, answered, closed, unknown, malformed, null])).toEqual({
+      pending: [open, answered],
+      closed: [closed],
+    });
+    expect(partitionAuthoritativeEpisodes(null)).toEqual({ pending: [], closed: [] });
+  });
+
+  test('prioritizes a pending episode for initial selection while preserving an existing valid selection', () => {
+    const closed = { id: 'DEMO-EP-CLOSED', status: 'CERRADO' };
+    const answered = { id: 'DEMO-EP-ANSWERED', status: 'RESPONDIDO' };
+    const open = { id: 'DEMO-EP-OPEN', status: 'ABIERTO' };
+
+    expect(selectPreferredAuthoritativeEpisodeId({ episodes: [closed, answered, open] })).toBe('DEMO-EP-ANSWERED');
+    expect(selectPreferredAuthoritativeEpisodeId({ episodes: [closed, answered, open], currentId: closed.id })).toBe(closed.id);
+    expect(selectPreferredAuthoritativeEpisodeId({ episodes: [closed], currentId: 'MISSING' })).toBe(closed.id);
+    expect(selectPreferredAuthoritativeEpisodeId({ episodes: [{ id: 'UNKNOWN', status: 'OTRO' }] })).toBeNull();
+    expect(selectPreferredAuthoritativeEpisodeId({ episodes: null })).toBeNull();
+  });
+
+  test('exposes complete append-only addendum history to clinical roles in timestamp order', () => {
+    const episode = { addenda: [
+      { id: 'DEMO-EP-0001-A2', text: 'DEMO complemento 2', authorId: 'USR-DEMO-PHYS-01', authorRole: 'physician', createdAt: '2026-09-13T10:02:00Z' },
+      { id: 'DEMO-EP-0001-A1', text: 'DEMO complemento 1', authorId: 'USR-DEMO-NURSE-01', authorRole: 'nurse', createdAt: '2026-09-13T10:01:00Z' },
+    ] };
+    expect(selectAuthoritativeAddendaForDisplay({ episode, session: { role: 'nurse' } })).toEqual([
+      { id: 'DEMO-EP-0001-A1', text: 'DEMO complemento 1', authorId: 'USR-DEMO-NURSE-01', authorRole: 'nurse', createdAt: '2026-09-13T10:01:00Z' },
+      { id: 'DEMO-EP-0001-A2', text: 'DEMO complemento 2', authorId: 'USR-DEMO-PHYS-01', authorRole: 'physician', createdAt: '2026-09-13T10:02:00Z' },
+    ]);
+  });
+
+  test('never exposes addendum narrative to administration', () => {
+    const episode = { addenda: [{ id: 'DEMO-EP-0001-A1', text: 'DEMO narrativa clínica', authorId: 'USR-DEMO-NURSE-01', authorRole: 'nurse', createdAt: '2026-09-13T10:01:00Z' }] };
+    expect(selectAuthoritativeAddendaForDisplay({ episode, session: { role: 'admin' } })).toEqual([]);
+  });
+
+  test('drops malformed addenda instead of rendering partial or unattributed clinical corrections', () => {
+    const episode = { addenda: [
+      { id: 'DEMO-EP-0001-A1', text: 'DEMO válida', authorId: 'USR-DEMO-NURSE-01', authorRole: 'nurse', createdAt: '2026-09-13T10:01:00Z' },
+      { id: 'DEMO-EP-0001-A2', text: 'DEMO sin autor', authorRole: 'nurse', createdAt: '2026-09-13T10:02:00Z' },
+      { id: 'DEMO-EP-0001-A3', text: 'DEMO rol desconocido', authorId: 'USR-DEMO-X', authorRole: 'other', createdAt: '2026-09-13T10:03:00Z' },
+    ] };
+    expect(selectAuthoritativeAddendaForDisplay({ episode, session: { role: 'physician' } })).toEqual([
+      { id: 'DEMO-EP-0001-A1', text: 'DEMO válida', authorId: 'USR-DEMO-NURSE-01', authorRole: 'nurse', createdAt: '2026-09-13T10:01:00Z' },
+    ]);
+  });
+});
