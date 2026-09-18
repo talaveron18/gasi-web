@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from routes import internal_prototype as clinical
 from internal_session_security import issue_session, sign_session_token
+from datetime import datetime, timedelta, timezone
 
 CENTER = "Centro GASI Madrid 01"
 CENTER_B = "Centro GASI Barcelona 01"
@@ -157,3 +158,33 @@ def test_professional_with_admin_privilege_keeps_clinical_scope_separate():
     assert workers.status_code==200
     privileged=client.post(f"/api/internal-clinical/episodes/{own}/privileged-access",headers=h("GASI-NURSE-01"),json={"reason":"incident_review","reference":"INC-COMBINED-01"})
     assert privileged.status_code==403 and privileged.json()["detail"]=="privileged_record_access_required"
+
+
+def test_expired_signed_session_is_rejected():
+    w=store.workers["GASI-NURSE-01"]
+    expired=issue_session(worker_id=w["id"],auth_version=w["auth_version"],ttl_minutes=1,now=datetime.now(timezone.utc)-timedelta(minutes=2))
+    token=sign_session_token(expired,secret=SECRET)
+    r=client.get("/api/internal-clinical/episodes",headers={"Authorization":f"Bearer {token}"})
+    assert r.status_code==401 and r.json()["detail"]=="session_expired_or_revoked"
+
+
+def test_foreign_episode_id_cannot_be_used_for_level_response_or_close():
+    eid=create().json()["id"]
+    headers=h("GASI-NURSE-B")
+    level=client.post(f"/api/internal-clinical/episodes/{eid}/level",headers=headers,json={"level":1})
+    addendum=client.post(f"/api/internal-clinical/episodes/{eid}/addenda",headers=headers,json={"text":"foreign write"})
+    close=client.post(f"/api/internal-clinical/episodes/{eid}/close",headers=headers,json={})
+    assert level.status_code==403
+    assert addendum.status_code==403
+    assert close.status_code==403
+
+
+def test_master_privileged_access_records_actor_reason_reference_and_episode():
+    eid=create().json()["id"]
+    r=client.post(f"/api/internal-clinical/episodes/{eid}/privileged-access",headers=h("GASI-MASTER-01"),json={"reason":"incident_review","reference":"INC-E2E-001"})
+    assert r.status_code==200 and r.json()["read_only"] is True
+    event=next(x for x in reversed(store.audit) if x["action"]=="PRIVILEGED_CLINICAL_RECORD_ACCESSED")
+    assert event["actor_id"]=="GASI-MASTER-01"
+    assert event["episode_id"]==eid
+    assert event["reason"]=="incident_review"
+    assert event["reference"]=="INC-E2E-001"
