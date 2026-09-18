@@ -1,0 +1,52 @@
+name: One-time GASI Clinical Deploy
+
+on:
+  push:
+    branches:
+      - 'ops/netlify-deploy-relay-20260918'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  deploy:
+    if: contains(github.event.head_commit.message, '[clinical-deploy]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout production source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Create ephemeral relay key
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:8192 -out /tmp/relay-private.pem >/dev/null 2>&1
+          openssl pkey -in /tmp/relay-private.pem -pubout -out /tmp/relay-public.pem
+          PUB="$(base64 -w0 /tmp/relay-public.pem)"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="CLINICAL_RELAY_PUBLIC_KEY_${GITHUB_RUN_ID}:${PUB}" >/dev/null
+      - name: Await encrypted deploy capability and deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PAYLOAD=""
+          for i in $(seq 1 180); do
+            PAYLOAD="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/30/comments" --jq '.[].body' | sed -n "s/^CLINICAL_RELAY_CIPHERTEXT_${GITHUB_RUN_ID}://p" | tail -n 1)"
+            [ -n "${PAYLOAD}" ] && break
+            sleep 5
+          done
+          [ -n "${PAYLOAD}" ] || { echo "Encrypted deploy capability was not received." >&2; exit 1; }
+          printf '%s' "${PAYLOAD}" | base64 -d > /tmp/relay-cipher.bin
+          PROXY_PATH="$(openssl pkeyutl -decrypt -inkey /tmp/relay-private.pem -in /tmp/relay-cipher.bin -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256)"
+          case "${PROXY_PATH}" in https://netlify-mcp.netlify.app/proxy/*) ;; *) exit 1 ;; esac
+          npx -y @netlify/mcp@latest --site-id f3dd9c19-a3b9-40ab-8e90-f555b05429d3 --proxy-path "${PROXY_PATH}"
+          rm -f /tmp/relay-private.pem /tmp/relay-public.pem /tmp/relay-cipher.bin
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="CLINICAL_RELAY_DONE_${GITHUB_RUN_ID}" >/dev/null
