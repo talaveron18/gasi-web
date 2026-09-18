@@ -12,7 +12,7 @@ Fuentes oficiales:
 
 ## 2. Principio del sistema
 
-El fichaje ordinario se realiza exclusivamente desde un terminal GASI previamente registrado y vinculado al centro de trabajo.
+El fichaje ordinario se realiza exclusivamente desde un único PC fijo GASI previamente registrado y vinculado al centro de trabajo.
 
 No se habilita el fichaje ordinario desde:
 - teléfono móvil personal;
@@ -49,9 +49,9 @@ Cada evento conserva:
 
 El sistema impide secuencias incoherentes: después de una entrada corresponde una salida y después de una salida corresponde una entrada.
 
-## 5. Terminal del centro
+## 5. PC fijo del centro
 
-Cada terminal:
+Cada centro dispone de un único PC fijo activo:
 - tiene identificador propio;
 - está vinculado a un único centro;
 - se activa mediante un código de un solo uso;
@@ -133,3 +133,15 @@ Pendiente de validación de despliegue:
 - prueba negativa desde móvil sin credencial de terminal;
 - exportación de evidencias para Inspección/gestión laboral;
 - validación final de conservación y recuperación.
+
+
+### Regla operativa por turnos
+
+Al inicio de cada turno, el profesional se identifica en el PC fijo del centro con su usuario y contraseña. Una vez autenticado, la pantalla muestra:
+- profesional conectado;
+- centro asignado;
+- hora oficial del servidor GASI;
+- último fichaje;
+- acción disponible: entrada o salida.
+
+Cerrar la sesión en ese PC elimina la sesión local del profesional, pero no revoca sus credenciales ni afecta a otros usos legítimos de su cuenta.
