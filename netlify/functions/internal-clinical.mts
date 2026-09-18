@@ -2,82 +2,31 @@ import type { Config, Context } from "@netlify/functions";
 import { getDatabase } from "@netlify/database";
 import crypto from "node:crypto";
 
+const MASTER=()=>Netlify.env.get("GASI_MASTER_ACTOR_ID")||"GASI-MASTER-01";
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json","cache-control":"no-store"}});
 const env=(name:string)=>Netlify.env.get(name)||"";
 const b64=(v:Buffer|string)=>Buffer.from(v).toString("base64url");
 const bearer=(req:Request)=>{const value=req.headers.get("authorization")||"";return value.startsWith("Bearer ")?value.slice(7):"";};
 const profile=(w:any)=>({id:w.id,role:w.role,display_name:w.display_name,centers:w.centers||[],operational_state:w.active?"ACTIVE":"REVOKED",delegated_privileges:w.delegated_privileges||[]});
+const has=(w:any,p:string)=>w.id===MASTER()||(w.delegated_privileges||[]).includes(p);
+const required=(v:unknown,name:string)=>{const s=String(v||"").trim();if(!s)throw new Error(`${name}_required`);if(s.length>160)throw new Error(`${name}_too_long`);return s;};
+function secret(){const value=env("GASI_INTERNAL_SESSION_SECRET");if(Buffer.byteLength(value)<32)throw new Error("session_secret_not_configured");return value;}
+function sign(payload:any){const encoded=b64(JSON.stringify(payload));const sig=crypto.createHmac("sha256",secret()).update(encoded).digest("base64url");return `v1.${encoded}.${sig}`;}
+function decode(token:string){const [version,encoded,supplied]=token.split(".");if(version!=="v1"||!encoded||!supplied)throw new Error("invalid_session_token");const expected=crypto.createHmac("sha256",secret()).update(encoded).digest("base64url");if(expected.length!==supplied.length||!crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(supplied)))throw new Error("invalid_session_token");const p=JSON.parse(Buffer.from(encoded,"base64url").toString("utf8"));if(!p.sub||!p.exp||!p.av||Date.now()>=Number(p.exp)*1000)throw new Error("session_expired_or_revoked");return p;}
+async function actor(req:Request,db:any){const token=bearer(req);if(!token)throw new Error("missing_session");const p=decode(token);const rows=await db.sql`SELECT id,role,display_name,centers,active,auth_version,delegated_privileges FROM internal_clinical_workers WHERE id=${String(p.sub)} LIMIT 1`;const w=rows[0];if(!w||!w.active||Number(w.auth_version)!==Number(p.av))throw new Error("session_expired_or_revoked");return w;}
+async function audit(db:any,w:any,action:string,metadata:any={}){const client=await db.pool.connect();try{await client.query("BEGIN");const last=await client.query("SELECT event_hash FROM internal_clinical_audit ORDER BY seq DESC LIMIT 1 FOR UPDATE");const previous=last.rows[0]?.event_hash||null;const at=new Date().toISOString();const canonical=JSON.stringify({at,actor_id:w.id,actor_role:w.role,action,episode_id:null,metadata,previous_hash:previous});const hash=crypto.createHash("sha256").update(canonical).digest("hex");await client.query("INSERT INTO internal_clinical_audit(at,actor_id,actor_role,action,metadata,previous_hash,event_hash) VALUES($1,$2,$3,$4,$5,$6,$7)",[at,w.id,w.role,action,metadata,previous,hash]);await client.query("COMMIT");}catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}}
+async function verifyPassword(password:string,stored:string){if(!stored.startsWith("scrypt$"))return false;const [,salt,key]=stored.split("$");if(!salt||!key)return false;const derived=await new Promise<Buffer>((resolve,reject)=>crypto.scrypt(password,salt,32,(e,d)=>e?reject(e):resolve(d as Buffer)));return key.length===derived.toString("hex").length&&crypto.timingSafeEqual(derived,Buffer.from(key,"hex"));}
+async function hashPassword(password:string){if(password.length<12||password.length>128)throw new Error("invalid_temporary_password");const salt=crypto.randomBytes(16).toString("hex");const key=await new Promise<Buffer>((resolve,reject)=>crypto.scrypt(password,salt,32,(e,d)=>e?reject(e):resolve(d as Buffer)));return `scrypt$${salt}$${key.toString("hex")}`;}
 
-function secret(){
-  const value=env("GASI_INTERNAL_SESSION_SECRET");
-  if(Buffer.byteLength(value)<32)throw new Error("session_secret_not_configured");
-  return value;
-}
-function sign(payload:any){
-  const encoded=b64(JSON.stringify(payload));
-  const sig=crypto.createHmac("sha256",secret()).update(encoded).digest("base64url");
-  return `v1.${encoded}.${sig}`;
-}
-function decode(token:string){
-  const [version,encoded,supplied]=token.split(".");
-  if(version!=="v1"||!encoded||!supplied)throw new Error("invalid_session_token");
-  const expected=crypto.createHmac("sha256",secret()).update(encoded).digest("base64url");
-  if(!crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(supplied)))throw new Error("invalid_session_token");
-  const p=JSON.parse(Buffer.from(encoded,"base64url").toString("utf8"));
-  if(!p.sub||!p.exp||!p.av||Date.now()>=Number(p.exp)*1000)throw new Error("session_expired_or_revoked");
-  return p;
-}
-async function actor(req:Request,db:any){
-  const token=bearer(req);if(!token)throw new Error("missing_session");
-  const p=decode(token);
-  const rows=await db.sql`SELECT id,role,display_name,centers,active,auth_version,delegated_privileges FROM internal_clinical_workers WHERE id=${String(p.sub)} LIMIT 1`;
-  const w=rows[0];
-  if(!w||!w.active||Number(w.auth_version)!==Number(p.av))throw new Error("session_expired_or_revoked");
-  return w;
-}
-async function audit(db:any,w:any,action:string,metadata:any={}){
-  const client=await db.pool.connect();
-  try{
-    await client.query("BEGIN");
-    const last=await client.query("SELECT event_hash FROM internal_clinical_audit ORDER BY seq DESC LIMIT 1 FOR UPDATE");
-    const previous=last.rows[0]?.event_hash||null;
-    const at=new Date().toISOString();
-    const canonical=JSON.stringify({at,actor_id:w.id,actor_role:w.role,action,episode_id:null,metadata,previous_hash:previous});
-    const hash=crypto.createHash("sha256").update(canonical).digest("hex");
-    await client.query("INSERT INTO internal_clinical_audit(at,actor_id,actor_role,action,metadata,previous_hash,event_hash) VALUES($1,$2,$3,$4,$5,$6,$7)",[at,w.id,w.role,action,metadata,previous,hash]);
-    await client.query("COMMIT");
-  }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
-}
-async function verifyPassword(password:string,stored:string){
-  if(!stored.startsWith("scrypt$"))return false;
-  const [,salt,key]=stored.split("$");if(!salt||!key)return false;
-  const derived=await new Promise<Buffer>((resolve,reject)=>crypto.scrypt(password,salt,32,(e,d)=>e?reject(e):resolve(d as Buffer)));
-  return crypto.timingSafeEqual(derived,Buffer.from(key,"hex"));
-}
-
-export default async (req:Request,_context:Context)=>{
-  const db=getDatabase();const url=new URL(req.url);const path=url.pathname;
-  try{
-    if(req.method==="GET"&&path==="/api/internal-clinical/health"){await db.sql`SELECT 1`;return json({ok:true,storage:"netlify-database"});}
-    if(req.method==="POST"&&path==="/api/internal-clinical/login"){
-      const body=await req.json() as any;const id=String(body.worker_id||"").trim();
-      const rows=await db.sql`SELECT * FROM internal_clinical_workers WHERE id=${id} LIMIT 1`;const w=rows[0];
-      if(!w||!w.active||!(await verifyPassword(String(body.password||""),w.password_hash)))return json({detail:"invalid_credentials"},401);
-      const ttl=Math.min(480,Math.max(1,Number(env("GASI_INTERNAL_SESSION_TTL_MINUTES")||30)));const now=Math.floor(Date.now()/1000);
-      const token=sign({sid:crypto.randomUUID(),sub:w.id,iat:now,exp:now+ttl*60,av:Number(w.auth_version)});
-      await audit(db,w,"LOGIN_SUCCESS");return json({token,expires_at:new Date((now+ttl*60)*1000).toISOString(),profile:profile(w)});
-    }
-    if(req.method==="GET"&&(path==="/api/internal-clinical/session"||path==="/api/internal-clinical/profile")){
-      const w=await actor(req,db);await audit(db,w,path.endsWith("/session")?"SESSION_VALIDATED":"PROFILE_VIEWED");return json(path.endsWith("/session")?{...profile(w),active:true}:profile(w));
-    }
-    if(req.method==="POST"&&path==="/api/internal-clinical/logout"){
-      const w=await actor(req,db);await db.sql`UPDATE internal_clinical_workers SET auth_version=auth_version+1 WHERE id=${w.id}`;await audit(db,w,"LOGOUT_ALL_SESSIONS");return json({ok:true});
-    }
-    await actor(req,db);return json({detail:"netlify_clinical_route_not_migrated"},501);
-  }catch(e:any){
-    const code=String(e?.message||"internal_error");
-    if(["missing_session","invalid_session_token","session_expired_or_revoked"].includes(code))return json({detail:code},401);
-    return json({detail:"internal_error"},500);
-  }
-};
+export default async (req:Request,_context:Context)=>{const db=getDatabase();const url=new URL(req.url);const path=url.pathname;try{
+ if(req.method==="GET"&&path==="/api/internal-clinical/health"){await db.sql`SELECT 1`;return json({ok:true,storage:"netlify-database"});}
+ if(req.method==="POST"&&path==="/api/internal-clinical/login"){const body=await req.json() as any;const id=String(body.worker_id||"").trim();const rows=await db.sql`SELECT * FROM internal_clinical_workers WHERE id=${id} LIMIT 1`;const w=rows[0];if(!w||!w.active||!(await verifyPassword(String(body.password||""),w.password_hash)))return json({detail:"invalid_credentials"},401);const ttl=Math.min(480,Math.max(1,Number(env("GASI_INTERNAL_SESSION_TTL_MINUTES")||30)));const now=Math.floor(Date.now()/1000);const token=sign({sid:crypto.randomUUID(),sub:w.id,iat:now,exp:now+ttl*60,av:Number(w.auth_version)});await audit(db,w,"LOGIN_SUCCESS");return json({token,expires_at:new Date((now+ttl*60)*1000).toISOString(),profile:profile(w)});}
+ const w=await actor(req,db);
+ if(req.method==="GET"&&(path.endsWith("/session")||path.endsWith("/profile"))){await audit(db,w,path.endsWith("/session")?"SESSION_VALIDATED":"PROFILE_VIEWED");return json(path.endsWith("/session")?{...profile(w),active:true}:profile(w));}
+ if(req.method==="POST"&&path.endsWith("/logout")){await db.sql`UPDATE internal_clinical_workers SET auth_version=auth_version+1 WHERE id=${w.id}`;await audit(db,w,"LOGOUT_ALL_SESSIONS");return json({ok:true});}
+ if(req.method==="POST"&&path==="/api/internal-clinical/workers"){if(!has(w,"worker_access_management"))return json({detail:"worker_management_required"},403);const b=await req.json() as any;const id=required(b.id,"worker_id"),name=required(b.display_name,"display_name"),role=String(b.role||"");if(!["nurse","physician","psychologist","physiotherapist","admin"].includes(role))return json({detail:"invalid_role"},422);const centers=Array.isArray(b.centers)?b.centers.map((x:any)=>required(x,"center")):[];if(role==="admin"&&centers.length)return json({detail:"admin_cannot_have_clinical_centers"},422);if(role!=="admin"&&!centers.length)return json({detail:"clinical_worker_requires_center"},422);if(new Set(centers).size!==centers.length)return json({detail:"duplicate_centers"},422);const exists=await db.sql`SELECT id FROM internal_clinical_workers WHERE id=${id}`;if(exists.length)return json({detail:"worker_already_exists"},409);const password_hash=await hashPassword(String(b.temporary_password||""));await db.sql`INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES(${id},${role},${name},${JSON.stringify(centers)}::jsonb,TRUE,1,'[]'::jsonb,${password_hash})`;await audit(db,w,"IDENTITY_CREATED",{target_actor_id:id,target_role:role,center_count:centers.length});return json({id,role,display_name:name,centers,operational_state:"ACTIVE",delegated_privileges:[]},201);}
+ const access=path.match(/^\/api\/internal-clinical\/workers\/([^/]+)\/access$/);if(req.method==="POST"&&access){if(!has(w,"worker_access_management"))return json({detail:"worker_management_required"},403);const id=decodeURIComponent(access[1]);const rows=await db.sql`SELECT * FROM internal_clinical_workers WHERE id=${id}`;const target=rows[0];if(!target)return json({detail:"worker_not_found"},404);if(id===MASTER())return json({detail:"master_access_is_intrinsic"},409);const b=await req.json() as any;if(!["ACTIVE","REVOKED"].includes(b.state))return json({detail:"invalid_access_state"},422);if(id===w.id&&b.state==="REVOKED")return json({detail:"self_revocation_not_allowed"},409);const active=b.state==="ACTIVE";await db.sql`UPDATE internal_clinical_workers SET active=${active},auth_version=auth_version+1 WHERE id=${id}`;await audit(db,w,active?"IDENTITY_REACTIVATED":"IDENTITY_REVOKED",{target_actor_id:id,access_state:b.state});return json({...profile(target),operational_state:b.state});}
+ const privilege=path.match(/^\/api\/internal-clinical\/workers\/([^/]+)\/privileges\/([^/]+)$/);if(req.method==="POST"&&privilege){if(w.id!==MASTER())return json({detail:"master_required"},403);const id=decodeURIComponent(privilege[1]),p=decodeURIComponent(privilege[2]);const rows=await db.sql`SELECT * FROM internal_clinical_workers WHERE id=${id}`;if(!rows[0])return json({detail:"worker_not_found"},404);const b=await req.json() as any;const grant=b.granted===true;await db.sql`UPDATE internal_clinical_workers SET delegated_privileges=CASE WHEN ${grant} THEN (SELECT jsonb_agg(DISTINCT x) FROM jsonb_array_elements_text(delegated_privileges || to_jsonb(${p}::text)) x) ELSE delegated_privileges - ${p} END,auth_version=auth_version+1 WHERE id=${id}`;await audit(db,w,grant?"PRIVILEGE_GRANTED":"PRIVILEGE_REVOKED",{target_actor_id:id,privilege:p});return json({ok:true});}
+ return json({detail:"netlify_clinical_route_not_migrated"},501);
+}catch(e:any){const code=String(e?.message||"internal_error");if(["missing_session","invalid_session_token","session_expired_or_revoked"].includes(code))return json({detail:code},401);if(code.endsWith("_required")||code.endsWith("_too_long")||code==="invalid_temporary_password")return json({detail:code},422);return json({detail:"internal_error"},500);}};
 export const config:Config={path:"/api/internal-clinical/*"};
