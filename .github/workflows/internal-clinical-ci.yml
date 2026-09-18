@@ -122,3 +122,16 @@ jobs:
             netlify-mcp-runtime.tgz
             gasi-main-source.tgz
           if-no-files-found: error
+
+
+  production-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production clinical health
+        run: |
+          body="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 https://gasisalud.com/api/internal-clinical/health)"
+          echo "$body"
+          echo "$body" | grep -q '"ok":true'
+          echo "$body" | grep -q '"storage":"netlify-database"'
+      - name: Verify production dashboard route
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 3 https://gasisalud.com/dashboard | grep -q '<div id="root">'
