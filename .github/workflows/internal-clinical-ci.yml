@@ -73,3 +73,22 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Typecheck clinical function
         run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-clinical.mts
+
+
+  netlify-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Install frontend dependencies
+        run: yarn --cwd frontend install --non-interactive --frozen-lockfile
+      - name: Install Netlify function dependencies
+        run: npm --prefix netlify ci --ignore-scripts --no-audit --no-fund
+      - name: Run Netlify production build
+        env:
+          CI: 'false'
+        run: npx -y netlify-cli@latest build
