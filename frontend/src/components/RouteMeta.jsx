@@ -34,7 +34,9 @@ export default function RouteMeta(){
   document.title=match[1];
   ensureMeta('description',match[2]);
   ensureMeta('robots',internal?'noindex,nofollow':'index,follow');
-  if(!internal)ensureCanonical(`https://gasisalud.com${pathname==='/'?'':pathname}`);
+  const canonical=document.head.querySelector('link[rel="canonical"]');
+  if(internal){canonical?.remove();}else ensureCanonical(`https://gasisalud.com${pathname==='/'?'':pathname}`);
+  window.scrollTo({top:0,behavior:'auto'});
  },[pathname]);
  return null;
 }
