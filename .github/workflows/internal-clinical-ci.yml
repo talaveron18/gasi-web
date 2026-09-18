@@ -72,7 +72,9 @@ jobs:
       - name: Install Netlify function dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Typecheck clinical function
-        run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-clinical.mts
+        run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-clinical.mts functions/internal-clinical.test.mts
+      - name: Netlify clinical security tests
+        run: node --experimental-strip-types --test functions/internal-clinical.test.mts
 
 
   netlify-build:
