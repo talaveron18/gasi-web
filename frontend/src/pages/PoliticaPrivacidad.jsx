@@ -36,7 +36,7 @@ const PoliticaPrivacidad = () => {
           <li>Atender comunicaciones y obligaciones aplicables al funcionamiento de la web</li>
         </ul>
         <p className="text-[#64748B] mb-6">
-          La web pública no está diseñada para documentar asistencia sanitaria ni para recibir información clínica de pacientes.
+          La web pública no está diseñada para documentar asistencia sanitaria ni para recibir información clínica de pacientes. El control horario es un flujo laboral separado y no debe incorporar información clínica o de salud.
         </p>
 
         <h2 className="text-2xl font-bold text-[#0F172A] mb-4">3. Base jurídica</h2>
