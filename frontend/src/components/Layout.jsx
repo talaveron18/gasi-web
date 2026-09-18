@@ -3,12 +3,14 @@ import { useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import Chatbot from './Chatbot';
+import InternalShell from './InternalShell';
 
 const Layout = ({ children }) => {
   const location = useLocation();
   const internal = location.pathname.startsWith('/interno');
+  const bareInternal = ['/interno/acceso','/interno/fichaje','/interno/fichaje/activar'].some((path)=>location.pathname===path);
   if (internal) {
-    return <div className="min-h-screen bg-slate-950">{children}</div>;
+    return bareInternal ? <div className="min-h-screen bg-slate-950">{children}</div> : <InternalShell>{children}</InternalShell>;
   }
   return (
     <div className="min-h-screen flex flex-col">
