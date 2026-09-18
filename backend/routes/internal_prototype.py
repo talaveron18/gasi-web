@@ -74,14 +74,18 @@ async def workers(authorization:Optional[str]=Header(default=None,alias='Authori
 async def grant(worker_id:str,p:PrivilegeGrantInput,authorization:Optional[str]=Header(default=None,alias='Authorization')):
  a=await _actor(authorization)
  if a['id']!=MASTER_ADMIN_ID:raise HTTPException(403,'master_account_only')
- t=await _actor(worker_id)
+ t=await _store().get_worker(worker_id)
+ if not t:raise HTTPException(404,'worker_not_found')
  if t['id']==MASTER_ADMIN_ID:raise HTTPException(409,'master_privilege_is_intrinsic')
  t=await _store().set_privilege(worker_id,p.privilege,True);await _audit(a,'PRIVILEGE_GRANTED',metadata={'target_actor_id':worker_id,'privilege':p.privilege});return{'worker_id':worker_id,'base_role':t['role'],'privileges':sorted(t.get('delegated_privileges',[]))}
 @router.post('/workers/{worker_id}/privileges/revoke')
 async def revoke(worker_id:str,p:PrivilegeGrantInput,authorization:Optional[str]=Header(default=None,alias='Authorization')):
  a=await _actor(authorization)
  if a['id']!=MASTER_ADMIN_ID:raise HTTPException(403,'master_account_only')
- t=await _actor(worker_id);t=await _store().set_privilege(worker_id,p.privilege,False);await _audit(a,'PRIVILEGE_REVOKED',metadata={'target_actor_id':worker_id,'privilege':p.privilege});return{'worker_id':worker_id,'base_role':t['role'],'privileges':sorted(t.get('delegated_privileges',[]))}
+ t=await _store().get_worker(worker_id)
+ if not t:raise HTTPException(404,'worker_not_found')
+ if t['id']==MASTER_ADMIN_ID:raise HTTPException(409,'master_privilege_is_intrinsic')
+ t=await _store().set_privilege(worker_id,p.privilege,False);await _audit(a,'PRIVILEGE_REVOKED',metadata={'target_actor_id':worker_id,'privilege':p.privilege});return{'worker_id':worker_id,'base_role':t['role'],'privileges':sorted(t.get('delegated_privileges',[]))}
 @router.post('/episodes',status_code=201)
 async def create(p:CreateEpisode,authorization:Optional[str]=Header(default=None,alias='Authorization')):
  a=await _actor(authorization)
