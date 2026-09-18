@@ -19,6 +19,7 @@
   for = "/interno/*"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow, noarchive"
+    Cache-Control = "no-store"
 
 [[headers]]
   for = "/dashboard"
