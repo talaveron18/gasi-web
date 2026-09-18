@@ -4,5 +4,9 @@
     "@netlify/database": "latest",
     "@netlify/functions": "latest",
     "bcryptjs": "^3.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.2"
   }
 }
