@@ -21,6 +21,7 @@ export default function Navbar(){
      <DropdownMenuItem asChild><Link to="/servicios-sanitarios-organizaciones" className="w-full">Servicios sanitarios complementarios</Link></DropdownMenuItem>
      <DropdownMenuItem asChild><Link to="/formacion-sanitaria" className="w-full">Formación sanitaria</Link></DropdownMenuItem>
     </DropdownMenuContent></DropdownMenu>
+    <Link to="/formacion-sanitaria"><Button variant="ghost" className={active('/formacion-sanitaria')?'text-[#005EB8] font-semibold':'text-[#0F172A]'}>Formación</Button></Link>
     <Link to="/sectores"><Button variant="ghost" className={active('/sectores')?'text-[#005EB8] font-semibold':'text-[#0F172A]'}>Sectores</Button></Link>
     <Link to="/contacto"><Button variant="ghost" className={active('/contacto')?'text-[#005EB8] font-semibold':'text-[#0F172A]'}>Contacto</Button></Link>
    </div>
