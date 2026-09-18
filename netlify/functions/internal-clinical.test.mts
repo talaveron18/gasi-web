@@ -11,7 +11,7 @@ const makeSnapshot=()=>{
   const payload={at,actor_id:"GASI-MASTER-01",actor_role:"admin",action:"LOGIN_SUCCESS",episode_id:null,metadata:{}};
   const event_hash=crypto.createHash("sha256").update(genesis+":"+canonical(payload)).digest("hex");
   return {
-    schema_version:1,
+    schema_version:2,
     workers:[
       {id:"GASI-MASTER-01",role:"admin",display_name:"Fernando",centers:[],active:true,auth_version:1,delegated_privileges:[],password_hash:"$2b$12$placeholder",created_at:at},
       {id:"GASI-NURSE-01",role:"nurse",display_name:"Enfermería A",centers:["CENTER-A"],active:true,auth_version:1,delegated_privileges:[],password_hash:"$2b$12$placeholder",created_at:at}
@@ -22,7 +22,16 @@ const makeSnapshot=()=>{
     audit:[
       {seq:1,at,actor_id:"GASI-MASTER-01",actor_role:"admin",action:"LOGIN_SUCCESS",episode_id:null,metadata:{},previous_hash:genesis,event_hash}
     ],
-    counters:[{name:"episode",value:1}]
+    counters:[{name:"episode",value:1}],
+    timeclock_devices:[
+      {id:"GASI-KIOSK-A",center:"CENTER-A",label:"Recepción",token_hash:"b".repeat(64),active:true,auth_version:1,created_at:at,last_seen_at:null}
+    ],
+    timeclock_events:[
+      {id:"11111111-1111-4111-8111-111111111111",worker_id:"GASI-NURSE-01",center:"CENTER-A",device_id:"GASI-KIOSK-A",event_type:"IN",occurred_at:at,created_at:at}
+    ],
+    timeclock_corrections:[
+      {id:"22222222-2222-4222-8222-222222222222",event_id:"11111111-1111-4111-8111-111111111111",replacement_event_type:null,replacement_occurred_at:null,reason:"Sin cambios",corrected_by_id:"GASI-MASTER-01",corrected_at:at}
+    ]
   };
 };
 
@@ -81,4 +90,23 @@ test("recovery rejects duplicate workers and missing active master",()=>{
   const noMaster=makeSnapshot();
   noMaster.workers=noMaster.workers.filter(x=>x.id!=="GASI-MASTER-01");
   assert.equal(validRecoverySnapshot(noMaster),false);
+});
+
+
+test("recovery validates attendance device and center integrity",()=>{
+  const wrongCenter=makeSnapshot();
+  wrongCenter.timeclock_events[0].center="CENTER-B";
+  assert.equal(validRecoverySnapshot(wrongCenter),false);
+  const unknownWorker=makeSnapshot();
+  unknownWorker.timeclock_events[0].worker_id="UNKNOWN";
+  assert.equal(validRecoverySnapshot(unknownWorker),false);
+  const badDeviceHash=makeSnapshot();
+  badDeviceHash.timeclock_devices[0].token_hash="short";
+  assert.equal(validRecoverySnapshot(badDeviceHash),false);
+});
+
+test("attendance corrections cannot point to missing events",()=>{
+  const snap=makeSnapshot();
+  snap.timeclock_corrections[0].event_id="33333333-3333-4333-8333-333333333333";
+  assert.equal(validRecoverySnapshot(snap),false);
 });
