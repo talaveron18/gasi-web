@@ -140,3 +140,10 @@ test("timeclock kiosk is bound to the activation network",()=>{
   assert.equal(kioskNetworkAllowed({activation_ip:null},"203.0.113.10"),false);
   assert.equal(kioskNetworkAllowed(device,""),false);
 });
+
+
+test("recovery rejects two active fixed PCs for the same center",()=>{
+  const snap=makeSnapshot();
+  snap.timeclock_devices.push({...snap.timeclock_devices[0],id:"GASI-KIOSK-B",label:"Sustituto",token_hash:"c".repeat(64)});
+  assert.equal(validRecoverySnapshot(snap),false);
+});
