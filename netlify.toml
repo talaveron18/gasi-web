@@ -1,6 +1,6 @@
 [build]
   base = "/"
-  command = "npm --prefix frontend run build"
+  command = "yarn --cwd frontend install --non-interactive --frozen-lockfile && yarn --cwd frontend build"
   publish = "frontend/build"
 
 [functions]
