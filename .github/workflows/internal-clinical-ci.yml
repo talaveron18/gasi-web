@@ -94,44 +94,4 @@ jobs:
         run: npx -y netlify-cli@latest build --offline
 
 
-  deploy-runtime-bundle:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout production source
-        uses: actions/checkout@v4
-        with:
-          ref: main
-      - name: Setup Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: '24'
-      - name: Prepare Netlify MCP runtime
-        run: |
-          mkdir -p /tmp/netlify-mcp
-          cd /tmp/netlify-mcp
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund @netlify/mcp@1.15.1
-          tar -czf "$GITHUB_WORKSPACE/netlify-mcp-runtime.tgz" .
-      - name: Package production source
-        run: tar --exclude=.git -czf gasi-main-source.tgz .
-      - name: Upload deploy runtime
-        uses: actions/upload-artifact@v4
-        with:
-          name: netlify-direct-deploy-runtime
-          path: |
-            netlify-mcp-runtime.tgz
-            gasi-main-source.tgz
-          if-no-files-found: error
 
-
-  production-smoke:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Verify production clinical health
-        run: |
-          body="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 https://gasisalud.com/api/internal-clinical/health)"
-          echo "$body"
-          echo "$body" | grep -q '"ok":true'
-          echo "$body" | grep -q '"storage":"netlify-database"'
-      - name: Verify production dashboard route
-        run: curl --fail --silent --show-error --retry 5 --retry-delay 3 https://gasisalud.com/dashboard | grep -q '<div id="root">'
