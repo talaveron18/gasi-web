@@ -98,7 +98,8 @@ def sign_session_token(session: SessionState, *, secret: str) -> str:
     return f"v1.{encoded}.{signature}"
 
 
-def verify_session_token(*, token: str, secret: str, current_auth_version: int, now: datetime | None = None) -> SessionState:
+def _decode_signed_session(*, token: str, secret: str) -> SessionState:
+    """Verify signature and parse claims. Caller must still enforce current auth_version/time."""
     key = _session_secret(secret)
     try:
         version, encoded, supplied_signature = (token or "").split(".", 2)
@@ -122,6 +123,16 @@ def verify_session_token(*, token: str, secret: str, current_auth_version: int, 
         raise SessionSecurityError("invalid_session_token") from exc
     if session.auth_version < 1 or session.expires_at <= session.issued_at:
         raise SessionSecurityError("invalid_session_token")
+    return session
+
+
+def signed_session_subject(*, token: str, secret: str) -> str:
+    """Return subject only after signature verification; not sufficient to authorize a request."""
+    return _decode_signed_session(token=token, secret=secret).worker_id
+
+
+def verify_session_token(*, token: str, secret: str, current_auth_version: int, now: datetime | None = None) -> SessionState:
+    session = _decode_signed_session(token=token, secret=secret)
     if not session_is_valid(session, current_auth_version=current_auth_version, now=now):
         raise SessionSecurityError("session_expired_or_revoked")
     return session
@@ -157,5 +168,4 @@ def consume_password_recovery(*, challenge: RecoveryChallenge, raw_token: str, c
         raise SessionSecurityError("recovery_auth_version_changed")
     if not secrets.compare_digest(challenge.token_digest, supplied):
         raise SessionSecurityError("invalid_recovery_token")
-    # Incrementar auth_version invalida todas las sesiones y retos previos del usuario.
     return current_auth_version + 1
