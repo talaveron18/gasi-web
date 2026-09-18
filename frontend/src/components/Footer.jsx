@@ -56,7 +56,17 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/politica-privacidad" className="text-gray-400 hover:text-white transition-colors">
-                  Política de Protección de Datos
+                  Protección de datos
+                </Link>
+              </li>
+              <li>
+                <Link to="/aviso-legal" className="text-gray-400 hover:text-white transition-colors">
+                  Aviso legal
+                </Link>
+              </li>
+              <li>
+                <Link to="/politica-cookies" className="text-gray-400 hover:text-white transition-colors">
+                  Cookies
                 </Link>
               </li>
               <li>
