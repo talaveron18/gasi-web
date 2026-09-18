@@ -56,3 +56,22 @@ jobs:
           name: internal-clinical-test-results
           path: backend/internal-clinical-junit.xml
           if-no-files-found: warn
+
+  netlify-clinical:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: netlify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: netlify/package-lock.json
+      - name: Install Netlify function dependencies
+        run: npm ci
+      - name: Typecheck clinical function
+        run: npx tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-clinical.mts
