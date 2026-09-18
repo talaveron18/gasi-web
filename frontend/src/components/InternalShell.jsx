@@ -1,12 +1,12 @@
 import React from'react';
 import{Link,useNavigate}from'react-router-dom';
 import{Clock3,FileHeart,LogOut,ShieldCheck,UserCog,UserRound}from'lucide-react';
-import{useInternalPrototypeAuth}from'@/contexts/InternalPrototypeAuthContext';
+import{useInternalAuth}from'@/contexts/InternalAuthContext';
 import GasiBrand from'./GasiBrand';
 
 export default function InternalShell({children}){
  const nav=useNavigate();
- const{session,signOut,isMaster,canManageWorkers}=useInternalPrototypeAuth();
+ const{session,signOut,isMaster,canManageWorkers}=useInternalAuth();
  const logout=async()=>{await signOut();nav('/interno/acceso',{replace:true});};
  return <div className="min-h-screen bg-slate-950 text-slate-100">
   <a href="#professional-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-slate-950">Saltar al contenido profesional</a>
