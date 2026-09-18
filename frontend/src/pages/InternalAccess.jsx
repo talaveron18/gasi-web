@@ -1,11 +1,11 @@
 import React,{useState}from'react';
 import{Link,useNavigate}from'react-router-dom';
 import{ArrowLeft,LockKeyhole,ShieldCheck}from'lucide-react';
-import{useInternalPrototypeAuth}from'@/contexts/InternalPrototypeAuthContext';
+import{useInternalAuth}from'@/contexts/InternalAuthContext';
 import GasiBrand from'@/components/GasiBrand';
 
 export default function InternalAccess(){
- const navigate=useNavigate(),{session,lastError,sessionChecking,signIn,signOut}=useInternalPrototypeAuth();
+ const navigate=useNavigate(),{session,lastError,sessionChecking,signIn,signOut}=useInternalAuth();
  const[workerId,setWorkerId]=useState(''),[password,setPassword]=useState('');
  const submit=async e=>{e.preventDefault();if(await signIn(workerId.trim(),password))navigate('/interno/clinica');};
  return <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4 py-10">
