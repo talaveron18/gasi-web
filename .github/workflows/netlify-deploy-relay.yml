@@ -25,6 +25,32 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Prepare gasisalud frontend proxy source
+        run: |
+          set -euo pipefail
+          rm -f package.json package-lock.json netlify/functions/internal-clinical.mts
+          rm -rf netlify/database
+          cat > netlify.toml <<'EOF'
+          [build]
+            base = "/"
+            command = "yarn --cwd frontend install --non-interactive --frozen-lockfile && yarn --cwd frontend build"
+            publish = "frontend/build"
+
+          [functions]
+            directory = "netlify/functions"
+
+          [[redirects]]
+            from = "/api/internal-clinical/*"
+            to = "https://gasi-clinical.netlify.app/api/internal-clinical/:splat"
+            status = 200
+            force = true
+
+          [[redirects]]
+            from = "/*"
+            to = "/index.html"
+            status = 200
+          EOF
+
       - name: Create ephemeral relay key
         env:
           GH_TOKEN: ${{ github.token }}
