@@ -2,6 +2,7 @@
   "private": true,
   "dependencies": {
     "@netlify/database": "latest",
-    "@netlify/functions": "latest"
+    "@netlify/functions": "latest",
+    "bcryptjs": "^3.0.2"
   }
 }
