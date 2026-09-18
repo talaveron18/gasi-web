@@ -6,7 +6,9 @@ export default function AvisoLegal(){
   <main className="max-w-4xl mx-auto px-6 py-14 prose prose-slate prose-lg">
    <p><strong>Última actualización:</strong> 18 de septiembre de 2026.</p>
    <h2>Titular y contacto</h2>
-   <p>Este sitio web es gestionado bajo la marca GASI — Grupo de Asistencia Sanitaria Integral. Para cualquier comunicación relacionada con la web puede utilizar <a href="mailto:coordinacion@gasisalud.com">coordinacion@gasisalud.com</a> o el teléfono 622 822 101.</p>
+   <p><strong>GASI Servicios Sanitarios Integrados, S.L.</strong>, NIF B24979494, con domicilio social en C/ Carlos II, 16, 28022 Madrid.</p>
+   <p>Inscrita en el Registro Mercantil de Madrid, hoja M-873240, inscripción 1.ª. Constituida mediante escritura autorizada en Madrid el 5 de diciembre de 2025, protocolo 2069.</p>
+   <p>Correo de contacto: <a href="mailto:coordinacion@gasisalud.com">coordinacion@gasisalud.com</a>. Teléfono: 622 822 101.</p>
    <h2>Finalidad de la web</h2>
    <p>La web pública presenta los servicios de GASI, facilita información corporativa y permite enviar consultas comerciales. La información publicada tiene carácter general y no constituye asistencia sanitaria, diagnóstico, prescripción ni atención de urgencias.</p>
    <h2>Servicios sanitarios</h2>
