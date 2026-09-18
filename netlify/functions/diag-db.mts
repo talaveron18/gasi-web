@@ -1,3 +1,0 @@
-import { getDatabase } from "@netlify/database";
-export default async()=>{try{const connectionString=process.env.NETLIFY_DB_URL||"";const db=connectionString?getDatabase({connectionString}):getDatabase();await db.sql`SELECT 1`;return new Response(JSON.stringify({ok:true,db:true,env_present:!!connectionString}),{status:200,headers:{"content-type":"application/json","cache-control":"no-store"}});}catch(e){const message=e instanceof Error?e.message:String(e);return new Response(JSON.stringify({ok:false,db:false,env_present:!!process.env.NETLIFY_DB_URL,error:message.slice(0,300)}),{status:500,headers:{"content-type":"application/json","cache-control":"no-store"}});}};
-export const config={path:"/api/_diag/db"};
