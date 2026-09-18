@@ -1,0 +1,63 @@
+name: One-time Netlify Deploy Relay
+
+on:
+  push:
+    branches:
+      - 'ops/netlify-deploy-relay-20260918'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout production source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Create ephemeral relay key
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out /tmp/netlify-relay-private.pem >/dev/null 2>&1
+          openssl pkey -in /tmp/netlify-relay-private.pem -pubout -out /tmp/netlify-relay-public.pem
+          PUB="$(base64 -w0 /tmp/netlify-relay-public.pem)"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_RELAY_PUBLIC_KEY:${PUB}" >/dev/null
+
+      - name: Await encrypted deploy capability and deploy main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PAYLOAD=""
+          for i in $(seq 1 180); do
+            PAYLOAD="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/30/comments" --jq '.[].body' | sed -n 's/^NETLIFY_RELAY_CIPHERTEXT://p' | tail -n 1)"
+            if [ -n "${PAYLOAD}" ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ -z "${PAYLOAD}" ]; then
+            echo "Encrypted deploy capability was not received." >&2
+            exit 1
+          fi
+          printf '%s' "${PAYLOAD}" | base64 -d > /tmp/netlify-relay-cipher.bin
+          PROXY_PATH="$(openssl pkeyutl -decrypt -inkey /tmp/netlify-relay-private.pem -in /tmp/netlify-relay-cipher.bin -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256)"
+          case "${PROXY_PATH}" in
+            https://netlify-mcp.netlify.app/proxy/*) ;;
+            *) echo "Rejected unexpected deploy endpoint." >&2; exit 1 ;;
+          esac
+          npx -y @netlify/mcp@latest --site-id 1bcad18d-bdaf-4d23-a119-ff8cdeb3e03b --proxy-path "${PROXY_PATH}"
+          unset PROXY_PATH
+          rm -f /tmp/netlify-relay-private.pem /tmp/netlify-relay-public.pem /tmp/netlify-relay-cipher.bin
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_RELAY_DONE" >/dev/null
