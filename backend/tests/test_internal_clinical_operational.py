@@ -7,8 +7,11 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from routes import internal_prototype as clinical
+from internal_session_security import issue_session, sign_session_token
 
 CENTER = "Centro GASI Madrid 01"
+CENTER_B = "Centro GASI Barcelona 01"
+SECRET = "synthetic-test-secret-32-bytes-minimum-2026"
 
 
 class MemoryStore:
@@ -18,10 +21,11 @@ class MemoryStore:
         self.audit = []
         self.seq = 0
         self.workers = {
-            "GASI-MASTER-01": {"id":"GASI-MASTER-01","role":"admin","display_name":"Administrador maestro","centers":[],"active":True,"delegated_privileges":[]},
-            "GASI-NURSE-01": {"id":"GASI-NURSE-01","role":"nurse","display_name":"Enfermería","centers":[CENTER],"active":True,"delegated_privileges":[]},
-            "GASI-PHYS-01": {"id":"GASI-PHYS-01","role":"physician","display_name":"Facultativo","centers":[CENTER],"active":True,"delegated_privileges":[]},
-            "GASI-PSY-01": {"id":"GASI-PSY-01","role":"psychologist","display_name":"Psicología","centers":[CENTER],"active":True,"delegated_privileges":[]},
+            "GASI-MASTER-01": {"id":"GASI-MASTER-01","role":"admin","display_name":"Administrador maestro","centers":[],"active":True,"delegated_privileges":[],"auth_version":1},
+            "GASI-NURSE-01": {"id":"GASI-NURSE-01","role":"nurse","display_name":"Enfermería","centers":[CENTER],"active":True,"delegated_privileges":[],"auth_version":1},
+            "GASI-PHYS-01": {"id":"GASI-PHYS-01","role":"physician","display_name":"Facultativo","centers":[CENTER],"active":True,"delegated_privileges":[],"auth_version":1},
+            "GASI-PSY-01": {"id":"GASI-PSY-01","role":"psychologist","display_name":"Psicología","centers":[CENTER],"active":True,"delegated_privileges":[],"auth_version":1},
+            "GASI-NURSE-B": {"id":"GASI-NURSE-B","role":"nurse","display_name":"Enfermería B","centers":[CENTER_B],"active":True,"delegated_privileges":[],"auth_version":1},
         }
     async def get_worker(self, i): return deepcopy(self.workers.get(i))
     async def list_workers(self): return [deepcopy(x) for x in self.workers.values()]
@@ -40,12 +44,17 @@ class MemoryStore:
 
 store=MemoryStore()
 clinical._store=lambda: store
+import os
+os.environ['GASI_INTERNAL_SESSION_SECRET']=SECRET
 app=FastAPI(); app.include_router(clinical.router,prefix="/api"); client=TestClient(app)
-def h(actor): return {"X-Actor-Id":actor}
+def h(actor):
+    w=store.workers[actor]
+    s=issue_session(worker_id=actor,auth_version=w.get("auth_version",1),ttl_minutes=30)
+    return {"Authorization":f"Bearer {sign_session_token(s,secret=SECRET)}"}
 
 def setup_function():
     store.episodes.clear(); store.audit.clear(); store.seq=0
-    for w in store.workers.values(): w["active"]=True; w["delegated_privileges"]=[]
+    for w in store.workers.values(): w["active"]=True; w["delegated_privileges"]=[]; w["auth_version"]=1
 
 def create(actor="GASI-NURSE-01"):
     return client.post("/api/internal-clinical/episodes",headers=h(actor),json={"patient_ref":"PAC-001","center":CENTER,"level":2,"summary":"Valoración clínica"})
@@ -78,3 +87,27 @@ def test_master_delegation_does_not_change_base_role():
     assert grant.status_code==200
     assert grant.json()["base_role"]=="nurse"
     assert grant.json()["privileges"]==["worker_access_management"]
+
+
+def test_missing_authentication_is_rejected():
+    r=client.get("/api/internal-clinical/episodes")
+    assert r.status_code==401 and r.json()["detail"]=="authentication_required"
+
+
+def test_cross_center_direct_id_read_and_write_are_denied():
+    eid=create().json()["id"]
+    assert client.get(f"/api/internal-clinical/episodes/{eid}",headers=h("GASI-NURSE-B")).status_code==403
+    r=client.post(f"/api/internal-clinical/episodes/{eid}/addenda",headers=h("GASI-NURSE-B"),json={"text":"Intento centro ajeno"})
+    assert r.status_code==403
+
+
+def test_deactivated_worker_session_is_rejected():
+    headers=h("GASI-NURSE-01"); store.workers["GASI-NURSE-01"]["active"]=False
+    r=client.get("/api/internal-clinical/episodes",headers=headers)
+    assert r.status_code==401 and r.json()["detail"]=="invalid_or_revoked_identity"
+
+
+def test_auth_version_rotation_revokes_existing_session():
+    headers=h("GASI-NURSE-01"); store.workers["GASI-NURSE-01"]["auth_version"]+=1
+    r=client.get("/api/internal-clinical/episodes",headers=headers)
+    assert r.status_code==401 and r.json()["detail"]=="session_expired_or_revoked"
