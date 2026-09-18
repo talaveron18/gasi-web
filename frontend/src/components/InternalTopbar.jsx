@@ -1,6 +1,6 @@
 import React from'react';
 import{Link,useNavigate}from'react-router-dom';
-import{Clock3,LogOut,ShieldCheck,Stethoscope,UserCog,UserRound}from'lucide-react';
+import{Clock3,LogOut,Stethoscope,UserCog,UserRound}from'lucide-react';
 import GasiBrand from'@/components/GasiBrand';
 import{useInternalAuth}from'@/contexts/InternalAuthContext';
 
