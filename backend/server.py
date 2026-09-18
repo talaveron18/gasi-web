@@ -38,12 +38,18 @@ api_router.include_router(internal_access_prototype.router)
 
 app.include_router(api_router)
 
+cors_origins = [origin.strip() for origin in os.environ.get('CORS_ORIGINS', '').split(',') if origin.strip()]
+if not cors_origins:
+    raise RuntimeError('CORS_ORIGINS must explicitly list trusted frontend origins')
+if '*' in cors_origins:
+    raise RuntimeError('CORS_ORIGINS wildcard is not permitted')
+
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_origins=cors_origins,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 logging.basicConfig(
