@@ -51,7 +51,7 @@ const PoliticaPrivacidad = () => {
 
         <h2 className="text-2xl font-bold text-[#0F172A] mb-4">5. Destinatarios y proveedores</h2>
         <p className="text-[#64748B] mb-6">
-          Los datos podrán comunicarse cuando exista una obligación legal o cuando resulte necesario utilizar prestadores de servicios para el funcionamiento de la web y sus canales de contacto. Cuando un proveedor actúe como encargado, la relación deberá estar regulada conforme al marco aplicable. Los proveedores de infraestructura de la zona profesional se configuran separadamente de los canales públicos y deben utilizarse conforme al alcance y controles aplicables.
+          Los datos podrán comunicarse cuando exista una obligación legal o cuando resulte necesario utilizar prestadores de servicios para el funcionamiento de la web y sus canales de contacto. El envío de formularios y consultas utiliza un proveedor de entrega de correo electrónico. Los proveedores de infraestructura de la zona profesional se configuran separadamente de los canales públicos y deben utilizarse conforme al alcance y controles aplicables. Cuando un proveedor actúe como encargado, la relación deberá regularse conforme al marco aplicable.
         </p>
 
         <h2 className="text-2xl font-bold text-[#0F172A] mb-4">6. Derechos</h2>
