@@ -143,6 +143,7 @@ export default async (req:Request,context:Context)=>{const url=new URL(req.url);
   const b=await req.json() as any,center=required(b.center,"center"),label=required(b.label,"label"),id=String(b.id||`GASI-KIOSK-${crypto.randomUUID().slice(0,8).toUpperCase()}`);
   const token=b64(crypto.randomBytes(32)),hash=tokenDigest(token);
   const exists=await db.sql`SELECT id FROM internal_timeclock_devices WHERE id=${id} LIMIT 1`;if(exists.length)return json({detail:"kiosk_already_exists"},409);
+  const centerDevice=await db.sql`SELECT id,label FROM internal_timeclock_devices WHERE center=${center} AND active=TRUE LIMIT 1`;if(centerDevice.length)return json({detail:"center_already_has_active_kiosk",device:centerDevice[0]},409);
   await auditedMutation(db,w,"TIMECLOCK_KIOSK_CREATED",{center,device_id:id},async client=>{await client.query("INSERT INTO internal_timeclock_devices(id,center,label,token_hash,active,auth_version) VALUES($1,$2,$3,$4,TRUE,1)",[id,center,label,hash]);});
   return json({id,center,label,activation_token:token},201);
  }
