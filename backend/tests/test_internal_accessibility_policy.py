@@ -15,7 +15,6 @@ def valid_gate(**changes):
         "has_visible_focus": True,
         "has_status_announcements": True,
         "destructive_action_requires_confirmation": True,
-        "synthetic_only": True,
     }
     values.update(changes)
     return InternalWorkflowAccessibility(**values)
@@ -23,12 +22,6 @@ def valid_gate(**changes):
 
 def test_complete_workflow_is_accepted():
     assert validate_internal_workflow_accessibility(valid_gate()).workflow == "clinical-handoff"
-
-
-@pytest.mark.parametrize("synthetic_only", [True, False])
-def test_accessibility_gate_is_data_mode_neutral(synthetic_only):
-    gate = validate_internal_workflow_accessibility(valid_gate(synthetic_only=synthetic_only))
-    assert gate.synthetic_only is synthetic_only
 
 
 @pytest.mark.parametrize("missing", ["keyboard", "pointer", "screen_reader"])
