@@ -1,13 +1,12 @@
 import React,{useCallback,useEffect,useState}from'react';
 import InternalTopbar from'@/components/InternalTopbar';
-import{ArrowLeft,Clock3,Copy,MonitorSmartphone,RefreshCcw,ShieldAlert}from'lucide-react';
-import{useNavigate}from'react-router-dom';
+import{Clock3,Copy,MonitorSmartphone,RefreshCcw,ShieldAlert}from'lucide-react';
 import{useInternalAuth}from'@/contexts/InternalAuthContext';
 
 const headers=(token,json=false)=>({...json?{'Content-Type':'application/json'}:{},Authorization:`Bearer ${token}`});
 
 export default function InternalTimeclockAdmin(){
- const nav=useNavigate(),{session,token,isMaster,canManageWorkers}=useInternalAuth();
+ const{session,token,isMaster,canManageWorkers}=useInternalAuth();
  const[devices,setDevices]=useState([]),[events,setEvents]=useState([]),[form,setForm]=useState({center:'',label:''}),[activation,setActivation]=useState(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[correction,setCorrection]=useState({eventId:'',type:'',at:'',reason:''});
  const allowed=Boolean(session&&(isMaster||canManageWorkers));
  const load=useCallback(async()=>{if(!allowed)return;setBusy(true);setMessage('');try{
@@ -25,7 +24,7 @@ export default function InternalTimeclockAdmin(){
  const correct=async e=>{e.preventDefault();if(!correction.eventId)return;setBusy(true);setMessage('');try{const payload={reason:correction.reason,replacement_event_type:correction.type||null,replacement_occurred_at:correction.at?new Date(correction.at).toISOString():null};const r=await fetch(`/api/internal-clinical/timeclock/events/${encodeURIComponent(correction.eventId)}/correct`,{method:'POST',headers:headers(token,true),body:JSON.stringify(payload)});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||'No se ha podido registrar la corrección.');setCorrection({eventId:'',type:'',at:'',reason:''});setMessage('Corrección añadida sin modificar el fichaje original.');await load();}catch(e){setMessage(e.message);}finally{setBusy(false);}};
  const exportCsv=async()=>{setBusy(true);setMessage('');try{const r=await fetch('/api/internal-clinical/timeclock/export.csv',{headers:headers(token),cache:'no-store'});if(!r.ok)throw new Error('No se ha podido exportar el registro.');const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='gasi-registro-jornada.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);}catch(e){setMessage(e.message);}finally{setBusy(false);}};
  return <><InternalTopbar/><main className="min-h-screen bg-slate-950 text-slate-100 py-10"><div className="max-w-7xl mx-auto px-4">
-  <header className="flex items-start justify-between gap-4"><div><p className="text-cyan-300 text-sm font-semibold">GASI · Zona interna</p><h1 className="text-3xl font-bold mt-1">Control horario</h1><p className="text-slate-400 mt-2">Los fichajes se aceptan únicamente desde PCs fijos registrados en el centro.</p></div><button onClick={()=>nav('/interno/clinica')} aria-label="Volver"><ArrowLeft/></button></header>
+  <header className="flex items-start justify-between gap-4"><div><p className="text-cyan-300 text-sm font-semibold">GASI · Zona interna</p><h1 className="text-3xl font-bold mt-1">Control horario</h1><p className="text-slate-400 mt-2">Los fichajes se aceptan únicamente desde PCs fijos registrados en el centro.</p></div></header>
   {message&&<p role="alert" className="mt-5 rounded-xl border border-rose-500/30 bg-rose-950/30 p-4 text-rose-200">{message}</p>}
   {isMaster&&<section className="grid lg:grid-cols-[360px_1fr] gap-6 mt-8">
    <form onSubmit={create} className="rounded-2xl bg-slate-900 border border-slate-800 p-5"><h2 className="font-bold flex items-center gap-2"><MonitorSmartphone className="w-5 h-5"/>Nuevo PC fijo</h2><label className="block mt-4 text-sm">Centro<input required value={form.center} onChange={e=>setForm({...form,center:e.target.value})} className="w-full mt-1 p-2 rounded bg-slate-950 border border-slate-700"/></label><label className="block mt-3 text-sm">Nombre del PC fijo<input required value={form.label} onChange={e=>setForm({...form,label:e.target.value})} placeholder="Recepción · PC fichaje" className="w-full mt-1 p-2 rounded bg-slate-950 border border-slate-700"/></label><button disabled={busy} className="w-full mt-4 rounded bg-cyan-400 text-slate-950 font-bold p-2">Crear PC fijo</button></form>
