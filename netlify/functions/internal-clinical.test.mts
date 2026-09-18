@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import { auditMetadata, canonical, canRead, canWrite, decodeKiosk, has, isMobileRequest, publicEpisode, signKiosk, validRecoverySnapshot } from "./internal-clinical.mts";
+import { auditMetadata, canonical, canRead, canWrite, decodeKiosk, has, isMobileRequest, kioskNetworkAllowed, publicEpisode, signKiosk, validRecoverySnapshot } from "./internal-clinical.mts";
 
 process.env.GASI_MASTER_ACTOR_ID="GASI-MASTER-01";
 process.env.GASI_INTERNAL_SESSION_SECRET="test-only-session-secret-with-more-than-32-bytes";
@@ -130,4 +130,13 @@ test("mobile clients are rejected for attendance terminals",()=>{
   assert.equal(isMobileRequest(mobile),true);
   assert.equal(isMobileRequest(clientHint),true);
   assert.equal(isMobileRequest(desktop),false);
+});
+
+
+test("timeclock kiosk is bound to the activation network",()=>{
+  const device={activation_ip:"203.0.113.10"};
+  assert.equal(kioskNetworkAllowed(device,"203.0.113.10"),true);
+  assert.equal(kioskNetworkAllowed(device,"203.0.113.11"),false);
+  assert.equal(kioskNetworkAllowed({activation_ip:null},"203.0.113.10"),false);
+  assert.equal(kioskNetworkAllowed(device,""),false);
 });
