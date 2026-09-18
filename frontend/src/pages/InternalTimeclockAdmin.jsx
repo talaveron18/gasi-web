@@ -1,12 +1,12 @@
 import React,{useCallback,useEffect,useState}from'react';
 import{ArrowLeft,Clock3,Copy,MonitorSmartphone,RefreshCcw,ShieldAlert}from'lucide-react';
 import{useNavigate}from'react-router-dom';
-import{useInternalPrototypeAuth}from'@/contexts/InternalPrototypeAuthContext';
+import{useInternalAuth}from'@/contexts/InternalAuthContext';
 
 const headers=(token,json=false)=>({...json?{'Content-Type':'application/json'}:{},Authorization:`Bearer ${token}`});
 
 export default function InternalTimeclockAdmin(){
- const nav=useNavigate(),{session,token,isMaster,canManageWorkers}=useInternalPrototypeAuth();
+ const nav=useNavigate(),{session,token,isMaster,canManageWorkers}=useInternalAuth();
  const[devices,setDevices]=useState([]),[events,setEvents]=useState([]),[form,setForm]=useState({center:'',label:''}),[activation,setActivation]=useState(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[correction,setCorrection]=useState({eventId:'',type:'',at:'',reason:''});
  const allowed=Boolean(session&&(isMaster||canManageWorkers));
  const load=useCallback(async()=>{if(!allowed)return;setBusy(true);setMessage('');try{
