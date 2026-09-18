@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import InternalTopbar from'@/components/InternalTopbar';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BadgeCheck, Ban, KeyRound, Plus, ShieldCheck, UserCog } from 'lucide-react';
 import { useInternalAuth } from '@/contexts/InternalAuthContext';
@@ -27,7 +28,7 @@ export default function InternalWorkers() {
   const status = async (id,s) => { setBusy(id); const r=await setIdentityStatus(id,s); setMessage(r.ok?'Estado actualizado.':r.error); setBusy(''); };
   const privilege = async (id,p,on) => { setBusy(`${id}-${p}`); const r=await grantPrivilege(id,p,on); setMessage(r.ok?`${on?'Privilegio concedido':'Privilegio retirado'} y auditado.`:r.error); setBusy(''); };
 
-  return <main className="min-h-screen bg-slate-950 text-slate-100 py-10"><div className="max-w-7xl mx-auto px-4">
+  return <><InternalTopbar/><main className="min-h-screen bg-slate-950 text-slate-100 py-10"><div className="max-w-7xl mx-auto px-4">
     <header className="flex justify-between mb-8"><div><p className="text-cyan-300">GASI · Zona interna</p><h1 className="text-3xl font-bold">Trabajadores, roles y privilegios</h1><p className="text-slate-400">Una identidad conserva su rol profesional y puede acumular privilegios delegados.</p></div><button aria-label="Volver" onClick={()=>nav('/interno/clinica')}><ArrowLeft/></button></header>
     {message&&<div role="status" aria-live="polite" className="mb-5 p-3 bg-slate-900 rounded">{message}</div>}
     <section className="grid lg:grid-cols-3 gap-6">
@@ -37,5 +38,5 @@ export default function InternalWorkers() {
     
     {!isMaster&&<section className="mt-6 border border-slate-700 p-5 rounded-xl"><p className="text-sm text-slate-400">La delegación de gestión permite altas y cambios de acceso, pero no concede privilegios ni acceso a la auditoría completa.</p></section>}
     <section className="mt-6 border border-cyan-500/20 p-5 rounded-xl"><p className="flex gap-2"><UserCog/>Los privilegios se añaden al rol profesional: no sustituyen Enfermería, Facultativo, Psicología o Fisioterapia.</p></section>
-  </div></main>;
+  </div></main></>;
 }
