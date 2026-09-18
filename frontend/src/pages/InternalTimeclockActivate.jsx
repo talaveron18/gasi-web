@@ -7,7 +7,7 @@ export default function InternalTimeclockActivate(){
  const submit=async e=>{e.preventDefault();setLoading(true);setError('');try{
   const r=await fetch('/api/internal-clinical/timeclock/kiosk/activate',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({device_id:deviceId.trim(),activation_token:token.trim()})});
   const data=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(data.detail==='invalid_kiosk_activation'?'Código de activación no válido.':'No se ha podido activar este terminal.');
+  if(!r.ok){const map={invalid_kiosk_activation:'Código de activación no válido.',mobile_timeclock_forbidden:'No se puede activar un teléfono o dispositivo móvil como terminal de fichaje.'};throw new Error(map[data.detail]||'No se ha podido activar este terminal.');}
   setDone(data.device);setToken('');
  }catch(err){setError(err.message||'No se ha podido activar este terminal.');}finally{setLoading(false);}};
  if(done)return <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4"><div className="max-w-lg rounded-3xl border border-emerald-500/30 bg-slate-900 p-8 text-center"><ShieldCheck className="w-12 h-12 text-emerald-300 mx-auto"/><h1 className="text-2xl font-bold mt-4">Terminal habilitado</h1><p className="text-slate-400 mt-2">{done.label} · {done.center}</p><a href="/interno/fichaje" className="inline-block mt-6 rounded-xl bg-cyan-400 text-slate-950 font-semibold px-5 py-3">Abrir fichador</a></div></main>;
