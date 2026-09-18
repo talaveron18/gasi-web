@@ -137,13 +137,18 @@ class InternalClinicalStore:
         for row in snapshot["workers"]:
             if not isinstance(row, dict) or not row.get("id") or not row.get("role"):
                 raise ValueError("invalid_recovery_worker")
-        await self.episodes.delete_many({})
-        await self.workers.delete_many({})
-        await self.audit.delete_many({})
-        await self.counters.delete_many({})
-        if snapshot["episodes"]: await self.episodes.insert_many([dict(x) for x in snapshot["episodes"]])
-        if snapshot["workers"]: await self.workers.insert_many([dict(x) for x in snapshot["workers"]])
-        if snapshot["audit"]: await self.audit.insert_many([dict(x) for x in snapshot["audit"]])
-        if snapshot["counters"]: await self.counters.insert_many([dict(x) for x in snapshot["counters"]])
+        client = getattr(self.db, "client", None)
+        if client is None or not hasattr(client, "start_session"):
+            raise RuntimeError("transactional_restore_required")
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                await self.episodes.delete_many({}, session=session)
+                await self.workers.delete_many({}, session=session)
+                await self.audit.delete_many({}, session=session)
+                await self.counters.delete_many({}, session=session)
+                if snapshot["episodes"]: await self.episodes.insert_many([dict(x) for x in snapshot["episodes"]], session=session)
+                if snapshot["workers"]: await self.workers.insert_many([dict(x) for x in snapshot["workers"]], session=session)
+                if snapshot["audit"]: await self.audit.insert_many([dict(x) for x in snapshot["audit"]], session=session)
+                if snapshot["counters"]: await self.counters.insert_many([dict(x) for x in snapshot["counters"]], session=session)
         await self.ensure_indexes()
         return {key: len(snapshot[key]) for key in required}
