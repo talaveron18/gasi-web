@@ -50,7 +50,7 @@ const nonEmpty=(v:any)=>typeof v==="string"&&v.trim().length>0;
 const uniqueStrings=(v:any)=>Array.isArray(v)&&v.every(nonEmpty)&&new Set(v).size===v.length;
 function validRecoverySnapshot(snapshot:any){
  if(!plainObject(snapshot)||snapshot.schema_version!==2||!["episodes","workers","audit","counters","timeclock_devices","timeclock_events","timeclock_corrections"].every(k=>Array.isArray(snapshot[k])))return false;
- const workerIds=new Set<string>(),episodeIds=new Set<string>(),counterNames=new Set<string>(),deviceIds=new Set<string>(),eventIds=new Set<string>();
+ const workerIds=new Set<string>(),episodeIds=new Set<string>(),counterNames=new Set<string>(),deviceIds=new Set<string>(),eventIds=new Set<string>(),activeDeviceCenters=new Set<string>();
  for(const x of snapshot.workers){
   if(!plainObject(x)||!nonEmpty(x.id)||workerIds.has(x.id)||!ROLES.has(x.role)||!nonEmpty(x.display_name)||typeof x.active!=="boolean"||!Number.isInteger(Number(x.auth_version))||Number(x.auth_version)<1||!uniqueStrings(x.centers)||!uniqueStrings(x.delegated_privileges)||!/^\$2[aby]\$/.test(String(x.password_hash||"")))return false;
   if(x.role==="admin"&&x.centers.length)return false;
@@ -66,6 +66,7 @@ function validRecoverySnapshot(snapshot:any){
  }
  for(const x of snapshot.timeclock_devices){
   if(!plainObject(x)||!nonEmpty(x.id)||deviceIds.has(x.id)||!nonEmpty(x.center)||!nonEmpty(x.label)||typeof x.active!=="boolean"||!Number.isInteger(Number(x.auth_version))||Number(x.auth_version)<1||!/^([0-9a-f]{64})$/.test(String(x.token_hash||""))||!(x.activation_ip==null||nonEmpty(x.activation_ip))||!x.created_at)return false;
+  if(x.active){if(activeDeviceCenters.has(String(x.center)))return false;activeDeviceCenters.add(String(x.center));}
   deviceIds.add(x.id);
  }
  for(const x of snapshot.timeclock_events){
