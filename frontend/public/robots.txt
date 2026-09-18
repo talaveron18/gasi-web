@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /interno/
+Disallow: /dashboard
+Disallow: /curso/
+
+Sitemap: https://gasisalud.com/sitemap.xml
