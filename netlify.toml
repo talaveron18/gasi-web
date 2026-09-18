@@ -1,10 +1,16 @@
 [build]
-  base = "frontend"
-  command = "npm run build"
-  publish = "build"
+  base = "/"
+  command = "npm --prefix frontend run build"
+  publish = "frontend/build"
 
 [functions]
   directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/internal-clinical/*"
+  to = "/.netlify/functions/internal-clinical/:splat"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
