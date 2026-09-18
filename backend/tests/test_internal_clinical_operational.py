@@ -143,3 +143,17 @@ def test_addendum_correction_preserves_original_and_audit():
     assert entry["corrections"][-1]["previous_text"]=="Original note"
     assert entry["corrections"][-1]["replacement_text"]=="Corrected note"
     assert any(x["action"]=="CLINICAL_ENTRY_CORRECTED" and x["episode_id"]==eid for x in store.audit)
+
+
+def test_professional_with_admin_privilege_keeps_clinical_scope_separate():
+    store.workers["GASI-NURSE-01"]["delegated_privileges"]=["worker_access_management"]
+    own=create().json()["id"]
+    own_read=client.get(f"/api/internal-clinical/episodes/{own}",headers=h("GASI-NURSE-01"))
+    assert own_read.status_code==200
+    foreign=client.post("/api/internal-clinical/episodes",headers=h("GASI-NURSE-B"),json={"patient_ref":"PAC-B","center":CENTER_B,"level":2,"summary":"Foreign center"}).json()["id"]
+    foreign_read=client.get(f"/api/internal-clinical/episodes/{foreign}",headers=h("GASI-NURSE-01"))
+    assert foreign_read.status_code==403 and foreign_read.json()["detail"]=="episode_forbidden"
+    workers=client.get("/api/internal-clinical/workers",headers=h("GASI-NURSE-01"))
+    assert workers.status_code==200
+    privileged=client.post(f"/api/internal-clinical/episodes/{own}/privileged-access",headers=h("GASI-NURSE-01"),json={"reason":"incident_review","reference":"INC-COMBINED-01"})
+    assert privileged.status_code==403 and privileged.json()["detail"]=="privileged_record_access_required"
