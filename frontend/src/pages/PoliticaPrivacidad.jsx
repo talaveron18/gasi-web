@@ -22,7 +22,7 @@ const PoliticaPrivacidad = () => {
 
         <h2 className="text-2xl font-bold text-[#0F172A] mb-4">1. Responsable del Tratamiento</h2>
         <p className="text-[#64748B] mb-6">
-          GASI - Grupo de Asistencia Sanitaria Integral es responsable del tratamiento de los datos personales que se faciliten a través de esta web pública cuando actúe como responsable del flujo correspondiente.
+          GASI Servicios Sanitarios Integrados, S.L., NIF B24979494, con domicilio social en C/ Carlos II, 16, 28022 Madrid, es responsable del tratamiento de los datos personales que se faciliten a través de esta web pública cuando actúe como responsable del flujo correspondiente.
         </p>
 
         <h2 className="text-2xl font-bold text-[#0F172A] mb-4">2. Finalidades en la web pública</h2>
