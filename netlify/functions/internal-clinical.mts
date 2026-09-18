@@ -151,6 +151,20 @@ export default async (req:Request,_context:Context)=>{const url=new URL(req.url)
   if(!has(w,"worker_access_management"))return json({detail:"worker_management_required"},403);const center=String(url.searchParams.get("center")||"");
   const rows=center?await db.sql`SELECT * FROM internal_timeclock_events WHERE center=${center} ORDER BY occurred_at DESC LIMIT 1000`:await db.sql`SELECT * FROM internal_timeclock_events ORDER BY occurred_at DESC LIMIT 1000`;return json(rows);
  }
+ if(req.method==="GET"&&path==="/api/internal-clinical/timeclock/export.csv"){
+  if(!has(w,"worker_access_management"))return json({detail:"worker_management_required"},403);
+  const center=String(url.searchParams.get("center")||"").trim(),from=String(url.searchParams.get("from")||"").trim(),to=String(url.searchParams.get("to")||"").trim();
+  if(from&&!Number.isFinite(Date.parse(from)))return json({detail:"invalid_from"},422);
+  if(to&&!Number.isFinite(Date.parse(to)))return json({detail:"invalid_to"},422);
+  const client=await db.pool.connect();try{
+   const where:string[]=[];const params:any[]=[];if(center){params.push(center);where.push(`e.center=${params.length}`);}if(from){params.push(new Date(from).toISOString());where.push(`e.occurred_at >= ${params.length}`);}if(to){params.push(new Date(to).toISOString());where.push(`e.occurred_at <= ${params.length}`);}
+   const q=`SELECT e.id,e.worker_id,e.center,e.device_id,e.event_type,e.occurred_at,e.created_at,c.replacement_event_type,c.replacement_occurred_at,c.reason correction_reason,c.corrected_by_id,c.corrected_at FROM internal_timeclock_events e LEFT JOIN LATERAL (SELECT replacement_event_type,replacement_occurred_at,reason,corrected_by_id,corrected_at FROM internal_timeclock_corrections WHERE event_id=e.id ORDER BY corrected_at DESC LIMIT 1) c ON TRUE ${where.length?"WHERE "+where.join(" AND "):""} ORDER BY e.occurred_at ASC,e.id ASC LIMIT 20000`;
+   const rows=(await client.query(q,params)).rows;const esc=(v:any)=>{const s=v==null?"":String(v);return '"'+s.replaceAll('"','""')+'"';};const cols=["event_id","worker_id","center","device_id","original_event_type","original_occurred_at","effective_event_type","effective_occurred_at","correction_reason","corrected_by_id","corrected_at"];const lines=[cols.join(",")];
+   for(const r of rows){lines.push([r.id,r.worker_id,r.center,r.device_id,r.event_type,new Date(r.occurred_at).toISOString(),r.replacement_event_type||r.event_type,r.replacement_occurred_at?new Date(r.replacement_occurred_at).toISOString():new Date(r.occurred_at).toISOString(),r.correction_reason||"",r.corrected_by_id||"",r.corrected_at?new Date(r.corrected_at).toISOString():""].map(esc).join(","));}
+   await audit(db,w,"TIMECLOCK_EXPORT",{center:center||"ALL",row_count:rows.length});
+   return new Response(lines.join("\r\n")+"\r\n",{status:200,headers:{"content-type":"text/csv; charset=utf-8","content-disposition":`attachment; filename="gasi-registro-jornada.csv"`,"cache-control":"no-store"}});
+  }finally{client.release();}
+ }
  const correctClock=path.match(/^\/api\/internal-clinical\/timeclock\/events\/([^/]+)\/correct$/);
  if(req.method==="POST"&&correctClock){
   if(!has(w,"worker_access_management"))return json({detail:"worker_management_required"},403);const eventId=decodeURIComponent(correctClock[1]),b=await req.json() as any,reason=required(b.reason,"reason");
