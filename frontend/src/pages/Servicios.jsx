@@ -1,116 +1,20 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Building2, GraduationCap, Stethoscope, ArrowRight } from 'lucide-react';
+import React from'react';
+import{Link}from'react-router-dom';
+import{ArrowRight,Building2,GraduationCap,HeartPulse}from'lucide-react';
 
-const Servicios = () => {
-  const services = [
-    {
-      icon: Building2,
-      title: 'Cobertura Sanitaria en Empresas',
-      description: 'Servicios sanitarios configurados para cada centro, con enfermería presencial y, cuando corresponda, apoyo médico remoto asociado. La prestación concreta queda sujeta a la habilitación y autorización aplicables.',
-      benefits: ['Enfermería presencial', 'Apoyo médico remoto asociado', 'Configuración adaptada al centro', 'Cobertura sujeta a autorización'],
-      link: '/cobertura-sanitaria'
-    },
-    {
-      icon: GraduationCap,
-      title: 'Formación Sanitaria',
-      description: 'Formación sanitaria para empresas y profesionales, adaptada al contexto y a las necesidades definidas para cada actividad.',
-      benefits: ['Formación sanitaria', 'Modalidades según actividad', 'Contenido adaptado', 'Docencia por profesionales cualificados'],
-      link: '/formacion-sanitaria'
-    },
-    {
-      icon: Stethoscope,
-      title: 'Servicios Sanitarios Complementarios',
-      description: 'Fisioterapia y psicología dentro de configuraciones asistenciales definidas para cada cliente, junto con los servicios de enfermería y apoyo médico remoto cuando proceda. Cada prestación se activa únicamente cuando cuenta con el encaje y la autorización correspondientes.',
-      benefits: ['Fisioterapia', 'Psicología', 'Coordinación con la cobertura sanitaria', 'Activación según configuración autorizada'],
-      link: '/servicios-sanitarios-organizaciones'
-    }
-  ];
+const services=[
+ {title:'Cobertura sanitaria en el centro de trabajo',eyebrow:'Presencia asistencial',icon:Building2,image:'https://images.pexels.com/photos/3952137/pexels-photo-3952137.jpeg?auto=compress&dpr=1&h=750&w=1260',description:'Enfermería presencial integrada en el centro, con horarios y recursos definidos para cada servicio. Cuando la configuración lo contempla, puede incorporar apoyo médico remoto para valoración y coordinación.',points:['Enfermería presencial','Atención sanitaria dentro del alcance contratado','Escalado y coordinación asistencial','Configuración por centro y turnos'],link:'/cobertura-sanitaria'},
+ {title:'Servicios sanitarios complementarios',eyebrow:'Según necesidades del centro',icon:HeartPulse,image:'https://images.pexels.com/photos/5793695/pexels-photo-5793695.jpeg?auto=compress&dpr=1&h=750&w=1260',description:'Fisioterapia y psicología pueden incorporarse a la cobertura cuando aportan valor al perfil de actividad del centro. No se incluyen de forma automática: se definen en la propuesta concreta.',points:['Fisioterapia','Atención psicológica puntual','Coordinación con enfermería','Alcance profesional delimitado'],link:'/servicios-sanitarios-organizaciones'},
+ {title:'Formación sanitaria',eyebrow:'Equipos mejor preparados',icon:GraduationCap,image:'https://images.pexels.com/photos/36346116/pexels-photo-36346116/free-photo-of-hands-on-cpr-training-session-in-buenos-aires.jpeg?auto=compress&dpr=1&h=750&w=1260',description:'Formación práctica para empresas y profesionales: primeros auxilios, reanimación cardiopulmonar, respuesta inicial ante urgencias y programas adaptados a riesgos y necesidades del entorno.',points:['Primeros auxilios','Reanimación cardiopulmonar y soporte vital básico','Detección del deterioro clínico','Programas a medida'],link:'/formacion-sanitaria'}
+];
 
-  return (
-    <div data-testid="servicios-page">
-      <section className="bg-gradient-to-br from-[#005EB8] to-[#327BBD] text-white py-20">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-          <h1 className="text-4xl lg:text-5xl font-bold mb-6" data-testid="page-title">
-            Nuestros Servicios
-          </h1>
-          <p className="text-xl opacity-90">
-            Servicios sanitarios para empresas, configurados según las necesidades de cada centro
-          </p>
-        </div>
-      </section>
-
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="space-y-20">
-            {services.map((service, index) => {
-              const ServiceIcon = service.icon;
-
-              return (
-                <div
-                  key={service.title}
-                  className={`flex flex-col lg:flex-row gap-12 items-center ${index % 2 === 1 ? 'lg:flex-row-reverse' : ''}`}
-                  data-testid={`service-section-${index}`}
-                >
-                  <div className="flex-1">
-                    <div className="mb-6">
-                      <ServiceIcon className="w-16 h-16 text-[#005EB8]" aria-hidden="true" />
-                    </div>
-                    <h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-6">
-                      {service.title}
-                    </h2>
-                    <p className="text-lg text-[#64748B] mb-8 leading-relaxed">
-                      {service.description}
-                    </p>
-
-                    <div className="mb-8">
-                      <h3 className="font-bold text-[#0F172A] mb-4">Aspectos principales:</h3>
-                      <ul className="space-y-2">
-                        {service.benefits.map((benefit) => (
-                          <li key={benefit} className="flex items-start gap-2">
-                            <span className="text-[#005EB8] mt-1" aria-hidden="true">✓</span>
-                            <span className="text-[#64748B]">{benefit}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <Link to={service.link}>
-                      <button className="bg-[#005EB8] hover:bg-[#004a92] text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all hover:-translate-y-0.5" data-testid={`service-cta-${index}`}>
-                        Ver más detalles <ArrowRight className="w-5 h-5" aria-hidden="true" />
-                      </button>
-                    </Link>
-                  </div>
-
-                  <div className="flex-1 w-full" aria-hidden="true">
-                    <div className="rounded-2xl shadow-xl w-full h-[400px] bg-gradient-to-br from-[#EAF4FC] to-[#D7EAF8] flex items-center justify-center">
-                      <ServiceIcon className="w-28 h-28 text-[#005EB8]" />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 bg-gradient-to-r from-[#005EB8] to-[#327BBD] text-white">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold mb-6">
-            ¿Necesita una configuración adaptada a su centro?
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
-            Cuéntenos sus necesidades y revisaremos qué configuración sanitaria puede plantearse para su empresa.
-          </p>
-          <Link to="/contacto">
-            <button className="bg-white text-[#005EB8] hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold text-lg" data-testid="cta-contact">
-              Solicitar Información
-            </button>
-          </Link>
-        </div>
-      </section>
-    </div>
-  );
-};
-
-export default Servicios;
+export default function Servicios(){
+ return <div data-testid="servicios-page">
+  <section className="bg-slate-950 text-white py-24"><div className="max-w-6xl mx-auto px-6"><p className="text-cyan-300 font-semibold tracking-wide uppercase text-sm">GASI · Servicios sanitarios B2B</p><h1 className="text-4xl lg:text-6xl font-bold mt-3 max-w-4xl">Cobertura sanitaria diseñada alrededor de cada centro de trabajo</h1><p className="text-xl text-slate-300 mt-6 max-w-3xl">No partimos de un paquete cerrado. Revisamos actividad, turnos y necesidades para definir qué profesionales y circuitos tienen sentido en cada servicio.</p></div></section>
+  <section className="py-20 bg-white"><div className="max-w-7xl mx-auto px-6 space-y-24">{services.map((s,i)=>{const Icon=s.icon;return <article key={s.title} className={`grid lg:grid-cols-2 gap-12 items-center ${i%2?'lg:[&>*:first-child]:order-2':''}`}>
+   <div className="relative"><img src={s.image} alt="" className="w-full h-[390px] object-cover rounded-3xl shadow-xl"/><div className="absolute -bottom-5 left-6 rounded-2xl bg-white shadow-lg border px-5 py-4 flex items-center gap-3"><span className="w-11 h-11 rounded-xl bg-[#005EB8]/10 text-[#005EB8] flex items-center justify-center"><Icon className="w-6 h-6"/></span><span className="font-semibold text-slate-900">{s.eyebrow}</span></div></div>
+   <div><p className="text-[#005EB8] font-semibold text-sm uppercase tracking-wide">{s.eyebrow}</p><h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mt-2">{s.title}</h2><p className="text-lg text-slate-600 leading-relaxed mt-5">{s.description}</p><ul className="grid sm:grid-cols-2 gap-3 mt-7">{s.points.map(p=><li key={p} className="rounded-xl bg-slate-50 border px-4 py-3 text-slate-700">✓ {p}</li>)}</ul><Link to={s.link} className="inline-flex items-center gap-2 mt-8 text-[#005EB8] font-bold">Ver servicio <ArrowRight className="w-5 h-5"/></Link></div>
+  </article>})}</div></section>
+  <section className="py-18 bg-[#F3F7FB]"><div className="max-w-5xl mx-auto px-6 py-16 text-center"><h2 className="text-3xl lg:text-4xl font-bold text-slate-900">Primero entendemos el centro. Después configuramos el servicio.</h2><p className="text-lg text-slate-600 mt-5">La propuesta concreta define cobertura, profesionales, horarios, circuitos de coordinación y condiciones de puesta en marcha.</p><Link to="/contacto" className="inline-flex mt-8 bg-[#005EB8] hover:bg-[#004a92] text-white font-semibold px-7 py-3 rounded-xl">Cuéntenos qué necesita <ArrowRight className="ml-2 w-5 h-5"/></Link></div></section>
+ </div>;
+}
