@@ -17,6 +17,7 @@ const KIOSK_COOKIE="gasi_kiosk";
 function cookieValue(req:Request,name:string){const raw=req.headers.get("cookie")||"";for(const part of raw.split(";")){const [k,...rest]=part.trim().split("=");if(k===name)return decodeURIComponent(rest.join("="));}return "";}
 function signKiosk(device:any){const now=Math.floor(Date.now()/1000),payload={did:device.id,av:Number(device.auth_version),iat:now,exp:now+180*24*60*60};const encoded=b64(JSON.stringify(payload));const sig=crypto.createHmac("sha256",secret()).update("kiosk:"+encoded).digest("base64url");return `v1.${encoded}.${sig}`;}
 function decodeKiosk(value:string){const [version,encoded,supplied]=String(value||"").split(".");if(version!=="v1"||!encoded||!supplied)throw new Error("kiosk_required");const expected=crypto.createHmac("sha256",secret()).update("kiosk:"+encoded).digest("base64url");if(expected.length!==supplied.length||!crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(supplied)))throw new Error("kiosk_required");const p=JSON.parse(Buffer.from(encoded,"base64url").toString("utf8"));if(!p.did||!p.exp||!p.av||Date.now()>=Number(p.exp)*1000)throw new Error("kiosk_required");return p;}
+function isMobileRequest(req:Request){const hint=(req.headers.get("sec-ch-ua-mobile")||"").trim();if(hint==="?1")return true;const ua=req.headers.get("user-agent")||"";return /Android|iPhone|iPad|iPod|IEMobile|Opera Mini|Mobile/i.test(ua);}
 function sign(payload:any){const encoded=b64(JSON.stringify(payload));const sig=crypto.createHmac("sha256",secret()).update(encoded).digest("base64url");return `v1.${encoded}.${sig}`;}
 function decode(token:string){const [version,encoded,supplied]=token.split(".");if(version!=="v1"||!encoded||!supplied)throw new Error("invalid_session_token");const expected=crypto.createHmac("sha256",secret()).update(encoded).digest("base64url");if(expected.length!==supplied.length||!crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(supplied)))throw new Error("invalid_session_token");const p=JSON.parse(Buffer.from(encoded,"base64url").toString("utf8"));if(!p.sub||!p.exp||!p.av||Date.now()>=Number(p.exp)*1000)throw new Error("session_expired_or_revoked");return p;}
 async function actor(req:Request,db:any){const token=bearer(req);if(!token)throw new Error("missing_session");const p=decode(token);const rows=await db.sql`SELECT id,role,display_name,centers,active,auth_version,delegated_privileges FROM internal_clinical_workers WHERE id=${String(p.sub)} LIMIT 1`;const w=rows[0];if(!w||!w.active||Number(w.auth_version)!==Number(p.av))throw new Error("session_expired_or_revoked");return w;}
@@ -92,6 +93,7 @@ async function ensureMaster(db:any){const id=MASTER();const rows=await db.sql`SE
 export default async (req:Request,_context:Context)=>{const url=new URL(req.url);const path=url.pathname;try{const connectionString=env("NETLIFY_DB_URL");const db=connectionString?getDatabase({connectionString}):getDatabase();
  if(req.method==="GET"&&path==="/api/internal-clinical/health"){await db.sql`SELECT 1`;return json({ok:true,storage:"netlify-database"});}
  if(req.method==="POST"&&path==="/api/internal-clinical/timeclock/kiosk/activate"){
+  if(isMobileRequest(req))return json({detail:"mobile_timeclock_forbidden"},403);
   const body=await req.json() as any,deviceId=required(body.device_id,"device_id"),activationToken=required(body.activation_token,"activation_token");
   const rows=await db.sql`SELECT id,center,label,token_hash,active,auth_version FROM internal_timeclock_devices WHERE id=${deviceId} LIMIT 1`;
   const device=rows[0];if(!device||!device.active)return json({detail:"kiosk_not_found_or_revoked"},404);
@@ -101,6 +103,7 @@ export default async (req:Request,_context:Context)=>{const url=new URL(req.url)
   return json({ok:true,device:{id:device.id,center:device.center,label:device.label}},200,{"set-cookie":cookie});
  }
  if(req.method==="POST"&&path==="/api/internal-clinical/timeclock/punch"){
+  if(isMobileRequest(req))return json({detail:"mobile_timeclock_forbidden"},403);
   let kp:any;try{kp=decodeKiosk(cookieValue(req,KIOSK_COOKIE));}catch{return json({detail:"kiosk_required"},403);}
   const devices=await db.sql`SELECT id,center,label,active,auth_version FROM internal_timeclock_devices WHERE id=${String(kp.did)} LIMIT 1`;const device=devices[0];
   if(!device||!device.active||Number(device.auth_version)!==Number(kp.av))return json({detail:"kiosk_required"},403);
@@ -179,4 +182,4 @@ export default async (req:Request,_context:Context)=>{const url=new URL(req.url)
  return json({detail:"netlify_clinical_route_not_migrated"},501);
 }catch(e:any){const code=String(e?.message||"internal_error");if(["missing_session","invalid_session_token","session_expired_or_revoked"].includes(code))return json({detail:code},401);if(["kiosk_not_found","timeclock_event_not_found"].includes(code))return json({detail:code},404);if(code.endsWith("_required")||code.endsWith("_too_long")||code==="invalid_temporary_password")return json({detail:code},422);return json({detail:"internal_error"},500);}};
 export const config:Config={path:"/api/internal-clinical/*"};
-export { auditMetadata, canonical, canRead, canWrite, decodeKiosk, has, publicEpisode, signKiosk, validRecoverySnapshot };
+export { auditMetadata, canonical, canRead, canWrite, decodeKiosk, has, isMobileRequest, publicEpisode, signKiosk, validRecoverySnapshot };
