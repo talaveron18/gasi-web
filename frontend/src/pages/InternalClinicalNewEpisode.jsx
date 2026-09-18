@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
+import { useInternalAuth } from '@/contexts/InternalAuthContext';
 import { createInternalClinicalApi } from '@/lib/internalClinicalApi';
 import { createAuthoritativeClinicalEpisode } from '@/lib/internalClinicalActions';
 
@@ -13,7 +13,7 @@ const ROLE_COPY = {
 };
 
 export default function InternalClinicalNewEpisode() {
-  const { session, token } = useInternalPrototypeAuth();
+  const { session, token } = useInternalAuth();
   const api = useMemo(() => token ? createInternalClinicalApi({ token }) : null, [token]);
   const [form, setForm] = useState(() => ({ ...EMPTY_FORM, center: Array.isArray(session?.centers) ? session.centers[0] || '' : '' }));
   const [state, setState] = useState('IDLE');
