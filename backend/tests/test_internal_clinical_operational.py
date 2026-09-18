@@ -117,3 +117,16 @@ def test_admin_cannot_write_clinical_content():
     eid=create().json()["id"]
     r=client.post(f"/api/internal-clinical/episodes/{eid}/addenda",headers=h("GASI-MASTER-01"),json={"text":"Administrative write attempt"})
     assert r.status_code==403 and r.json()["detail"]=="discipline_write_forbidden"
+
+
+def test_delegated_privileged_read_cannot_cross_centers_and_can_be_revoked():
+    eid=create().json()["id"]
+    store.workers["GASI-NURSE-B"]["delegated_privileges"]=["clinical_record_privileged_read"]
+    denied=client.post(f"/api/internal-clinical/episodes/{eid}/privileged-access",headers=h("GASI-NURSE-B"),json={"reason":"incident_review","reference":"INC-B-001"})
+    assert denied.status_code==403 and denied.json()["detail"]=="episode_forbidden"
+    store.workers["GASI-NURSE-01"]["delegated_privileges"]=["clinical_record_privileged_read"]
+    allowed=client.post(f"/api/internal-clinical/episodes/{eid}/privileged-access",headers=h("GASI-NURSE-01"),json={"reason":"incident_review","reference":"INC-A-001"})
+    assert allowed.status_code==200 and allowed.json()["read_only"] is True
+    store.workers["GASI-NURSE-01"]["delegated_privileges"]=[]
+    revoked=client.post(f"/api/internal-clinical/episodes/{eid}/privileged-access",headers=h("GASI-NURSE-01"),json={"reason":"incident_review","reference":"INC-A-002"})
+    assert revoked.status_code==403 and revoked.json()["detail"]=="privileged_record_access_required"
