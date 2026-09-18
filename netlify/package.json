@@ -1,12 +1,12 @@
 {
   "private": true,
   "dependencies": {
-    "@netlify/database": "latest",
-    "@netlify/functions": "latest",
-    "bcryptjs": "^3.0.2"
+    "@netlify/database": "1.0.0",
+    "@netlify/functions": "5.1.0",
+    "bcryptjs": "3.0.2"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "typescript": "^5.9.2"
+    "@types/node": "24.0.0",
+    "typescript": "5.9.2"
   }
 }
