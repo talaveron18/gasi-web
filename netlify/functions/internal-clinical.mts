@@ -3,9 +3,9 @@ import { getDatabase } from "@netlify/database";
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 
-const MASTER=()=>Netlify.env.get("GASI_MASTER_ACTOR_ID")||"GASI-MASTER-01";
+const env=(name:string)=>typeof Netlify!=="undefined"?(Netlify.env.get(name)||""):(process.env[name]||"");
+const MASTER=()=>env("GASI_MASTER_ACTOR_ID")||"GASI-MASTER-01";
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json","cache-control":"no-store"}});
-const env=(name:string)=>Netlify.env.get(name)||"";
 const b64=(v:Buffer|string)=>Buffer.from(v).toString("base64url");
 const bearer=(req:Request)=>{const value=req.headers.get("authorization")||"";return value.startsWith("Bearer ")?value.slice(7):"";};
 const profile=(w:any)=>({id:w.id,role:w.role,display_name:w.display_name,centers:w.centers||[],operational_state:w.active?"ACTIVE":"REVOKED",delegated_privileges:w.delegated_privileges||[]});
@@ -100,3 +100,4 @@ export default async (req:Request,_context:Context)=>{const url=new URL(req.url)
  return json({detail:"netlify_clinical_route_not_migrated"},501);
 }catch(e:any){const code=String(e?.message||"internal_error");if(["missing_session","invalid_session_token","session_expired_or_revoked"].includes(code))return json({detail:code},401);if(code.endsWith("_required")||code.endsWith("_too_long")||code==="invalid_temporary_password")return json({detail:code},422);return json({detail:"internal_error"},500);}};
 export const config:Config={path:"/api/internal-clinical/*"};
+export { auditMetadata, canonical, canRead, canWrite, has, publicEpisode, validRecoverySnapshot };
