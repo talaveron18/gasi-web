@@ -67,14 +67,22 @@ class InternalClinicalStore:
         return [self.clean(row) async for row in self.workers.find({}).sort("display_name", 1)]
 
     async def insert_worker(self, worker: Dict[str, Any]) -> Dict[str, Any]:
-        await self.workers.insert_one(dict(worker))
-        return dict(worker)
+        value = dict(worker)
+        value.setdefault("auth_version", 1)
+        await self.workers.insert_one(value)
+        return value
 
     async def set_worker_state(self, worker_id: str, active: bool) -> Optional[Dict[str, Any]]:
         row = await self.workers.find_one_and_update(
             {"id": worker_id},
-            {"$set": {"active": active}},
+            {"$set": {"active": active}, "$inc": {"auth_version": 1}},
             return_document=ReturnDocument.AFTER,
+        )
+        return self.clean(row)
+
+    async def rotate_auth_version(self, worker_id: str) -> Optional[Dict[str, Any]]:
+        row = await self.workers.find_one_and_update(
+            {"id": worker_id}, {"$inc": {"auth_version": 1}}, return_document=ReturnDocument.AFTER
         )
         return self.clean(row)
 
@@ -101,6 +109,7 @@ class InternalClinicalStore:
                 "display_name": display_name,
                 "centers": [],
                 "active": True,
+                "auth_version": 1,
                 "delegated_privileges": [],
             }},
             upsert=True,
