@@ -21,7 +21,6 @@ class InternalWorkflowAccessibility:
     has_visible_focus: bool
     has_status_announcements: bool
     destructive_action_requires_confirmation: bool
-    synthetic_only: bool = True
 
 
 _REQUIRED_INTERACTIONS: FrozenSet[Interaction] = frozenset(
