@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, ChevronDown, User, LogOut } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { Link, useLocation } from 'react-router-dom';
+import { Menu, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import GasiBrand from './GasiBrand';
 import {
@@ -14,15 +13,10 @@ import {
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
+
 
   const isActive = (path) => location.pathname === path;
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/');
-  };
 
   return (
     <nav className="sticky top-0 z-50 glass-effect shadow-sm">
@@ -105,38 +99,11 @@ const Navbar = () => {
           </div>
 
           <div className="hidden lg:flex items-center space-x-4">
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2" data-testid="user-menu">
-                    {user.picture ? (
-                      <img src={user.picture} alt={user.name} className="w-6 h-6 rounded-full" />
-                    ) : (
-                      <User className="w-5 h-5" />
-                    )}
-                    <span>{user.name}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard" className="w-full" data-testid="user-dashboard-link">
-                      <User className="mr-2 h-4 w-4" />
-                      Mi Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout} data-testid="logout-button">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Cerrar Sesión
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Link to="/interno/acceso" data-testid="nav-login-button">
+            <Link to="/interno/acceso" data-testid="nav-login-button">
                 <Button className="bg-[#005EB8] hover:bg-[#004a92] text-white">
                   Zona profesional
                 </Button>
               </Link>
-            )}
           </div>
 
           <button 
@@ -169,14 +136,9 @@ const Navbar = () => {
               <Link to="/contacto" onClick={() => setIsOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">Contacto</Button>
               </Link>
-              {!user && (
-                <Link to="/interno/acceso" onClick={() => setIsOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start">Zona profesional</Button>
-                </Link>
-              )}
-              {user && (
-                <>
-                  <Link to="/dashboard" onClick={() => setIsOpen(false)}>
+              <Link to="/interno/acceso" onClick={() => setIsOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start">Zona profesional</Button>
+              </Link>>
                     <Button variant="ghost" className="w-full justify-start">Mi Dashboard</Button>
                   </Link>
                   <Button 
