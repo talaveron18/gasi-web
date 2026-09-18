@@ -130,3 +130,16 @@ def test_delegated_privileged_read_cannot_cross_centers_and_can_be_revoked():
     store.workers["GASI-NURSE-01"]["delegated_privileges"]=[]
     revoked=client.post(f"/api/internal-clinical/episodes/{eid}/privileged-access",headers=h("GASI-NURSE-01"),json={"reason":"incident_review","reference":"INC-A-002"})
     assert revoked.status_code==403 and revoked.json()["detail"]=="privileged_record_access_required"
+
+
+def test_addendum_correction_preserves_original_and_audit():
+    eid=create().json()["id"]
+    first=client.post(f"/api/internal-clinical/episodes/{eid}/addenda",headers=h("GASI-NURSE-01"),json={"text":"Original note"})
+    aid=first.json()["addenda"][-1]["id"]
+    corrected=client.post(f"/api/internal-clinical/episodes/{eid}/addenda/{aid}/correct",headers=h("GASI-NURSE-01"),json={"replacement_text":"Corrected note","reason":"Documentation correction"})
+    assert corrected.status_code==200
+    entry=corrected.json()["addenda"][-1]
+    assert entry["text"]=="Corrected note"
+    assert entry["corrections"][-1]["previous_text"]=="Original note"
+    assert entry["corrections"][-1]["replacement_text"]=="Corrected note"
+    assert any(x["action"]=="CLINICAL_ENTRY_CORRECTED" and x["episode_id"]==eid for x in store.audit)
