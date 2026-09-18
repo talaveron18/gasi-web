@@ -13,11 +13,11 @@ const PoliticaPrivacidad = () => {
 
       <div className="max-w-4xl mx-auto px-6 lg:px-8 py-12 prose prose-lg">
         <p className="text-[#64748B] mb-6">
-          Última actualización: 12 de septiembre de 2026
+          Última actualización: 18 de septiembre de 2026
         </p>
 
         <div className="mb-8 rounded-lg border border-[#D7EAF8] bg-[#F4F9FD] p-5 text-[#334155]">
-          Esta política describe el tratamiento de datos en la web pública de GASI. Los formularios y el chatbot de esta web no son canales asistenciales y no deben utilizarse para enviar historias clínicas, diagnósticos, tratamientos ni otros datos de salud. El futuro entorno clínico, cuando esté autorizado y activo, tendrá sus propios controles e información aplicables.
+          Esta política describe el tratamiento de datos en la web pública de GASI. Los formularios y el chatbot de esta web no son canales asistenciales y no deben utilizarse para enviar historias clínicas, diagnósticos, tratamientos ni otros datos de salud. La zona profesional de GASI utiliza controles propios de autenticación y seguridad. Los formularios públicos siguen separados de los flujos clínicos y laborales.
         </div>
 
         <h2 className="text-2xl font-bold text-[#0F172A] mb-4">1. Responsable del Tratamiento</h2>
@@ -32,7 +32,7 @@ const PoliticaPrivacidad = () => {
         <ul className="list-disc pl-6 text-[#64748B] mb-6 space-y-2">
           <li>Gestionar consultas y solicitudes de información comercial o corporativa</li>
           <li>Responder a solicitudes de contacto relacionadas con los servicios ofrecidos</li>
-          <li>Gestionar, cuando esté disponible, la inscripción y acceso a la plataforma de formación</li>
+          <li>Gestionar el acceso a funciones profesionales o de formación cuando estén habilitadas para el usuario correspondiente</li>
           <li>Atender comunicaciones y obligaciones aplicables al funcionamiento de la web</li>
         </ul>
         <p className="text-[#64748B] mb-6">
@@ -51,7 +51,7 @@ const PoliticaPrivacidad = () => {
 
         <h2 className="text-2xl font-bold text-[#0F172A] mb-4">5. Destinatarios y proveedores</h2>
         <p className="text-[#64748B] mb-6">
-          Los datos podrán comunicarse cuando exista una obligación legal o cuando resulte necesario utilizar prestadores de servicios para el funcionamiento de la web y sus canales de contacto. Cuando un proveedor actúe como encargado, la relación deberá estar regulada conforme al marco aplicable. Esta web no autoriza por sí sola el uso de proveedores para datos clínicos reales.
+          Los datos podrán comunicarse cuando exista una obligación legal o cuando resulte necesario utilizar prestadores de servicios para el funcionamiento de la web y sus canales de contacto. Cuando un proveedor actúe como encargado, la relación deberá estar regulada conforme al marco aplicable. Los proveedores de infraestructura de la zona profesional se configuran separadamente de los canales públicos y deben utilizarse conforme al alcance y controles aplicables.
         </p>
 
         <h2 className="text-2xl font-bold text-[#0F172A] mb-4">6. Derechos</h2>
@@ -69,7 +69,7 @@ const PoliticaPrivacidad = () => {
 
         <h2 className="text-2xl font-bold text-[#0F172A] mb-4">8. Cookies y analítica</h2>
         <p className="text-[#64748B] mb-6">
-          La versión actual de la web no carga analítica de comportamiento ni grabación de sesiones. Podrán utilizarse mecanismos técnicos estrictamente necesarios para funciones solicitadas por el usuario, como autenticación cuando proceda. Si se incorpora analítica u otra tecnología no necesaria, deberá revisarse esta información y el mecanismo de consentimiento aplicable antes de activarla.
+          La versión actual de la web no carga analítica de comportamiento ni grabación de sesiones. Se utilizan mecanismos técnicos estrictamente necesarios para funciones solicitadas por el usuario, como autenticación profesional y protección del control horario. Si se incorpora analítica u otra tecnología no necesaria, deberá revisarse esta información y el mecanismo de consentimiento aplicable antes de activarla.
         </p>
 
         <h2 className="text-2xl font-bold text-[#0F172A] mb-4">9. Contacto</h2>
