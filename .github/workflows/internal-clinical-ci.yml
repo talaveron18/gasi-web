@@ -77,6 +77,8 @@ jobs:
         run: node --experimental-strip-types --test functions/internal-clinical.test.mts
       - name: Public contact endpoint tests
         run: node --test functions/contact.test.mjs
+      - name: Public web contract tests
+        run: node --test functions/web-contract.test.mjs
 
 
   netlify-build:
