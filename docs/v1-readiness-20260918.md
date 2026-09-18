@@ -65,7 +65,7 @@ Producción actual: conserva el último deploy válido de Netlify. Los nuevos de
 - [x] Secuencia Entrada → Salida → Entrada.
 - [x] Eventos append-only.
 - [x] Correcciones separadas y trazables.
-- [x] Revocación de terminal.
+- [x] Revocación de PC fijo.
 - [x] Panel de coordinación.
 - [x] Histórico propio y consulta de gestión.
 - [x] Incluido en backup/restore.
@@ -103,11 +103,17 @@ Producción actual: conserva el último deploy válido de Netlify. Los nuevos de
 - [ ] Confirmar /dashboard y /interno/acceso.
 - [ ] Confirmar formulario y chatbot con entrega real de correo.
 
-## Pendiente antes de considerar V1 cerrada
+## Web cerrada en código / pendiente de validación real
 
-- [ ] Revisión visual final en desktop y móvil.
+- [x] Revisión estructural de todas las rutas públicas e internas en código.
+- [x] Navegación pública y profesional coherentes y separadas.
+- [x] Accesibilidad base: landmarks, skip-link, labels, foco y navegación móvil.
+- [x] Rendimiento base: sin fuentes externas bloqueadas y carga diferida de imágenes no críticas.
+- [x] SEO técnico base: metadata por ruta, canonical, robots, sitemap y favicon.
+- [x] Seguridad web: CSP, anti-frame, permissions policy y cacheado estático.
+- [ ] Revisión visual final en desktop y móvil sobre el deploy real.
 - [ ] Revisión visual y de contraste/foco/teclado de las páginas internas sobre el deploy real.
-- [ ] Decidir si las fotografías externas de Pexels se descargan al repositorio para evitar dependencia de hotlink.
+- [ ] Localizar las fotografías externas en el repositorio si se decide eliminar el hotlink de Pexels; no bloquea V1.
 - [ ] Confirmar procedimiento laboral de implantación/consulta que corresponda.
 - [ ] Documentar recovery probado con evidencia reproducible.
 
