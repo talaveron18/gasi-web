@@ -103,7 +103,9 @@ async def get(episode_id:str,authorization:Optional[str]=Header(default=None,ali
 async def privileged(episode_id:str,p:PrivilegedAccessInput,authorization:Optional[str]=Header(default=None,alias='Authorization')):
  a=await _actor(authorization)
  if not _has(a,'clinical_record_privileged_read'):raise HTTPException(403,'privileged_record_access_required')
- e=await _ep(episode_id);ref=_required(p.reference,'reference');await _audit(a,'PRIVILEGED_CLINICAL_RECORD_ACCESSED',episode_id,{'reason':p.reason,'reference':ref,'delegated':a['id']!=MASTER_ADMIN_ID});return{**e,'privileged_access':{'reason':p.reason,'reference':ref,'accessed_at':_now(),'accessed_by_id':a['id'],'delegated':a['id']!=MASTER_ADMIN_ID},'read_only':True}
+ e=await _ep(episode_id)
+ if a['id']!=MASTER_ADMIN_ID and e['center'] not in a.get('centers',[]):raise HTTPException(403,'episode_forbidden')
+ ref=_required(p.reference,'reference');await _audit(a,'PRIVILEGED_CLINICAL_RECORD_ACCESSED',episode_id,{'reason':p.reason,'reference':ref,'delegated':a['id']!=MASTER_ADMIN_ID});return{**e,'privileged_access':{'reason':p.reason,'reference':ref,'accessed_at':_now(),'accessed_by_id':a['id'],'delegated':a['id']!=MASTER_ADMIN_ID},'read_only':True}
 @router.post('/episodes/{episode_id}/level')
 async def level(episode_id:str,p:LevelChangeInput,authorization:Optional[str]=Header(default=None,alias='Authorization')):
  a=await _actor(authorization)
