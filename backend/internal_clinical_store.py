@@ -114,3 +114,36 @@ class InternalClinicalStore:
             }},
             upsert=True,
         )
+
+
+    async def export_recovery_snapshot(self) -> Dict[str, Any]:
+        """Export the complete internal-clinical data plane for controlled backup/restore."""
+        episodes = [self.clean(row) async for row in self.episodes.find({}).sort("id", 1)]
+        workers = [self.clean(row) async for row in self.workers.find({}).sort("id", 1)]
+        audit = [self.clean(row) async for row in self.audit.find({}).sort("at", 1)]
+        counters = [dict(row) async for row in self.counters.find({})]
+        return {"schema_version": 1, "episodes": episodes, "workers": workers, "audit": audit, "counters": counters}
+
+    async def restore_recovery_snapshot(self, snapshot: Dict[str, Any]) -> Dict[str, int]:
+        """Replace only the internal-clinical collections from a validated snapshot."""
+        if snapshot.get("schema_version") != 1:
+            raise ValueError("unsupported_recovery_snapshot")
+        required = ("episodes", "workers", "audit", "counters")
+        if any(not isinstance(snapshot.get(key), list) for key in required):
+            raise ValueError("invalid_recovery_snapshot")
+        for row in snapshot["episodes"]:
+            if not isinstance(row, dict) or not row.get("id") or not row.get("center"):
+                raise ValueError("invalid_recovery_episode")
+        for row in snapshot["workers"]:
+            if not isinstance(row, dict) or not row.get("id") or not row.get("role"):
+                raise ValueError("invalid_recovery_worker")
+        await self.episodes.delete_many({})
+        await self.workers.delete_many({})
+        await self.audit.delete_many({})
+        await self.counters.delete_many({})
+        if snapshot["episodes"]: await self.episodes.insert_many([dict(x) for x in snapshot["episodes"]])
+        if snapshot["workers"]: await self.workers.insert_many([dict(x) for x in snapshot["workers"]])
+        if snapshot["audit"]: await self.audit.insert_many([dict(x) for x in snapshot["audit"]])
+        if snapshot["counters"]: await self.counters.insert_many([dict(x) for x in snapshot["counters"]])
+        await self.ensure_indexes()
+        return {key: len(snapshot[key]) for key in required}
