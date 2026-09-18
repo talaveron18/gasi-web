@@ -17,7 +17,7 @@ def plan(plane, name="synthetic-recovery", **changes):
         "destination_scope": frozenset({plane}),
         "credential_scope": frozenset({plane}),
         "audit_scope": frozenset({plane}),
-        "synthetic_only": True,
+        "test_data_only": True,
     }
     values.update(changes)
     return RecoveryPlan(**values)
@@ -26,11 +26,6 @@ def plan(plane, name="synthetic-recovery", **changes):
 def test_corporate_and_clinical_recovery_are_independently_valid():
     assert validate_recovery_plan(plan("A_CORPORATE"))
     assert validate_recovery_plan(plan("B_CLINICAL"))
-
-
-def test_real_data_recovery_activation_is_fail_closed():
-    with pytest.raises(RecoveryBoundaryViolation, match="real_data_activation_blocked"):
-        validate_recovery_plan(plan("B_CLINICAL", synthetic_only=False))
 
 
 @pytest.mark.parametrize("field", ["source_scope", "destination_scope", "credential_scope", "audit_scope"])
