@@ -39,6 +39,12 @@ Producción actual: conserva el último deploy válido de Netlify. Los nuevos de
 - [x] Navegación y footer limpios.
 - [x] Mejoras básicas de accesibilidad.
 - [x] Zona profesional visible desde navegación.
+- [x] Formación sanitaria visible como navegación principal en desktop y móvil.
+- [x] Quiénes somos y Contacto rediseñados con la misma identidad visual de la V1.
+- [x] Formulario de contacto con labels, autofill semántico, privacidad y validación compartida con chatbot.
+- [x] Metadatos Open Graph/Twitter por ruta pública.
+- [x] CSP estricta sin scripts inline incompatibles.
+- [x] Contrato automatizado de web pública: rutas, Formación visible, chatbot real, no CDN provisional, no backend antiguo, noindex interno.
 - [x] Zona profesional separada del layout comercial.
 - [x] Login, perfil, cambio de contraseña y cierre de sesión contra la API same-origin real.
 - [x] Eliminado runtime antiguo de aula, OAuth, dashboard y fallback clínico de prototipo.
@@ -103,7 +109,7 @@ Producción actual: conserva el último deploy válido de Netlify. Los nuevos de
 - [ ] Confirmar /dashboard y /interno/acceso.
 - [ ] Confirmar formulario y chatbot con entrega real de correo.
 
-## Web cerrada en código / pendiente de validación real
+## Web cerrada en código / pendiente únicamente de validación real
 
 - [x] Revisión estructural de todas las rutas públicas e internas en código.
 - [x] Navegación pública y profesional coherentes y separadas.
