@@ -111,3 +111,9 @@ def test_auth_version_rotation_revokes_existing_session():
     headers=h("GASI-NURSE-01"); store.workers["GASI-NURSE-01"]["auth_version"]+=1
     r=client.get("/api/internal-clinical/episodes",headers=headers)
     assert r.status_code==401 and r.json()["detail"]=="session_expired_or_revoked"
+
+
+def test_admin_cannot_write_clinical_content():
+    eid=create().json()["id"]
+    r=client.post(f"/api/internal-clinical/episodes/{eid}/addenda",headers=h("GASI-MASTER-01"),json={"text":"Administrative write attempt"})
+    assert r.status_code==403 and r.json()["detail"]=="discipline_write_forbidden"
