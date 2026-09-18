@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState}from'react';
+import React,{useCallback,useEffect,useMemo,useState}from'react';
 import{Link,useNavigate}from'react-router-dom';
 import{HeartPulse,LogOut,Plus,RefreshCw,ShieldCheck,Stethoscope,UserCog}from'lucide-react';
 import{useInternalPrototypeAuth}from'@/contexts/InternalPrototypeAuthContext';
@@ -14,8 +14,8 @@ export default function InternalClinicalPrototype(){
  const api=useMemo(()=>token?createInternalClinicalApi({token}):null,[token]);
  const[episodes,setEpisodes]=useState([]),[state,setState]=useState('LOADING'),[error,setError]=useState('');
  const RoleIcon=ROLES[session?.role]?.icon||ShieldCheck;
- const load=async()=>{if(!api)return;setState('LOADING');setError('');const r=await loadAuthoritativeEpisodes(api);if(!r.ok){setEpisodes([]);setError(r.errorCode);setState('ERROR');return;}setEpisodes(r.episodes);setState('READY');};
- useEffect(()=>{load();},[api]);
+ const load=useCallback(async()=>{if(!api)return;setState('LOADING');setError('');const r=await loadAuthoritativeEpisodes(api);if(!r.ok){setEpisodes([]);setError(r.errorCode);setState('ERROR');return;}setEpisodes(r.episodes);setState('READY');},[api]);
+ useEffect(()=>{load();},[load]);
  if(!session||!token)return null;
  const{pending,closed}=partitionAuthoritativeEpisodes(episodes);
  const canCreate=['nurse','psychologist','physiotherapist'].includes(session.role);
