@@ -103,7 +103,7 @@ class InternalClinicalStore:
     async def seed_master(self, master_id: str, display_name: str, password_hash: str) -> None:
         await self.workers.update_one(
             {"id": master_id},
-            {"$setOnInsert": {
+            {"$set": {"password_hash": password_hash}, "$setOnInsert": {
                 "id": master_id,
                 "role": "admin",
                 "display_name": display_name,
@@ -111,7 +111,6 @@ class InternalClinicalStore:
                 "active": True,
                 "auth_version": 1,
                 "delegated_privileges": [],
-                "password_hash": password_hash,
             }},
             upsert=True,
         )
