@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 
-DELIVERY_PENDING = "PENDIENTE_ENTREGA"
+DELIVERY_PENDING = "PENDIENTE_ENTREGA"\nDELIVERY_FAILED = "FALLO_ENTREGA"\nALTERNATE_CHANNEL_REQUIRED = "CANAL_ALTERNATIVO_REQUERIDO"
 DELIVERED = "ENTREGADA"
 READ = "LEIDA"
 
@@ -23,7 +23,7 @@ class DeliveryState:
     status: str = DELIVERY_PENDING
     delivered_at: Optional[datetime] = None
     read_at: Optional[datetime] = None
-    delivered_to_identity: Optional[str] = None
+    delivered_to_identity: Optional[str] = None\n    failure_reason: Optional[str] = None
 
 
 def _aware_utc(value: datetime) -> bool:
@@ -68,3 +68,17 @@ def mark_read(state: DeliveryState, *, identity_id: str, at: datetime) -> Delive
 def execution_is_proven(_: DeliveryState) -> bool:
     """Reading a response never proves that a clinical action was executed."""
     return False
+
+
+def mark_delivery_failed(state: DeliveryState, *, reason: str) -> DeliveryState:
+    if state.status != DELIVERY_PENDING:
+        raise DeliveryPolicyError("INVALID_TRANSITION")
+    if not reason or not reason.strip():
+        raise DeliveryPolicyError("FAILURE_REASON_REQUIRED")
+    return DeliveryState(status=DELIVERY_FAILED, failure_reason=reason.strip())
+
+
+def require_alternate_channel(state: DeliveryState) -> DeliveryState:
+    if state.status != DELIVERY_FAILED:
+        raise DeliveryPolicyError("DELIVERY_FAILURE_REQUIRED")
+    return DeliveryState(status=ALTERNATE_CHANNEL_REQUIRED, failure_reason=state.failure_reason)
