@@ -15,27 +15,36 @@ const pages=[
  ['/aviso-legal','Aviso legal | GASI','Información legal sobre el uso de gasisalud.com y los canales públicos de GASI.']
 ];
 
-const ensureMeta=(name,content)=>{
- let node=document.head.querySelector(`meta[name="${name}"]`);
- if(!node){node=document.createElement('meta');node.setAttribute('name',name);document.head.appendChild(node);}
- node.setAttribute('content',content);
+const upsert=(selector,tag,attrs)=>{
+ let node=document.head.querySelector(selector);
+ if(!node){node=document.createElement(tag);document.head.appendChild(node);}
+ Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,v));
+ return node;
 };
-const ensureCanonical=href=>{
- let node=document.head.querySelector('link[rel="canonical"]');
- if(!node){node=document.createElement('link');node.setAttribute('rel','canonical');document.head.appendChild(node);}
- node.setAttribute('href',href);
-};
+const remove=selector=>document.head.querySelector(selector)?.remove();
 
 export default function RouteMeta(){
- const {pathname}=useLocation();
+ const{pathname}=useLocation();
  useEffect(()=>{
   const internal=pathname.startsWith('/interno')||pathname.startsWith('/dashboard')||pathname.startsWith('/curso/');
   const match=pages.find(([path])=>path===pathname)||['','GASI | Grupo de Asistencia Sanitaria Integral','Servicios sanitarios y formación para empresas y organizaciones.'];
-  document.title=match[1];
-  ensureMeta('description',match[2]);
-  ensureMeta('robots',internal?'noindex,nofollow':'index,follow');
-  const canonical=document.head.querySelector('link[rel="canonical"]');
-  if(internal){canonical?.remove();}else ensureCanonical(`https://gasisalud.com${pathname==='/'?'':pathname}`);
+  const title=match[1],description=match[2],url=`https://gasisalud.com${pathname==='/'?'':pathname}`;
+  document.title=title;
+  upsert('meta[name="description"]','meta',{name:'description',content:description});
+  upsert('meta[name="robots"]','meta',{name:'robots',content:internal?'noindex,nofollow':'index,follow'});
+  if(internal){
+   remove('link[rel="canonical"]');remove('meta[property="og:url"]');
+  }else{
+   upsert('link[rel="canonical"]','link',{rel:'canonical',href:url});
+   upsert('meta[property="og:url"]','meta',{property:'og:url',content:url});
+  }
+  upsert('meta[property="og:type"]','meta',{property:'og:type',content:'website'});
+  upsert('meta[property="og:site_name"]','meta',{property:'og:site_name',content:'GASI'});
+  upsert('meta[property="og:title"]','meta',{property:'og:title',content:title});
+  upsert('meta[property="og:description"]','meta',{property:'og:description',content:description});
+  upsert('meta[name="twitter:card"]','meta',{name:'twitter:card',content:'summary'});
+  upsert('meta[name="twitter:title"]','meta',{name:'twitter:title',content:title});
+  upsert('meta[name="twitter:description"]','meta',{name:'twitter:description',content:description});
   window.scrollTo({top:0,behavior:'auto'});
  },[pathname]);
  return null;
