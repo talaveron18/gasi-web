@@ -81,3 +81,17 @@ test("delegated worker-management UI hides administrative identity controls",()=
  assert.match(workersUi,/const availableRoles = isMaster \? ROLE_OPTIONS : ROLE_OPTIONS\.filter\(\(\[role\]\)=>role!=='admin'\)/);
  assert.match(workersUi,/i\.role==='admin'&&!isMaster\?<span className="text-slate-500">Solo cuenta maestra<\/span>/);
 });
+
+
+test("delegated worker management is center-scoped at query and mutation time",()=>{
+ assert.match(api,/const managementCenters=\(w:any\)=>w\.id===MASTER\(\)\?null:/);
+ assert.match(api,/const canManageWorkerCenters=/);
+ assert.match(api,/WHERE role<>'admin' AND centers <@ \$1::jsonb ORDER BY display_name,id/);
+ assert.match(api,/worker_center_management_denied/);
+ const create=api.slice(api.indexOf('if(req.method==="POST"&&path==="/api/internal-clinical/workers")'),api.indexOf("const access=path.match"));
+ assert.match(create,/!canManageWorkerCenters\(w,centers\)/);
+ const access=api.slice(api.indexOf("const access=path.match"),api.indexOf("const passwordReset=path.match"));
+ assert.match(access,/!canManageWorkerCenters\(w,target\.centers\)/);
+ const reset=api.slice(api.indexOf("const passwordReset=path.match"),api.indexOf("const privilege=path.match"));
+ assert.match(reset,/!canManageWorkerCenters\(w,target\.centers\)/);
+});
