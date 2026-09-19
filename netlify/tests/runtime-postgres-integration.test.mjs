@@ -82,6 +82,10 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  const nurseToken=(await responseJson(res)).token;
 
+ res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:nurseToken}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"workstation_binding_required");
+
  res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:nurseToken,cookie:workstationCookie}),{});
  assert.equal(res.status,201);
  const firstClockIn=await responseJson(res);
@@ -135,12 +139,27 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.ok(snapshot.workstations.find(x=>x.id==="WS-A")?.claimed_at);
  assert.ok(snapshot.attendance.length>=5);
 
+ const beforeTamper=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
+ const tampered=structuredClone(snapshot);
+ tampered.audit[0].event_hash="0".repeat(64);
+ res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:tampered}),{});
+ assert.equal(res.status,422);
+ assert.equal((await responseJson(res)).detail,"invalid_recovery_snapshot");
+ const afterTamper=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
+ assert.equal(afterTamper,beforeTamper);
+
  await pool.query("UPDATE internal_center_workstations SET claimed_at=NULL WHERE id='WS-A'");
  res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:snapshot}),{});
  assert.equal(res.status,200);
  const restored=await pool.query("SELECT claimed_at,active FROM internal_center_workstations WHERE id='WS-A'");
  assert.ok(restored.rows[0].claimed_at);
  assert.equal(restored.rows[0].active,true);
+
+ res=await handler(request("/api/internal-clinical/workers/NURSE-A/access",{method:"POST",token:masterToken,body:{state:"REVOKED"}}),{});
+ assert.equal(res.status,200);
+ res=await handler(request("/api/internal-clinical/attendance",{token:nurseToken}),{});
+ assert.equal(res.status,401);
+ assert.equal((await responseJson(res)).detail,"session_expired_or_revoked");
 
  await assert.rejects(()=>pool.query("UPDATE internal_attendance_events SET center='CENTER-X' WHERE seq=$1",[firstClockIn.seq]),/append-only/);
  await assert.rejects(()=>pool.query("DELETE FROM internal_attendance_events WHERE seq=$1",[firstClockIn.seq]),/append-only/);
