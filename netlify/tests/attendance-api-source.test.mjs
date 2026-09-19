@@ -145,3 +145,11 @@ test("attendance corrections preserve a valid alternating timeline and serialize
  assert.match(route,/attendance_correction_breaks_sequence/);
  assert.match(route,/attendance_correction_breaks_timeline/);
 });
+
+
+test("attendance corrections reject future effective timestamps",()=>{
+ const start=source.indexOf("const attendanceCorrection=path.match");
+ const route=source.slice(start,start+6800);
+ assert.match(route,/correctedMillis>Date\.now\(\)/);
+ assert.match(route,/attendance_correction_future_time/);
+});
