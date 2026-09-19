@@ -13,14 +13,14 @@ test('clinical corrections must not overwrite the original entry text', () => {
 });
 
 test('clinical corrections retain immutable correction evidence', () => {
-  assert.match(source, /previous_text:old/);
+  assert.match(source, /priorCorrections=items\[idx\]\.corrections\|\|\[\]/);\n  assert.match(source, /previousEffective=priorCorrections\.length\?priorCorrections\.at\(-1\)\.replacement_text:items\[idx\]\.text/);\n  assert.match(source, /previous_text:previousEffective/);
   assert.match(source, /replacement_text:replacement/);
   assert.match(source, /reason/);
   assert.match(source, /corrected_by_id:w\.id/);
   assert.match(source, /corrected_at:at/);
 });
 
-test('privileged clinical access is explicitly audited', () => {
+test('multiple clinical corrections form a non-destructive effective-text chain', () => {\n  assert.match(source, /corrections:\[\.\.\.priorCorrections,\{previous_text:previousEffective,replacement_text:replacement/);\n  assert.doesNotMatch(source, /previous_text:items\[idx\]\.text/);\n});\n\ntest('privileged clinical access is explicitly audited', () => {
   assert.match(source, /PRIVILEGED_EPISODE_ACCESSED/);
   assert.match(source, /privileged_access:\{read_only:true,reason,reference\}/);
 });
