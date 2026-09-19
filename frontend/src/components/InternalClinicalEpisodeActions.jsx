@@ -7,11 +7,23 @@ export default function InternalClinicalEpisodeActions({episode,session,api,onUp
  const[addendumText,setAddendumText]=useState('');
  const[busy,setBusy]=useState('');
  const[message,setMessage]=useState('');
+ const[noFollowUp,setNoFollowUp]=useState(false);
+ const[handoffRequired,setHandoffRequired]=useState(false);
+ const[handoffAcknowledged,setHandoffAcknowledged]=useState(false);
+ const[acknowledgementRequired,setAcknowledgementRequired]=useState(false);
  if(!episode||!session||!api||readOnly)return null;
  const canWrite=session.role!=='admin'&&Array.isArray(session.centers)&&session.centers.includes(episode.center)&&disciplineFor(session.role)===episode.discipline;
  if(!canWrite||episode.status==='CERRADO')return null;
+ const responses=Array.isArray(episode.responses)?episode.responses:[];
+ const latestResponse=responses.at(-1)||null;
+ const pendingLate=responses.filter(r=>r.lateAfterDisposition&&!r.lateReviewedAt);
+ const refresh=async()=>{const updated=await api.getEpisode(episode.id);onUpdate(updated);return updated;};
  const respond=async e=>{e.preventDefault();const text=responseText.trim();if(!text)return;setBusy('response');setMessage('');try{const updated=await api.respond(episode.id,text);onUpdate(updated);setResponseText('');setMessage('Respuesta facultativa registrada.');}catch(err){setMessage(`Respuesta rechazada: ${err.code||'error'}`);}finally{setBusy('');}};
  const addendum=async e=>{e.preventDefault();const text=addendumText.trim();if(!text)return;setBusy('addendum');setMessage('');try{const updated=await api.addAddendum(episode.id,text);onUpdate(updated);setAddendumText('');setMessage('Anotación registrada.');}catch(err){setMessage(`Anotación rechazada: ${err.code||'error'}`);}finally{setBusy('');}};
+ const reviewLate=async responseId=>{setBusy(`review-${responseId}`);setMessage('');try{await api.reviewLateResponse(episode.id,responseId);await refresh();setMessage('Respuesta tardía revisada y registrada.');}catch(err){setMessage(`Revisión rechazada: ${err.code||'error'}`);}finally{setBusy('');}};
+ const advance=async(kind,label)=>{if(!latestResponse)return;setBusy(kind);setMessage('');try{await api.advanceMessage(episode.id,latestResponse.id,kind);await refresh();setMessage(label);}catch(err){setMessage(`Estado de entrega rechazado: ${err.code||'error'}`);}finally{setBusy('');}};
+ const close=async e=>{e.preventDefault();setBusy('close');setMessage('');try{const updated=await api.closeEpisode(episode.id,{follow_up_pending:!noFollowUp,handoff_required:handoffRequired,handoff_acknowledged:handoffAcknowledged,acknowledgement_required:acknowledgementRequired});onUpdate(updated);setMessage('Episodio cerrado.');}catch(err){setMessage(`Cierre rechazado: ${err.code||'error'}`);}finally{setBusy('');}};
+ const canClose=episode.status==='RESPONDIDO'&&noFollowUp&&pendingLate.length===0&&(!handoffRequired||handoffAcknowledged)&&(!acknowledgementRequired||latestResponse?.status==='LEIDA');
  return <section className="mt-5 rounded-xl border border-slate-800 bg-slate-900 p-5" aria-busy={Boolean(busy)}>
   <h2 className="font-bold">Actuación clínica</h2>
   <p className="mt-1 text-sm text-slate-400">Las acciones se registran con tu identidad y conservan la trazabilidad del episodio.</p>
@@ -23,6 +35,9 @@ export default function InternalClinicalEpisodeActions({episode,session,api,onUp
    <label className="block text-sm">Anotación / adenda<textarea required minLength={2} value={addendumText} onChange={e=>setAddendumText(e.target.value)} className="mt-1 min-h-24 w-full rounded border border-slate-700 bg-slate-950 p-3"/></label>
    <button disabled={busy!==''||!addendumText.trim()} className="mt-3 rounded border border-cyan-400 px-4 py-2 font-semibold disabled:opacity-50">{busy==='addendum'?'Registrando…':'Añadir anotación'}</button>
   </form>
+  {pendingLate.length>0&&<div className="mt-5 border-t border-amber-500/30 pt-4"><h3 className="font-semibold text-amber-200">Respuestas tardías pendientes de revisión</h3><div className="mt-2 space-y-2">{pendingLate.map(r=><button type="button" key={r.id} disabled={busy!==''||r.authorId===session.id} onClick={()=>reviewLate(r.id)} className="block rounded border border-amber-400/50 px-3 py-2 text-sm disabled:opacity-50">Revisar respuesta de {r.authorId}{r.authorId===session.id?' · no se permite autorrevisión':''}</button>)}</div></div>}
+  {latestResponse&&<div className="mt-5 border-t border-slate-800 pt-4"><h3 className="font-semibold">Entrega de la última respuesta</h3><p className="mt-1 text-sm text-slate-400">Estado actual: {latestResponse.status}</p>{latestResponse.status==='EMITIDA'&&<button type="button" disabled={busy!==''} onClick={()=>advance('delivery_receipt','Entrega registrada.')} className="mt-2 rounded border border-slate-600 px-3 py-2 text-sm">Registrar entrega</button>}{latestResponse.status==='ENTREGADA'&&<button type="button" disabled={busy!==''} onClick={()=>advance('read_receipt','Lectura registrada.')} className="mt-2 rounded border border-slate-600 px-3 py-2 text-sm">Registrar lectura</button>}</div>}
+  {episode.status==='RESPONDIDO'&&<form onSubmit={close} className="mt-5 border-t border-slate-800 pt-4"><h3 className="font-semibold">Cierre del episodio</h3><label className="mt-3 flex gap-2 text-sm"><input type="checkbox" checked={noFollowUp} onChange={e=>setNoFollowUp(e.target.checked)}/>Confirmo que no queda seguimiento pendiente</label><label className="mt-2 flex gap-2 text-sm"><input type="checkbox" checked={handoffRequired} onChange={e=>{setHandoffRequired(e.target.checked);if(!e.target.checked)setHandoffAcknowledged(false);}}/>El caso requiere traspaso</label>{handoffRequired&&<label className="mt-2 ml-6 flex gap-2 text-sm"><input type="checkbox" checked={handoffAcknowledged} onChange={e=>setHandoffAcknowledged(e.target.checked)}/>Traspaso confirmado</label>}<label className="mt-2 flex gap-2 text-sm"><input type="checkbox" checked={acknowledgementRequired} onChange={e=>setAcknowledgementRequired(e.target.checked)}/>Exigir constancia de lectura antes de cerrar</label>{acknowledgementRequired&&latestResponse?.status!=='LEIDA'&&<p role="status" className="mt-2 text-sm text-amber-200">La última respuesta debe constar como leída antes del cierre.</p>}{pendingLate.length>0&&<p role="status" className="mt-2 text-sm text-amber-200">Hay respuestas tardías pendientes de revisión.</p>}<button disabled={busy!==''||!canClose} className="mt-3 rounded bg-emerald-300 px-4 py-2 font-bold text-slate-950 disabled:opacity-50">{busy==='close'?'Cerrando…':'Cerrar episodio'}</button></form>}
   {message&&<p role="status" aria-live="polite" className="mt-3 text-sm text-cyan-100">{message}</p>}
  </section>;
 }
