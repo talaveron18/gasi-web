@@ -18,7 +18,7 @@ test("privileged clinical access is explicit, read-only and audited", () => {
 });
 
 test("delegated privilege grant and revoke rotate auth version and are audited", () => {
-  assert.match(source, /privileges\\\/(grant\|revoke)/);
+  assert.match(source, /privileges\\\\\/\\(grant\\|revoke\\)/);
   assert.match(source, /auth_version=auth_version\+1/);
   assert.match(source, /PRIVILEGE_GRANTED/);
   assert.match(source, /PRIVILEGE_REVOKED/);
