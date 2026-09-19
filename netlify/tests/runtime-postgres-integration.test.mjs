@@ -319,9 +319,42 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.ok(restored.rows[0].claimed_at);
  assert.equal(restored.rows[0].active,true);
 
- res=await handler(request("/api/internal-clinical/workers/NURSE-A/access",{method:"POST",token:masterToken,body:{state:"REVOKED"}}),{});
+ res=await handler(request("/api/internal-clinical/workers/NURSE-A/privileges/grant",{method:"POST",token:masterToken,body:{privilege:"worker_access_management"}}),{});
  assert.equal(res.status,200);
  res=await handler(request("/api/internal-clinical/attendance",{token:nurseToken}),{});
+ assert.equal(res.status,401);
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-A",password:nursePassword},ip:"10.10.0.11"}),{});
+ assert.equal(res.status,200);
+ const combinedNurseToken=(await responseJson(res)).token;
+
+ res=await handler(request("/api/internal-clinical/workers",{token:combinedNurseToken}),{});
+ assert.equal(res.status,200);
+ assert.ok((await responseJson(res)).some(x=>x.id==="ADMIN-A"));
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}`,{token:combinedNurseToken}),{});
+ assert.equal(res.status,200);
+ assert.equal((await responseJson(res)).discipline,"nursing");
+
+ res=await handler(request("/api/internal-clinical/attendance",{token:combinedNurseToken}),{});
+ assert.equal(res.status,200);
+ assert.ok((await responseJson(res)).length>0);
+
+ res=await handler(request("/api/internal-clinical/workers/NURSE-A/privileges/revoke",{method:"POST",token:masterToken,body:{privilege:"worker_access_management"}}),{});
+ assert.equal(res.status,200);
+ res=await handler(request("/api/internal-clinical/workers",{token:combinedNurseToken}),{});
+ assert.equal(res.status,401);
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-A",password:nursePassword},ip:"10.10.0.11"}),{});
+ assert.equal(res.status,200);
+ const nurseAfterDelegationToken=(await responseJson(res)).token;
+ res=await handler(request("/api/internal-clinical/workers",{token:nurseAfterDelegationToken}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"worker_management_required");
+
+ res=await handler(request("/api/internal-clinical/workers/NURSE-A/access",{method:"POST",token:masterToken,body:{state:"REVOKED"}}),{});
+ assert.equal(res.status,200);
+ res=await handler(request("/api/internal-clinical/attendance",{token:nurseAfterDelegationToken}),{});
  assert.equal(res.status,401);
  assert.equal((await responseJson(res)).detail,"session_expired_or_revoked");
 
