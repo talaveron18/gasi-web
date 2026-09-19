@@ -11,6 +11,8 @@ const jsonCookie=(body:unknown,status:number,cookies:string[])=>{const headers=n
 const cookieValue=(req:Request,name:string)=>{const raw=req.headers.get("cookie")||"";for(const part of raw.split(";")){const [k,...rest]=part.trim().split("=");if(k===name)return decodeURIComponent(rest.join("="));}return "";};
 const mobileClient=(req:Request)=>/android|iphone|ipad|ipod|mobile/i.test(req.headers.get("user-agent")||"");
 const env=(name:string)=>Netlify.env.get(name)||"";
+const databaseCache=new Map<string,any>();
+function database(){const connectionString=env("NETLIFY_DB_URL"),key=connectionString||"__netlify_default__";if(!databaseCache.has(key))databaseCache.set(key,connectionString?getDatabase({connectionString}):getDatabase());return databaseCache.get(key);}
 const b64=(v:Buffer|string)=>Buffer.from(v).toString("base64url");
 const bearer=(req:Request)=>{const value=req.headers.get("authorization")||"";return value.startsWith("Bearer ")?value.slice(7):"";};
 const profile=(w:any)=>({id:w.id,role:w.role,display_name:w.display_name,centers:w.centers||[],operational_state:w.active?"ACTIVE":"REVOKED",delegated_privileges:w.delegated_privileges||[]});
@@ -39,7 +41,7 @@ async function hashPassword(password:string){if(password.length<12||password.len
 
 async function ensureMaster(db:any){const id=MASTER();const rows=await db.sql`SELECT id FROM internal_clinical_workers WHERE id=${id} LIMIT 1`;if(rows[0])return;const configuredHash=env("GASI_MASTER_PASSWORD_HASH");const password=env("GASI_MASTER_PASSWORD");let passwordHash="";if(/^\$2[aby]\$/.test(configuredHash))passwordHash=configuredHash;else{if(password.length<12||password.length>128)throw new Error("master_bootstrap_not_configured");passwordHash=await bcrypt.hash(password,12);}const displayName=env("GASI_MASTER_DISPLAY_NAME")||"GASI Master";await db.sql`INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES(${id},'admin',${displayName},'[]'::jsonb,TRUE,1,'[]'::jsonb,${passwordHash}) ON CONFLICT (id) DO NOTHING`;}
 
-export default async (req:Request,_context:Context)=>{const url=new URL(req.url);const path=url.pathname;try{const connectionString=env("NETLIFY_DB_URL");const db=connectionString?getDatabase({connectionString}):getDatabase();
+export default async (req:Request,_context:Context)=>{const url=new URL(req.url);const path=url.pathname;try{const db=database();
  if(req.method==="GET"&&path==="/api/internal-clinical/health"){await db.sql`SELECT 1`;return json({ok:true,storage:"netlify-database"});}
  if(req.method==="POST"&&path==="/api/internal-clinical/login"){await ensureMaster(db);const body=await req.json() as any;const id=String(body.worker_id||"").trim(),key=loginKey(req,id);if(await loginLimited(db,key))return json({detail:"too_many_login_attempts"},429);const rows=await db.sql`SELECT * FROM internal_clinical_workers WHERE id=${id} LIMIT 1`;const w=rows[0];if(!w||!w.active||!(await verifyPassword(String(body.password||""),w.password_hash))){await loginFailed(db,key);return json({detail:"invalid_credentials"},401);}await loginSucceeded(db,key);const ttl=Math.min(480,Math.max(1,Number(env("GASI_INTERNAL_SESSION_TTL_MINUTES")||30)));const now=Math.floor(Date.now()/1000);const token=sign({sid:crypto.randomUUID(),sub:w.id,iat:now,exp:now+ttl*60,av:Number(w.auth_version)});await audit(db,w,"LOGIN_SUCCESS");return json({token,expires_at:new Date((now+ttl*60)*1000).toISOString(),profile:profile(w)});}
  const w=await actor(req,db);
