@@ -461,6 +461,14 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  const afterDuplicate=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
  assert.equal(afterDuplicate,beforeTamper);
 
+ const noProvenance=structuredClone(snapshot);
+ noProvenance.audit=[];
+ res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:noProvenance}),{});
+ assert.equal(res.status,422);
+ assert.equal((await responseJson(res)).detail,"invalid_recovery_snapshot_provenance");
+ const afterNoProvenance=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
+ assert.equal(afterNoProvenance,beforeTamper);
+
  const noMaster=structuredClone(snapshot);
  noMaster.workers=noMaster.workers.filter(x=>x.id!=="GASI-MASTER-01");
  res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:noMaster}),{});
