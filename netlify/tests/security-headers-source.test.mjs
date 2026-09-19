@@ -23,3 +23,8 @@ test("bounded limit parser rejects NaN and clamps oversized reads",()=>{
  assert.match(source,/boundedLimit\(url\.searchParams\.get\("limit"\),100,250\)/);
  assert.match(source,/boundedLimit\(url\.searchParams\.get\("limit"\),1000,1000\)/);
 });
+
+
+test("malformed JSON is rejected deterministically",()=>{
+ assert.match(source,/e instanceof SyntaxError.*invalid_json.*400/);
+});
