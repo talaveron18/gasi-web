@@ -23,3 +23,11 @@ test("delegated privilege grant and revoke rotate auth version and are audited",
   assert.match(source,/PRIVILEGE_GRANTED/);
   assert.match(source,/PRIVILEGE_REVOKED/);
 });
+
+
+test("global audit metadata does not copy free-text clinical correction or delivery reasons",()=>{
+  assert.match(source,/CLINICAL_ENTRY_CORRECTED",\{episode_id:id,entry_id:itemId,entry_kind:kind,reason_recorded:true\}/);
+  assert.doesNotMatch(source,/CLINICAL_ENTRY_CORRECTED",\{[^}]*,reason\}/);
+  assert.match(source,/DELIVERY_STATE_CHANGED",\{episode_id:id,state,reason_recorded:Boolean\(reason\)\}/);
+  assert.doesNotMatch(source,/DELIVERY_STATE_CHANGED",\{[^}]*\{reason\}/);
+});
