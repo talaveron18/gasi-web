@@ -445,6 +445,15 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.ok(snapshot.attendance.length>=5);
 
  const beforeTamper=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
+
+ const unsignedEdit=structuredClone(snapshot);
+ unsignedEdit.workers.find(x=>x.id==="NURSE-A").display_name="Tampered Name";
+ res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:unsignedEdit}),{});
+ assert.equal(res.status,422);
+ assert.equal((await responseJson(res)).detail,"invalid_recovery_snapshot_signature");
+ const afterUnsignedEdit=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
+ assert.equal(afterUnsignedEdit,beforeTamper);
+
  const tampered=structuredClone(snapshot);
  tampered.audit[0].event_hash="0".repeat(64);
  res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:tampered}),{});
