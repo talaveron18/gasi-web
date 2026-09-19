@@ -164,3 +164,13 @@ test("workstation registration serializes on center and rejects duplicates",()=>
  assert.match(route,/WHERE id=\$1 OR center=\$2 LIMIT 1/);
  assert.match(route,/workstation_center_already_registered/);
 });
+
+
+test("attendance requires the claimed Netlify edge network without storing raw IP",()=>{
+ assert.match(source,/edgeClientIp\(req\)/);
+ assert.match(source,/workstationNetworkFingerprint\(deviceSecret,claimIp\)/);
+ assert.match(source,/network_fingerprint_hash/);
+ assert.match(source,/workstation_network_unavailable/);
+ assert.match(source,/workstation_network_denied/);
+ assert.doesNotMatch(source,/network_fingerprint_hash=.*claimIp/);
+});
