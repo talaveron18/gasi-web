@@ -58,7 +58,7 @@ test("attendance corrections are separate privileged audited events",()=>{
  assert.match(source,/'CORRECTION'/);
  assert.match(source,/ATTENDANCE_CORRECTION_RECORDED/);
  const correctionStart=source.indexOf("const attendanceCorrection=path.match");
- const correctionRoute=source.slice(correctionStart,correctionStart+2600);
+ const correctionRoute=source.slice(correctionStart,correctionStart+7600);
  assert.doesNotMatch(correctionRoute,/UPDATE internal_attendance_events/);
  assert.doesNotMatch(correctionRoute,/DELETE FROM internal_attendance_events/);
  assert.match(correctionRoute,/original_event_type:original\.event_type/);
