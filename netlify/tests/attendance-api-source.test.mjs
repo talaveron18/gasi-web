@@ -4,7 +4,7 @@ import fs from "node:fs";
 const source=fs.readFileSync(new URL("../functions/internal-clinical.mts",import.meta.url),"utf8");
 
 test("attendance requires authenticated professional and registered active workstation",()=>{
- assert.match(source,/attendance\\\/(clock-in\|clock-out)/);
+ assert.ok(source.includes('attendance\\/(clock-in|clock-out)'),"attendance route matcher missing");
  assert.match(source,/w\.role==="admin".*professional_role_required/);
  assert.match(source,/internal_center_workstations WHERE id=/);
  assert.match(source,/!ws\|\|!ws\.active\|\|!\(await verifyPassword\(credential,ws\.credential_hash\)\)/);
