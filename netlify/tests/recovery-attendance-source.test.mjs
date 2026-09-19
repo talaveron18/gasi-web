@@ -173,3 +173,13 @@ test("snapshot is generated from one repeatable-read transaction",()=>{
  assert.match(route,/client\.query\("ROLLBACK"\)/);
  assert.doesNotMatch(route,/Promise\.all/);
 });
+
+
+test("restore rejects duplicate center assignments before mutation",()=>{
+ assert.match(source,/new Set\(x\.centers\.map\(\(center:any\)=>String\(center\)\)\)\.size!==x\.centers\.length/);
+ assert.match(source,/workstationCenterSet=new Set\(snapshot\.workstations\.map/);
+ assert.match(source,/workstationCenterSet\.size!==snapshot\.workstations\.length/);
+ const validation=source.indexOf("workstationCenterSet.size!==snapshot.workstations.length");
+ const connect=source.indexOf("const client=await db.pool.connect()",source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
+ assert.ok(validation>=0&&connect>validation);
+});
