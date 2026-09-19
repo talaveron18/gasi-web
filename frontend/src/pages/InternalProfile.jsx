@@ -7,7 +7,7 @@ const backendProfileEnabled = () => process.env.REACT_APP_INTERNAL_SYNTHETIC_API
 const backendBaseUrl = () => String(process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '');
 
 export default function InternalProfile() {
-  const { session } = useInternalPrototypeAuth();
+  const { session, isMaster } = useInternalPrototypeAuth();
   const [profile, setProfile] = useState(null);
   const [profileState, setProfileState] = useState('idle');
 
@@ -96,7 +96,7 @@ export default function InternalProfile() {
         <nav className="mt-6 flex flex-wrap gap-3">
           <Link to="/interno/prototipo-clinico" className="rounded-lg bg-cyan-400 text-slate-950 font-semibold px-4 py-2">Ir al canal clínico</Link>
           {session.role === 'nurse' && <Link to="/interno/prototipo-clinico/nuevo" className="rounded-lg border border-cyan-400/60 px-4 py-2 text-cyan-100">Abrir caso sintético</Link>}
-          {session.role === 'admin' && <Link to="/interno/trabajadores" className="rounded-lg border border-slate-700 px-4 py-2">Gestionar trabajadores</Link>}
+          {session.role !== 'admin' && <Link to="/interno/fichaje" className="rounded-lg border border-slate-700 px-4 py-2">Fichaje</Link>}\n          {session.role === 'admin' && <Link to="/interno/trabajadores" className="rounded-lg border border-slate-700 px-4 py-2">Gestionar trabajadores</Link>}\n          {isMaster && <Link to="/interno/puestos" className="rounded-lg border border-slate-700 px-4 py-2">Gestionar puestos</Link>}
         </nav>
       </div>
     </main>
