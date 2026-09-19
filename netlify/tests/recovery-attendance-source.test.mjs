@@ -81,3 +81,15 @@ test("restore explicitly serializes JSONB payloads for node-postgres",()=>{
  assert.match(source,/JSON\.stringify\(x\.delegated_privileges\)/);
  assert.match(source,/JSON\.stringify\(x\.metadata\)/);
 });
+
+
+test("restore verifies the audit hash chain before destructive work",()=>{
+ assert.match(source,/function validAuditSnapshot\(rows:any\[\]\)/);
+ assert.match(source,/previous="0"\.repeat\(64\)/);
+ assert.match(source,/String\(x\.previous_hash\|\|""\)!==previous/);
+ assert.match(source,/crypto\.createHash\("sha256"\)\.update\(previous\+":"\+canonical\(payload\)\)\.digest\("hex"\)/);
+ assert.match(source,/!validAuditSnapshot\(snapshot\.audit\)/);
+ const validation=source.indexOf("!validAuditSnapshot(snapshot.audit)");
+ const connect=source.indexOf("const client=await db.pool.connect()",source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
+ assert.ok(validation>=0&&connect>validation);
+});
