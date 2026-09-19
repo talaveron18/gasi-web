@@ -3,6 +3,9 @@
   command = "yarn --cwd frontend install --non-interactive --frozen-lockfile && yarn --cwd frontend build"
   publish = "frontend/build"
 
+[build.environment]
+  NODE_VERSION = "24"
+
 [functions]
   directory = "netlify/functions"
 
