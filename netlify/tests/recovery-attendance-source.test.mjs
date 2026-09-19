@@ -134,3 +134,11 @@ test("restore takes exclusive table locks before destructive replacement",()=>{
  const truncate=route.indexOf("TRUNCATE TABLE internal_attendance_events RESTART IDENTITY");
  assert.ok(lock>=0&&truncate>lock);
 });
+
+
+test("restore validates real bcrypt hash syntax and domain semantics",()=>{
+ assert.ok(source.includes('BCRYPT_HASH=/^\\$2[aby]\\$\\d{2}\\$[./A-Za-z0-9]{53}$/;'));
+ assert.match(source,/invalid_recovery_snapshot_semantics/);
+ assert.match(source,/DELEGABLE_PRIVILEGES\.has\(String\(p\)\)/);
+ assert.match(source,/RECOVERY_EPISODE_STATUSES\.has\(String\(x\.status\)\)/);
+});
