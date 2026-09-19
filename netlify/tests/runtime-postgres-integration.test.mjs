@@ -238,6 +238,40 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  assert.equal((await responseJson(res)).status,"CERRADO");
 
+ res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient_ref:"SYNTH-PAT-ACK",center:"CENTER-A",summary:"Synthetic acknowledgement flow",level:3}}),{});
+ assert.equal(res.status,201);
+ const ackEpisode=await responseJson(res);
+ res=await handler(request(`/api/internal-clinical/episodes/${ackEpisode.id}/responses`,{method:"POST",token:physicianToken,body:{text:"Synthetic response requiring acknowledgement"}}),{});
+ assert.equal(res.status,200);
+ const ackAnswered=await responseJson(res);
+ const ackResponseId=ackAnswered.responses.at(-1).id;
+
+ res=await handler(request(`/api/internal-clinical/episodes/${ackEpisode.id}/close`,{method:"POST",token:nurseToken,body:{follow_up_pending:false,handoff_required:false,acknowledgement_required:true}}),{});
+ assert.equal(res.status,409);
+ assert.equal((await responseJson(res)).detail,"acknowledgement_missing");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${ackEpisode.id}/responses/${ackResponseId}/delivery`,{method:"POST",token:nurseToken,body:{kind:"read_receipt"}}),{});
+ assert.equal(res.status,409);
+ assert.equal((await responseJson(res)).detail,"invalid_message_transition");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${ackEpisode.id}/responses/${ackResponseId}/delivery`,{method:"POST",token:nurseToken,body:{kind:"delivery_receipt"}}),{});
+ assert.equal(res.status,200);
+ const deliveredResponse=await responseJson(res);
+ assert.equal(deliveredResponse.status,"ENTREGADA");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${ackEpisode.id}/close`,{method:"POST",token:nurseToken,body:{follow_up_pending:false,handoff_required:false,acknowledgement_required:true}}),{});
+ assert.equal(res.status,409);
+ assert.equal((await responseJson(res)).detail,"acknowledgement_missing");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${ackEpisode.id}/responses/${ackResponseId}/delivery`,{method:"POST",token:nurseToken,body:{kind:"read_receipt"}}),{});
+ assert.equal(res.status,200);
+ const readResponse=await responseJson(res);
+ assert.equal(readResponse.status,"LEIDA");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${ackEpisode.id}/close`,{method:"POST",token:nurseToken,body:{follow_up_pending:false,handoff_required:false,acknowledgement_required:true}}),{});
+ assert.equal(res.status,200);
+ assert.equal((await responseJson(res)).status,"CERRADO");
+
  res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:otherTokenAfterPrivileges,cookie:workstationCookie}),{});
  assert.equal(res.status,403);
  assert.equal((await responseJson(res)).detail,"workstation_center_denied");
