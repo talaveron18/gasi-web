@@ -26,6 +26,7 @@ export default function InternalProfile(){
    {canManageWorkers&&<Link to="/interno/trabajadores" className="rounded-lg border border-slate-700 px-4 py-2">Gestionar trabajadores</Link>}
    {isMaster&&<Link to="/interno/puestos" className="rounded-lg border border-slate-700 px-4 py-2">Gestionar puestos</Link>}
    {isMaster&&<Link to="/interno/fichajes" className="rounded-lg border border-slate-700 px-4 py-2">Control de fichajes</Link>}
+   {isMaster&&<Link to="/interno/auditoria" className="rounded-lg border border-slate-700 px-4 py-2">Auditoría</Link>}
   </nav>
  </div></main>;
 }
