@@ -48,3 +48,14 @@ test("master attendance control is guarded and submits append-only corrections",
  assert.match(admin,/reason:form\.reason/);
  assert.match(admin,/Corrección registrada sin modificar el evento original/);
 });
+
+
+test("workstation and correction actions prevent duplicate submissions",()=>{
+ assert.match(workstations,/\[busy,setBusy\]=useState\(''\)/);
+ assert.match(workstations,/if\(busy\)return/);
+ assert.match(workstations,/disabled=\{Boolean\(busy\)\}/);
+ assert.match(admin,/\[busy,setBusy\]=useState\(false\)/);
+ assert.match(admin,/if\(!editing\|\|busy\)return/);
+ assert.match(admin,/finally\{setBusy\(false\);\}/);
+ assert.match(admin,/disabled=\{busy\}/);
+});
