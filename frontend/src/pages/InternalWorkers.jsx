@@ -4,7 +4,7 @@ import { ArrowLeft, BadgeCheck, Ban, KeyRound, Plus, ShieldCheck, UserCog } from
 import { useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
 
 const ROLE_OPTIONS = [['nurse','Enfermería'],['physician','Facultativo'],['psychologist','Psicología'],['physiotherapist','Fisioterapia'],['admin','Administración / Coordinación']];
-const PRIVS = [['worker_access_management','Jefe de servicio / gestión de trabajadores'],['clinical_record_privileged_read','Lectura clínica privilegiada']];
+const PRIVS = [['worker_access_management','Jefe de servicio / gestión de trabajadores'],['clinical_privileged_read','Lectura clínica privilegiada']];
 
 export default function InternalWorkers() {
   const nav = useNavigate();
