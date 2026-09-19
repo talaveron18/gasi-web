@@ -15,3 +15,11 @@ test("clinical API denies framing referrers and unnecessary browser capabilities
 test("all JSON responses share hardened header set",()=>{
  assert.match(source,/new Response\(JSON\.stringify\(body\),\{status,headers:SECURITY_HEADERS\}\)/);
 });
+
+
+test("bounded limit parser rejects NaN and clamps oversized reads",()=>{
+ assert.match(source,/const boundedLimit=\(raw:string\|null,fallback:number,max:number\)=>/);
+ assert.match(source,/Number\.isSafeInteger\(n\)&&n>0\?Math\.min\(max,n\):fallback/);
+ assert.match(source,/boundedLimit\(url\.searchParams\.get\("limit"\),100,250\)/);
+ assert.match(source,/boundedLimit\(url\.searchParams\.get\("limit"\),1000,1000\)/);
+});
