@@ -204,7 +204,7 @@ test("restore requires system-generated snapshot provenance",()=>{
 
 
 test("snapshot payload is HMAC-signed and verified before restore mutation",()=>{
- assert.match(source,/function recoverySnapshotSignature\(payload:any\)\{return crypto\.createHmac\("sha256",secret\(\)\)\.update\(canonical\(payload\)\)\.digest\("hex"\);\}/);
+ assert.match(source,/function recoverySnapshotSignature\\(payload:any\\)\\{return crypto\\.createHmac\\("sha256",recoverySecret\\(\\)\\)\.update\(canonical\(payload\)\)\.digest\("hex"\);\}/);
  assert.match(source,/snapshot_signature=recoverySnapshotSignature\(snapshotPayload\)/);
  const restore=source.slice(source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
  const verify=restore.indexOf("expectedSnapshotSignature=recoverySnapshotSignature");
@@ -212,4 +212,12 @@ test("snapshot payload is HMAC-signed and verified before restore mutation",()=>
  assert.ok(verify>=0&&connect>verify);
  assert.match(restore,/timingSafeEqual\(Buffer\.from\(suppliedSnapshotSignature\),Buffer\.from\(expectedSnapshotSignature\)\)/);
  assert.match(restore,/invalid_recovery_snapshot_signature/);
+});
+
+
+test("recovery signing is independent from session signing",()=>{
+ assert.match(source,/function recoverySecret\(\)\{const value=env\("GASI_RECOVERY_SIGNING_SECRET"\)/);
+ assert.match(source,/recovery_signing_secret_not_configured/);
+ assert.match(source,/createHmac\("sha256",recoverySecret\(\)\)/);
+ assert.match(source,/session_secret_not_configured.*recovery_signing_secret_not_configured.*503/);
 });
