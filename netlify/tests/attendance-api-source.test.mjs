@@ -118,3 +118,18 @@ test("shift state uses the latest correction of the last original attendance eve
  assert.match(route,/c\.related_event_seq=e\.seq ORDER BY c\.seq DESC LIMIT 1/);
  assert.match(route,/lastEffectiveType=last\?\.corrected_event_type\|\|last\?\.event_type/);
 });
+
+
+test("workstation one-time claim is serialized per workstation",()=>{
+ const start=source.indexOf("const workstationClaim=path.match");
+ assert.ok(start>=0,"workstation claim route missing");
+ const route=source.slice(start,start+3600);
+ assert.match(route,/db\.pool\.connect\(\)/);
+ assert.match(route,/client\.query\("BEGIN"\)/);
+ assert.match(route,/pg_advisory_xact_lock\(hashtext\(\$1\)\)/);
+ assert.match(route,/workstation:\$\{id\}/);
+ assert.match(route,/FOR UPDATE/);
+ assert.match(route,/client\.query\("COMMIT"\)/);
+ assert.match(route,/client\.query\("ROLLBACK"\)/);
+ assert.match(route,/client\.release\(\)/);
+});
