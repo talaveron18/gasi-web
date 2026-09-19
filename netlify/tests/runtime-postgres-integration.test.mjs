@@ -200,6 +200,10 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(episode.status,"ABIERTO");
  assert.equal(episode.discipline,"nursing");
 
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/level`,{method:"POST",token:nurseToken,body:{level:3}}),{});
+ assert.equal(res.status,200);
+ assert.equal((await responseJson(res)).level,3);
+
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}`,{token:adminToken}),{});
  assert.equal(res.status,200);
  const adminEpisode=await responseJson(res);
@@ -266,6 +270,10 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-B",password:otherPassword},ip:"10.10.0.12"}),{});
  assert.equal(res.status,200);
  const otherTokenAfterPrivileges=(await responseJson(res)).token;
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/disposition`,{method:"POST",token:nurseToken,body:{kind:"ONSITE_INTERVENTION",occurred_at:"not-a-date"}}),{});
+ assert.equal(res.status,422);
+ assert.equal((await responseJson(res)).detail,"invalid_disposition_time");
 
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/disposition`,{method:"POST",token:nurseToken,body:{kind:"ONSITE_INTERVENTION",occurred_at:new Date().toISOString()}}),{});
  assert.equal(res.status,200);
