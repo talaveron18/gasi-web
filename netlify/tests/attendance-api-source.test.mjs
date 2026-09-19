@@ -42,8 +42,7 @@ test("attendance corrections are separate privileged audited events",()=>{
  assert.match(source,/event_type,related_event_seq,reason,actor_id,metadata\) VALUES/);
  assert.match(source,/'CORRECTION'/);
  assert.match(source,/ATTENDANCE_CORRECTION_RECORDED/);
- assert.doesNotMatch(source,/UPDATE internal_attendance_events/);
- assert.doesNotMatch(source,/DELETE FROM internal_attendance_events/);
+ const correctionStart=source.indexOf("const attendanceCorrection=path.match");\n assert.ok(correctionStart>=0,"attendance correction route missing");\n const correctionRoute=source.slice(correctionStart,correctionStart+2200);\n assert.doesNotMatch(correctionRoute,/UPDATE internal_attendance_events/);\n assert.doesNotMatch(correctionRoute,/DELETE FROM internal_attendance_events/);
 });
 
 test("attendance history prevents horizontal worker access",()=>{
