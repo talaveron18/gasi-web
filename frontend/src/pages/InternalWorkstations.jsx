@@ -3,8 +3,8 @@ import{useInternalPrototypeAuth}from'@/contexts/InternalPrototypeAuthContext';
 const apiRoot=()=>String(process.env.REACT_APP_BACKEND_URL||'').replace(/\/$/,'');
 export default function InternalWorkstations(){
  const{token,isMaster}=useInternalPrototypeAuth(),[items,setItems]=useState([]),[form,setForm]=useState({id:'',center:'',label:''}),[credential,setCredential]=useState(''),[message,setMessage]=useState('');
- const headers=(json=false)=>({...json?{'Content-Type':'application/json'}:{},Authorization:`Bearer ${token}`});
- const load=useCallback(async()=>{if(!token||!isMaster)return;try{const r=await fetch(`${apiRoot()}/api/internal-clinical/workstations`,{headers:headers(),cache:'no-store'});if(r.ok)setItems(await r.json());else setMessage(`Inventario rechazado (HTTP ${r.status}).`);}catch(_){setMessage('No se pudo cargar el inventario.');}},[token,isMaster]);
+ const headers=useCallback((json=false)=>({...json?{'Content-Type':'application/json'}:{},Authorization:`Bearer ${token}`}),[token]);
+ const load=useCallback(async()=>{if(!token||!isMaster)return;try{const r=await fetch(`${apiRoot()}/api/internal-clinical/workstations`,{headers:headers(),cache:'no-store'});if(r.ok)setItems(await r.json());else setMessage(`Inventario rechazado (HTTP ${r.status}).`);}catch(_){setMessage('No se pudo cargar el inventario.');}},[token,isMaster,headers]);
  useEffect(()=>{load();},[load]);
  if(!isMaster)return <main className="min-h-screen bg-slate-950 text-slate-100 py-10"><div className="max-w-4xl mx-auto px-4"><h1 className="text-3xl font-bold">Puestos de centro</h1><p role="alert" className="mt-4 text-amber-200">Gestión reservada a la cuenta maestra.</p></div></main>;
  const create=async e=>{e.preventDefault();setCredential('');setMessage('');try{const r=await fetch(`${apiRoot()}/api/internal-clinical/workstations`,{method:'POST',headers:headers(true),body:JSON.stringify(form)}),data=await r.json();if(!r.ok){setMessage(data.detail||`Alta rechazada (HTTP ${r.status}).`);return;}setCredential(data.workstation_credential||'');setForm({id:'',center:'',label:''});await load();}catch(_){setMessage('No se pudo registrar el puesto.');}};
