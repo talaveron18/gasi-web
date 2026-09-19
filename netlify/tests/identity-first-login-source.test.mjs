@@ -47,3 +47,10 @@ test("worker directory maps authoritative access and first-login state",()=>{
  assert.match(workers,/Contraseña temporal/);
  assert.match(workers,/Completado/);
 });
+
+
+test("password replacement rejects reuse and malformed values without internal errors",()=>{
+ assert.match(api,/next\.length<12\|\|next\.length>128.*invalid_new_password/);
+ assert.match(api,/next===current.*password_reuse_not_allowed/);
+ assert.match(api,/temporaryPassword\.length<12\|\|temporaryPassword\.length>128.*invalid_temporary_password/);
+});
