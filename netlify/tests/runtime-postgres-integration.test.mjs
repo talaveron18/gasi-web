@@ -142,8 +142,8 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.ok((await responseJson(res)).some(x=>x.id===episode.id));
 
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}`,{token:otherToken}),{});
- assert.equal(res.status,403);
- assert.equal((await responseJson(res)).detail,"episode_access_denied");
+ assert.equal(res.status,404);
+ assert.equal((await responseJson(res)).detail,"episode_not_visible");
 
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/responses`,{method:"POST",token:nurseToken,body:{text:"Nurse must not author physician response"}}),{});
  assert.equal(res.status,403);
