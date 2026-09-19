@@ -60,7 +60,7 @@ test("restore sorts attendance by sequence before inserting self-references",()=
 
 test("recovery preserves workstation browser binding state",()=>{
  assert.match(source,/SELECT id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash FROM internal_center_workstations/);
- assert.match(source,/INSERT INTO internal_center_workstations\(id,center,label,credential_hash,active,created_at,revoked_at,claimed_at\)/);
+ assert.match(source,/INSERT INTO internal_center_workstations\\(id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash\\)/);
  assert.match(source,/x\.claimed_at/);
 });
 
