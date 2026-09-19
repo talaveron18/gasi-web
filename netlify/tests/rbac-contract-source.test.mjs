@@ -74,3 +74,10 @@ test("delegated worker managers cannot create or control administrative identiti
  assert.match(api,/const privilege=path\.match/);
  assert.match(api,/if\(w\.id!==MASTER\(\)\)return json\(\{detail:"master_required"\},403\)/);
 });
+
+
+test("delegated worker-management UI hides administrative identity controls",()=>{
+ const workersUi=fs.readFileSync(new URL("../../frontend/src/pages/InternalWorkers.jsx",import.meta.url),"utf8");
+ assert.match(workersUi,/const availableRoles = isMaster \? ROLE_OPTIONS : ROLE_OPTIONS\.filter\(\(\[role\]\)=>role!=='admin'\)/);
+ assert.match(workersUi,/i\.role==='admin'&&!isMaster\?<span className="text-slate-500">Solo cuenta maestra<\/span>/);
+});
