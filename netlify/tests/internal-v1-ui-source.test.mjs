@@ -14,7 +14,7 @@ test("active internal profile uses authenticated V1 session and canonical routes
 });
 
 test("internal route guard no longer depends on obsolete feature flags",()=>{
- assert.match(app,/function InternalAuthenticated\(\{children\}\)\{const\{isAuthenticated\}=useInternalPrototypeAuth\(\)/);
+ assert.match(app,/function InternalAuthenticated\(\{children\}\)\{const\{isAuthenticated,session\}=useInternalPrototypeAuth\(\)/);\n assert.match(app,/session\?\.mustChangePassword/);
  assert.doesNotMatch(app,/centralValidationEnabled|validatedId/);
 });
 
