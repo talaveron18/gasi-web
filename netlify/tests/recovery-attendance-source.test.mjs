@@ -125,3 +125,12 @@ test("restore requires an active administrative master identity",()=>{
  const connect=source.indexOf("const client=await db.pool.connect()",source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
  assert.ok(validation>=0&&connect>validation);
 });
+
+
+test("restore takes exclusive table locks before destructive replacement",()=>{
+ const start=source.indexOf('path==="/api/internal-clinical/recovery/restore"');
+ const route=source.slice(start);
+ const lock=route.indexOf("LOCK TABLE internal_attendance_events,internal_center_workstations,internal_clinical_episodes,internal_clinical_workers,internal_clinical_audit,internal_clinical_counters IN ACCESS EXCLUSIVE MODE");
+ const truncate=route.indexOf("TRUNCATE TABLE internal_attendance_events RESTART IDENTITY");
+ assert.ok(lock>=0&&truncate>lock);
+});
