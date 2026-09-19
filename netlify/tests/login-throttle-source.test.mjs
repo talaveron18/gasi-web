@@ -30,3 +30,13 @@ test("session TTL falls back safely on invalid environment values",()=>{
  assert.match(source,/const sessionTtlMinutes=\(\)=>\{const n=Number\(env\("GASI_INTERNAL_SESSION_TTL_MINUTES"\)\);return Number\.isSafeInteger\(n\)&&n>=1&&n<=480\?n:30;\}/);
  assert.match(source,/const ttl=sessionTtlMinutes\(\)/);
 });
+
+
+test("signed session token parsing is strict",()=>{
+ assert.match(source,/const parts=token\.split\("\."\);if\(parts\.length!==3\)throw new Error\("invalid_session_token"\)/);
+ assert.match(source,/catch\{throw new Error\("invalid_session_token"\);\}/);
+ assert.match(source,/typeof p\.sub!=="string"/);
+ assert.match(source,/typeof p\.sid!=="string"/);
+ assert.match(source,/Number\.isSafeInteger\(Number\(p\.exp\)\)/);
+ assert.match(source,/Number\(p\.exp\)<=Number\(p\.iat\)/);
+});
