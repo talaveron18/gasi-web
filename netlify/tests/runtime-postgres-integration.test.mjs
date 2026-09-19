@@ -463,8 +463,8 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(delegatedWorkers.some(x=>x.id==="NURSE-B"),false);
 
  res=await handler(request("/api/internal-clinical/workers/NURSE-B/access",{method:"POST",token:combinedNurseToken,body:{state:"REVOKED"}}),{});
- assert.equal(res.status,403);
- assert.equal((await responseJson(res)).detail,"worker_center_management_denied");
+ assert.equal(res.status,404);
+ assert.equal((await responseJson(res)).detail,"worker_not_visible");
 
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}`,{token:combinedNurseToken}),{});
  assert.equal(res.status,200);
