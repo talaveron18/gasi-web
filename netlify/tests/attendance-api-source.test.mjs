@@ -31,8 +31,7 @@ test("only master can enroll or change workstation state and raw credential is n
  assert.match(source,/path==="\/api\/internal-clinical\/workstations".*w\.id!==MASTER\(\).*master_account_only/);
  assert.match(source,/bcrypt\.hash\(credential,12\)/);
  assert.match(source,/INSERT INTO internal_center_workstations\(id,center,label,credential_hash,active\)/);
- assert.doesNotMatch(source,/INSERT INTO internal_center_workstations[^
-]*credential,active/);
+ assert.ok(!source.includes("credential,active)"),"raw workstation credential must not be persisted");
  assert.match(source,/WORKSTATION_REGISTERED/);
  assert.match(source,/WORKSTATION_REVOKED/);
 });
