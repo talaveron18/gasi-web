@@ -201,3 +201,15 @@ test("restore requires system-generated snapshot provenance",()=>{
  assert.match(route,/lastSnapshotAudit\.actor_id\)!==MASTER\(\)/);
  assert.match(route,/invalid_recovery_snapshot_provenance/);
 });
+
+
+test("snapshot payload is HMAC-signed and verified before restore mutation",()=>{
+ assert.match(source,/function recoverySnapshotSignature\(payload:any\)\{return crypto\.createHmac\("sha256",secret\(\)\)\.update\(canonical\(payload\)\)\.digest\("hex"\);\}/);
+ assert.match(source,/snapshot_signature=recoverySnapshotSignature\(snapshotPayload\)/);
+ const restore=source.slice(source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
+ const verify=restore.indexOf("expectedSnapshotSignature=recoverySnapshotSignature");
+ const connect=restore.indexOf("const client=await db.pool.connect()");
+ assert.ok(verify>=0&&connect>verify);
+ assert.match(restore,/timingSafeEqual\(Buffer\.from\(suppliedSnapshotSignature\),Buffer\.from\(expectedSnapshotSignature\)\)/);
+ assert.match(restore,/invalid_recovery_snapshot_signature/);
+});
