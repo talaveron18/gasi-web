@@ -17,7 +17,7 @@ test("restore clears FK dependents first and restores immutable attendance",()=>
 
 test("restore validates every v2 collection before opening the restore transaction",()=>{
  const validation=source.indexOf('snapshot.workstations.some');
- const connect=source.indexOf('const client=await db.pool.connect()');
+ const restore=source.indexOf('path==="/api/internal-clinical/recovery/restore"');\n const connect=source.indexOf('const client=await db.pool.connect()',restore);
  assert.ok(validation>=0&&connect>validation);
  assert.match(source,/snapshot\.attendance\.some\(\(x:any\)=>.*CLOCK_IN.*CLOCK_OUT.*CORRECTION/);
  assert.match(source,/snapshot\.audit\.some/);
