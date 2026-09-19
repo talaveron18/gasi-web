@@ -124,6 +124,10 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,403);
  assert.equal((await responseJson(res)).detail,"workstation_binding_required");
 
+ res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:nurseToken,cookie:workstationCookie,ip:"10.10.0.44"}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"workstation_network_denied");
+
  res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:nurseToken,cookie:workstationCookie}),{});
  assert.equal(res.status,201);
  const firstClockIn=await responseJson(res);
