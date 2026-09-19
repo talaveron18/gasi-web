@@ -105,3 +105,11 @@ test("ordinary administrators cannot correct attendance by direct event id",()=>
  assert.doesNotMatch(route,/has\(w,"worker_access_management"\)/);
  assert.match(route,/ATTENDANCE_CORRECTION_RECORDED/);
 });
+
+test("attendance correction records explicit effective values without mutating original",()=>{
+ assert.match(source,/corrected_occurred_at/);
+ assert.match(source,/corrected_event_type/);
+ assert.match(source,/invalid_attendance_correction/);
+ assert.match(source,/original_event_type:original\.event_type/);
+ assert.match(source,/original_occurred_at:original\.occurred_at/);
+});
