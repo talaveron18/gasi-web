@@ -279,6 +279,26 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  assert.equal((await responseJson(res)).status,"CERRADO");
 
+ res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient_ref:"SYNTH-PAT-CONT",center:"CENTER-A",summary:"Synthetic delivery contingency",level:3}}),{});
+ assert.equal(res.status,201);
+ const contingencyEpisode=await responseJson(res);
+
+ res=await handler(request(`/api/internal-clinical/episodes/${contingencyEpisode.id}/delivery`,{method:"POST",token:nurseToken,body:{state:"ALTERNATE_CHANNEL_REQUIRED",reason:"Synthetic premature alternate"}}),{});
+ assert.equal(res.status,409);
+ assert.equal((await responseJson(res)).detail,"alternate_channel_requires_failure");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${contingencyEpisode.id}/delivery`,{method:"POST",token:nurseToken,body:{state:"DELIVERY_FAILED",failure_reason:"Synthetic primary channel unavailable"}}),{});
+ assert.equal(res.status,200);
+ assert.equal((await responseJson(res)).delivery.state,"DELIVERY_FAILED");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${contingencyEpisode.id}/delivery`,{method:"POST",token:nurseToken,body:{state:"ALTERNATE_CHANNEL_REQUIRED",reason:"Synthetic alternate required"}}),{});
+ assert.equal(res.status,200);
+ const alternateDelivery=await responseJson(res);
+ assert.equal(alternateDelivery.delivery.state,"ALTERNATE_CHANNEL_REQUIRED");
+ const deliveryAudit=await pool.query("SELECT metadata FROM internal_clinical_audit WHERE action='DELIVERY_STATE_CHANGED' ORDER BY seq DESC LIMIT 1");
+ assert.equal(deliveryAudit.rows[0].metadata.reason_recorded,true);
+ assert.equal("reason" in deliveryAudit.rows[0].metadata,false);
+
  res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:otherTokenAfterPrivileges,cookie:workstationCookie}),{});
  assert.equal(res.status,403);
  assert.equal((await responseJson(res)).detail,"workstation_center_denied");
@@ -401,6 +421,13 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
 
  await assert.rejects(()=>pool.query("UPDATE internal_attendance_events SET center='CENTER-X' WHERE seq=$1",[firstClockIn.seq]),/append-only/);
  await assert.rejects(()=>pool.query("DELETE FROM internal_attendance_events WHERE seq=$1",[firstClockIn.seq]),/append-only/);
+
+ const workingDbUrl=secrets.NETLIFY_DB_URL;
+ secrets.NETLIFY_DB_URL="postgresql://postgres:postgres@127.0.0.1:1/gasi";
+ res=await handler(request("/api/internal-clinical/health"),{});
+ assert.equal(res.status,500);
+ assert.deepEqual(await responseJson(res),{detail:"internal_error"});
+ secrets.NETLIFY_DB_URL=workingDbUrl;
 
  await pool.end();
 });
