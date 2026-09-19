@@ -55,3 +55,20 @@ test("attendance history prevents horizontal worker access",()=>{
  assert.match(source,/internal_attendance_events WHERE worker_id=\$\{w\.id\}/);
  assert.doesNotMatch(source,/url\.searchParams\.get\("worker_id"\)/);
 });
+
+
+test("attendance state transition is serialized per worker",()=>{
+ const attendanceStart=source.indexOf("const attendance=path.match");
+ assert.ok(attendanceStart>=0,"attendance route missing");
+ const attendanceRoute=source.slice(attendanceStart,attendanceStart+4200);
+ assert.match(attendanceRoute,/db\.pool\.connect\(\)/);
+ assert.match(attendanceRoute,/client\.query\("BEGIN"\)/);
+ assert.match(attendanceRoute,/pg_advisory_xact_lock\(hashtext\(\$1\)\)/);
+ const lockAt=attendanceRoute.indexOf("pg_advisory_xact_lock");
+ const stateAt=attendanceRoute.indexOf("SELECT seq,event_type,occurred_at");
+ const insertAt=attendanceRoute.indexOf("INSERT INTO internal_attendance_events");
+ assert.ok(lockAt>=0&&stateAt>lockAt&&insertAt>stateAt,"lock must precede state check and insert");
+ assert.match(attendanceRoute,/client\.query\("COMMIT"\)/);
+ assert.match(attendanceRoute,/client\.query\("ROLLBACK"\)/);
+ assert.match(attendanceRoute,/client\.release\(\)/);
+});
