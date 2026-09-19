@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
 
 const connectionString=process.env.GASI_INTEGRATION_DB_URL||"";
 const enabled=Boolean(connectionString);
@@ -96,6 +97,13 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-A",password:nursePassword},ip:"10.10.0.11"}),{});
  assert.equal(res.status,200);
  const nurseToken=(await responseJson(res)).token;
+
+ const expiredPayload=Buffer.from(JSON.stringify({sid:"expired-integration",sub:"NURSE-A",iat:1,exp:1,av:1})).toString("base64url");
+ const expiredSig=crypto.createHmac("sha256",secrets.GASI_INTERNAL_SESSION_SECRET).update(expiredPayload).digest("base64url");
+ const expiredToken=`v1.${expiredPayload}.${expiredSig}`;
+ res=await handler(request("/api/internal-clinical/session",{token:expiredToken}),{});
+ assert.equal(res.status,401);
+ assert.equal((await responseJson(res)).detail,"session_expired_or_revoked");
 
  await pool.query("INSERT INTO internal_clinical_episodes(id,center,patient_ref,discipline,level,status,document) VALUES('EP-NURSE','CENTER-A','P1','nursing',1,'ABIERTO',$1::jsonb),('EP-PSY','CENTER-A','P2','psychology',1,'ABIERTO',$2::jsonb),('EP-OTHER','CENTER-B','P3','nursing',1,'ABIERTO',$3::jsonb)",[JSON.stringify({summary:"nursing"}),JSON.stringify({summary:"psych"}),JSON.stringify({summary:"other"})]);
  res=await handler(request("/api/internal-clinical/episodes",{token:nurseToken}),{});
