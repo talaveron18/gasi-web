@@ -113,6 +113,28 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/attendance",{token:permanentLogin.token}),{});
  assert.equal(res.status,200);
 
+ res=await handler(request("/api/internal-clinical/workers/TEMP-NURSE/password-reset",{method:"POST",token:masterToken}),{});
+ assert.equal(res.status,200);
+ const resetPayload=await responseJson(res);
+ assert.equal(resetPayload.must_change_password,true);
+ assert.ok(resetPayload.temporary_password);
+ assert.notEqual(resetPayload.temporary_password,permanentPassword);
+
+ res=await handler(request("/api/internal-clinical/session",{token:permanentLogin.token}),{});
+ assert.equal(res.status,401);
+ assert.equal((await responseJson(res)).detail,"session_expired_or_revoked");
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"TEMP-NURSE",password:permanentPassword},ip:"10.10.0.23"}),{});
+ assert.equal(res.status,401);
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"TEMP-NURSE",password:resetPayload.temporary_password},ip:"10.10.0.24"}),{});
+ assert.equal(res.status,200);
+ const resetLogin=await responseJson(res);
+ assert.equal(resetLogin.profile.must_change_password,true);
+ res=await handler(request("/api/internal-clinical/attendance",{token:resetLogin.token}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"password_change_required");
+
  for(let i=0;i<8;i++){
   res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"UNKNOWN-RATE-LIMIT",password:"wrong"},ip:"10.10.0.99"}),{});
   assert.equal(res.status,401);
