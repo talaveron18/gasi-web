@@ -87,6 +87,14 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,403);
  assert.equal((await responseJson(res)).detail,"password_change_required");
 
+ res=await handler(request("/api/internal-clinical/password",{method:"POST",token:tempToken,body:{current_password:tempPassword,new_password:"short"}}),{});
+ assert.equal(res.status,422);
+ assert.equal((await responseJson(res)).detail,"invalid_new_password");
+
+ res=await handler(request("/api/internal-clinical/password",{method:"POST",token:tempToken,body:{current_password:tempPassword,new_password:tempPassword}}),{});
+ assert.equal(res.status,409);
+ assert.equal((await responseJson(res)).detail,"password_reuse_not_allowed");
+
  res=await handler(request("/api/internal-clinical/password",{method:"POST",token:tempToken,body:{current_password:tempPassword,new_password:permanentPassword}}),{});
  assert.equal(res.status,200);
  assert.equal((await responseJson(res)).session_revoked,true);
