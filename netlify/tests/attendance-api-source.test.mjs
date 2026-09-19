@@ -153,3 +153,14 @@ test("attendance corrections reject future effective timestamps",()=>{
  assert.match(route,/correctedMillis>Date\.now\(\)/);
  assert.match(route,/attendance_correction_future_time/);
 });
+
+
+test("workstation registration serializes on center and rejects duplicates",()=>{
+ const start=source.indexOf('if(req.method==="POST"&&path==="/api/internal-clinical/workstations")');
+ assert.ok(start>=0);
+ const route=source.slice(start,start+3000);
+ assert.match(route,/workstation-center:\$\{center\}/);
+ assert.match(route,/workstation:\$\{id\}/);
+ assert.match(route,/WHERE id=\$1 OR center=\$2 LIMIT 1/);
+ assert.match(route,/workstation_center_already_registered/);
+});
