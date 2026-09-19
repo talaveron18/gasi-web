@@ -50,3 +50,23 @@ test("identity security mutations audit before commit",()=>{
  }
  assert.match(source,/worker:\$\{id\}/);
 });
+
+
+test("core clinical record mutations lock the episode and audit before commit",()=>{
+ const cases=[
+  ["const responseMatch=path.match","CLINICAL_RESPONSE_ISSUED"],
+  ["const lateReview=path.match","LATE_RESPONSE_REVIEWED"],
+  ["const addendumMatch=path.match","ADDENDUM_ADDED"],
+  ["const correct=path.match","CLINICAL_ENTRY_CORRECTED"],
+  ["const closeMatch=path.match","EPISODE_CLOSED"],
+ ];
+ for(const [routeMarker,auditAction] of cases){
+  const start=source.indexOf(routeMarker);
+  assert.ok(start>=0,`missing route ${routeMarker}`);
+  const route=source.slice(start,start+5200);
+  assert.match(route,/writableEpisodeOnClient\(client,w,id,true\)/);
+  const auditAt=route.indexOf(`auditOnClient(client,w,"${auditAction}"`);
+  const commitAt=route.indexOf('client.query("COMMIT")');
+  assert.ok(auditAt>=0&&commitAt>auditAt,`${auditAction} must audit before commit`);
+ }
+});
