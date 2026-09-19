@@ -1,0 +1,17 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+const source=fs.readFileSync(new URL("../functions/internal-clinical.mts",import.meta.url),"utf8");
+test("clinical API responses are non-cacheable and MIME-sniff protected",()=>{
+ assert.match(source,/"cache-control":"no-store"/);
+ assert.match(source,/"x-content-type-options":"nosniff"/);
+});
+test("clinical API denies framing referrers and unnecessary browser capabilities",()=>{
+ assert.match(source,/"x-frame-options":"DENY"/);
+ assert.match(source,/"referrer-policy":"no-referrer"/);
+ assert.match(source,/"permissions-policy":"camera=\(\), microphone=\(\), geolocation=\(\)"/);
+ assert.match(source,/"content-security-policy":"default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"/);
+});
+test("all JSON responses share hardened header set",()=>{
+ assert.match(source,/new Response\(JSON\.stringify\(body\),\{status,headers:SECURITY_HEADERS\}\)/);
+});
