@@ -54,12 +54,15 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  const nursePassword="NurseIntegrationPassword!123";
  const otherPassword="OtherIntegrationPassword!123";
  const physicianPassword="PhysicianIntegrationPassword!123";
+ const adminPassword="AdminIntegrationPassword!123";
  const nurseHash=await bcrypt.hash(nursePassword,12);
  const otherHash=await bcrypt.hash(otherPassword,12);
  const physicianHash=await bcrypt.hash(physicianPassword,12);
+ const adminHash=await bcrypt.hash(adminPassword,12);
  await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'nurse',$2,$3::jsonb,TRUE,1,'[]'::jsonb,$4)",["NURSE-A","Nurse A",JSON.stringify(["CENTER-A"]),nurseHash]);
  await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'nurse',$2,$3::jsonb,TRUE,1,'[]'::jsonb,$4)",["NURSE-B","Nurse B",JSON.stringify(["CENTER-B"]),otherHash]);
  await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'physician',$2,$3::jsonb,TRUE,1,'[]'::jsonb,$4)",["PHYS-A","Physician A",JSON.stringify(["CENTER-A"]),physicianHash]);
+ await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'admin',$2,'[]'::jsonb,TRUE,1,'[]'::jsonb,$3)",["ADMIN-A","Admin A",adminHash]);
 
  let res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:secrets.GASI_MASTER_PASSWORD}}),{});
  assert.equal(res.status,200);
@@ -127,11 +130,41 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  const physicianToken=(await responseJson(res)).token;
 
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"ADMIN-A",password:adminPassword},ip:"10.10.0.14"}),{});
+ assert.equal(res.status,200);
+ const adminToken=(await responseJson(res)).token;
+
  res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient_ref:"SYNTH-PAT-01",center:"CENTER-A",summary:"Synthetic nursing escalation",level:2}}),{});
  assert.equal(res.status,201);
  const episode=await responseJson(res);
  assert.equal(episode.status,"ABIERTO");
  assert.equal(episode.discipline,"nursing");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}`,{token:adminToken}),{});
+ assert.equal(res.status,200);
+ const adminEpisode=await responseJson(res);
+ assert.equal(adminEpisode.id,episode.id);
+ assert.equal(adminEpisode.center,"CENTER-A");
+ assert.equal("patient_ref" in adminEpisode,false);
+ assert.equal("document" in adminEpisode,false);
+ assert.equal("summary" in adminEpisode,false);
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/addenda`,{method:"POST",token:adminToken,body:{text:"Administrative narrative write must fail"}}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"episode_write_denied");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/privileged-access`,{method:"POST",token:adminToken,body:{reason:"inspection",reference:"INT-ADMIN-001"}}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"privileged_access_required");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/privileged-access`,{method:"POST",token:masterToken,body:{reason:"inspection",reference:"INT-MASTER-001"}}),{});
+ assert.equal(res.status,200);
+ const masterPrivileged=await responseJson(res);
+ assert.equal(masterPrivileged.summary,"Synthetic nursing escalation");
+ assert.equal(masterPrivileged.privileged_access.read_only,true);
+ const privilegedAudit=await pool.query("SELECT action,metadata FROM internal_clinical_audit WHERE action='PRIVILEGED_EPISODE_ACCESSED' ORDER BY seq DESC LIMIT 1");
+ assert.equal(privilegedAudit.rows[0].action,"PRIVILEGED_EPISODE_ACCESSED");
+ assert.equal(privilegedAudit.rows[0].metadata.episode_id,episode.id);
 
  res=await handler(request("/api/internal-clinical/episodes",{token:nurseToken}),{});
  assert.equal(res.status,200);
@@ -148,6 +181,21 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/addenda`,{method:"POST",token:otherToken,body:{text:"Foreign write must be denied"}}),{});
  assert.equal(res.status,403);
  assert.equal((await responseJson(res)).detail,"episode_write_denied");
+
+ res=await handler(request("/api/internal-clinical/workers/NURSE-B/privileges/grant",{method:"POST",token:masterToken,body:{privilege:"clinical_privileged_read"}}),{});
+ assert.equal(res.status,200);
+ res=await handler(request("/api/internal-clinical/attendance",{token:otherToken}),{});
+ assert.equal(res.status,401);
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-B",password:otherPassword},ip:"10.10.0.12"}),{});
+ assert.equal(res.status,200);
+ const otherPrivilegedToken=(await responseJson(res)).token;
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/privileged-access`,{method:"POST",token:otherPrivilegedToken,body:{reason:"inspection",reference:"INT-DELEGATED-001"}}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"privileged_access_center_denied");
+ res=await handler(request("/api/internal-clinical/workers/NURSE-B/privileges/revoke",{method:"POST",token:masterToken,body:{privilege:"clinical_privileged_read"}}),{});
+ assert.equal(res.status,200);
+ res=await handler(request("/api/internal-clinical/attendance",{token:otherPrivilegedToken}),{});
+ assert.equal(res.status,401);
 
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/disposition`,{method:"POST",token:nurseToken,body:{kind:"ONSITE_INTERVENTION",occurred_at:new Date().toISOString()}}),{});
  assert.equal(res.status,200);
