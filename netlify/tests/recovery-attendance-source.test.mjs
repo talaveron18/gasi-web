@@ -154,3 +154,11 @@ test("restore validates attendance and audit referential semantics",()=>{
  assert.match(source,/!workerIds\.has\(String\(x\.actor_id\)\)/);
  assert.match(source,/x\.episode_id!=null&&!episodeIds\.has\(String\(x\.episode_id\)\)/);
 });
+
+
+test("recovery preserves workstation network binding",()=>{
+ assert.match(source,/SELECT id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash FROM internal_center_workstations/);
+ assert.match(source,/INSERT INTO internal_center_workstations\(id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash\)/);
+ assert.match(source,/x\.network_fingerprint_hash/);
+ assert.match(source,/x\.claimed_at!=null&&!\/\^\[a-f0-9\]\{64\}\$\/\.test\(String\(x\.network_fingerprint_hash\|\|""\)\)/);
+});
