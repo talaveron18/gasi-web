@@ -71,6 +71,40 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  const masterToken=masterLogin.token;
  assert.ok(masterToken);
 
+ const tempPassword="TemporaryWorkerPassword!123";
+ const permanentPassword="PermanentWorkerPassword!456";
+ res=await handler(request("/api/internal-clinical/workers",{method:"POST",token:masterToken,body:{id:"TEMP-NURSE",display_name:"Temporary Nurse",role:"nurse",centers:["CENTER-A"],temporary_password:tempPassword}}),{});
+ assert.equal(res.status,201);
+ assert.equal((await responseJson(res)).must_change_password,true);
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"TEMP-NURSE",password:tempPassword},ip:"10.10.0.20"}),{});
+ assert.equal(res.status,200);
+ const tempLogin=await responseJson(res);
+ const tempToken=tempLogin.token;
+ assert.equal(tempLogin.profile.must_change_password,true);
+
+ res=await handler(request("/api/internal-clinical/attendance",{token:tempToken}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"password_change_required");
+
+ res=await handler(request("/api/internal-clinical/password",{method:"POST",token:tempToken,body:{current_password:tempPassword,new_password:permanentPassword}}),{});
+ assert.equal(res.status,200);
+ assert.equal((await responseJson(res)).session_revoked,true);
+
+ res=await handler(request("/api/internal-clinical/session",{token:tempToken}),{});
+ assert.equal(res.status,401);
+ assert.equal((await responseJson(res)).detail,"session_expired_or_revoked");
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"TEMP-NURSE",password:tempPassword},ip:"10.10.0.21"}),{});
+ assert.equal(res.status,401);
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"TEMP-NURSE",password:permanentPassword},ip:"10.10.0.22"}),{});
+ assert.equal(res.status,200);
+ const permanentLogin=await responseJson(res);
+ assert.equal(permanentLogin.profile.must_change_password,false);
+ res=await handler(request("/api/internal-clinical/attendance",{token:permanentLogin.token}),{});
+ assert.equal(res.status,200);
+
  for(let i=0;i<8;i++){
   res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"UNKNOWN-RATE-LIMIT",password:"wrong"},ip:"10.10.0.99"}),{});
   assert.equal(res.status,401);
