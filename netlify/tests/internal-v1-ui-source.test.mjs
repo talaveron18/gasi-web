@@ -23,3 +23,13 @@ test("clinical authority wrapper has no unreachable duplicate implementation",()
  assert.match(authority,/return <InternalClinicalPrototype\/>/);
  assert.doesNotMatch(authority,/centralizedClinicalApiEnabled|CentralClinicalView/);
 });
+
+
+test("clinical channel exposes daily internal navigation without weakening guards",()=>{
+ const clinical=fs.readFileSync(new URL("../../frontend/src/pages/InternalClinicalPrototype.jsx",import.meta.url),"utf8");
+ assert.match(clinical,/to="\/interno\/perfil"/);
+ assert.match(clinical,/session\.role!=='admin'.*to="\/interno\/fichaje"/);
+ assert.match(clinical,/isMaster&&<Link to="\/interno\/puestos"/);
+ assert.match(clinical,/isMaster&&<Link to="\/interno\/fichajes"/);
+ assert.match(clinical,/isMaster&&<Link to="\/interno\/auditoria"/);
+});
