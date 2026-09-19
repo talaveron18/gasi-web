@@ -31,3 +31,12 @@ test("restore order satisfies attendance foreign keys",()=>{
  const attendance=source.indexOf('INSERT INTO internal_attendance_events');
  assert.ok(workers>=0&&workstations>workers&&attendance>workstations);
 });
+
+test("restore rejects broken attendance references before destructive work",()=>{
+ const validation=source.indexOf('invalid_recovery_snapshot_references');
+ const connect=source.indexOf('const client=await db.pool.connect()',source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
+ assert.ok(validation>=0&&connect>validation);
+ assert.match(source,/workerIds\.has\(String\(x\.worker_id\)\)/);
+ assert.match(source,/workstationCenters\.get\(String\(x\.workstation_id\)\)!==String\(x\.center\)/);
+ assert.match(source,/related_event_seq!=null&&!attendanceSeqs\.has\(Number\(x\.related_event_seq\)\)/);
+});
