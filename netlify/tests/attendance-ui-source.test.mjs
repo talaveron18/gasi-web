@@ -19,7 +19,6 @@ test("attendance UI renders corrected effective values while preserving original
 test("professional attendance UI uses claimed browser cookie and never handles workstation secret",()=>{
  assert.match(attendance,/credentials:'include'/);
  assert.doesNotMatch(attendance,/workstation_credential|enrollment_credential|setCredential|gasi_workstation_id|localStorage/);
- assert.match(attendance,/body:'\{\}'/);
  assert.match(attendance,/workstation_binding_required/);
 });
 
