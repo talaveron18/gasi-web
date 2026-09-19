@@ -28,3 +28,14 @@ test("professional roles can carry delegated administrative worker management wi
  assert.match(profile,/canManageWorkers\s*&&\s*<Link to="\/interno\/trabajadores"/);
  assert.match(profile,/session\.role\s*!==\s*'admin'\s*&&\s*<Link to="\/interno\/fichaje"/);
 });
+
+
+test("privileged access accepts only explicit operational reasons",()=>{
+ assert.match(api,/PRIVILEGED_ACCESS_REASONS=new Set\(\["authority_request","inspection","incident_review","legal_process"\]\)/);
+ assert.match(api,/!PRIVILEGED_ACCESS_REASONS\.has\(reason\).*invalid_privileged_access_reason/);
+ const start=api.indexOf("const privileged=path.match");
+ const route=api.slice(start,start+3600);
+ const validate=route.indexOf("PRIVILEGED_ACCESS_REASONS.has(reason)");
+ const fullLoad=route.indexOf("SELECT * FROM internal_clinical_episodes");
+ assert.ok(validate>=0&&fullLoad>validate,"reason must be validated before narrative load");
+});
