@@ -113,3 +113,21 @@ test("attendance correction records explicit effective values without mutating o
  assert.match(source,/original_event_type:original\.event_type/);
  assert.match(source,/original_occurred_at:original\.occurred_at/);
 });
+
+
+test("workstation inventory is master-only and never returns credentials",()=>{
+ const start=source.indexOf('if(req.method==="GET"&&path==="/api/internal-clinical/workstations")');
+ assert.ok(start>=0,"workstation inventory route missing");
+ const route=source.slice(start,start+900);
+ assert.match(route,/w\.id!==MASTER\(\).*master_account_only/);
+ assert.match(route,/SELECT id,center,label,active,created_at,revoked_at FROM internal_center_workstations/);
+ assert.doesNotMatch(route,/credential_hash/);
+ assert.doesNotMatch(route,/workstation_credential/);
+});
+
+test("attendance correction cannot target another correction event",()=>{
+ const start=source.indexOf("const attendanceCorrection=path.match");
+ assert.ok(start>=0,"attendance correction route missing");
+ const route=source.slice(start,start+2600);
+ assert.match(route,/!\["CLOCK_IN","CLOCK_OUT"\]\.includes\(String\(original\.event_type\)\).*attendance_correction_target_invalid/);
+});
