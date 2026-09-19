@@ -95,3 +95,13 @@ test("administrative worker-management privilege does not grant global attendanc
  assert.match(route,/ATTENDANCE_GLOBAL_VIEWED/);
  assert.match(route,/WHERE worker_id=\$\{w\.id\}/);
 });
+
+
+test("ordinary administrators cannot correct attendance by direct event id",()=>{
+ const start=source.indexOf("const attendanceCorrection=path.match");
+ assert.ok(start>=0,"attendance correction route missing");
+ const route=source.slice(start,start+2200);
+ assert.match(route,/w\.id!==MASTER\(\).*attendance_correction_denied/);
+ assert.doesNotMatch(route,/has\(w,"worker_access_management"\)/);
+ assert.match(route,/ATTENDANCE_CORRECTION_RECORDED/);
+});
