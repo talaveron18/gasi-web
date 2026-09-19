@@ -100,7 +100,7 @@ test("workstation inventory is master-only and never returns credential hash",()
  const start=source.indexOf('if(req.method==="GET"&&path==="/api/internal-clinical/workstations")');
  const route=source.slice(start,start+800);
  assert.match(route,/w\.id!==MASTER\(\).*master_account_only/);
- assert.match(route,/SELECT id,center,label,active,created_at,revoked_at,claimed_at FROM internal_center_workstations/);
+ assert.match(route,/SELECT id,center,label,active,created_at,revoked_at,claimed_at,\(network_fingerprint_hash IS NOT NULL\) AS network_bound FROM internal_center_workstations/);
  assert.doesNotMatch(route,/SELECT[^`]*credential_hash/);
 });
 
