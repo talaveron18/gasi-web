@@ -85,6 +85,12 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  const workstation=await responseJson(res);
  assert.ok(workstation.workstation_enrollment_credential);
 
+ res=await handler(request("/api/internal-clinical/workstations",{method:"POST",token:masterToken,body:{id:"WS-A-DUP",center:"CENTER-A",label:"Duplicado"}}),{});
+ assert.equal(res.status,409);
+ assert.equal((await responseJson(res)).detail,"workstation_center_already_registered");
+ const workstationCount=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_center_workstations WHERE center='CENTER-A'")).rows[0].n;
+ assert.equal(workstationCount,1);
+
  res=await handler(request("/api/internal-clinical/workstations/WS-A/claim",{method:"POST",token:masterToken,body:{enrollment_credential:workstation.workstation_enrollment_credential}}),{});
  assert.equal(res.status,200);
  const workstationCookie=cookiesFrom(res);
