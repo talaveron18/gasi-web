@@ -31,9 +31,9 @@ test('session revocation is tied to auth_version', () => {
 
 
 test('professional reads are scoped by assigned center and clinical discipline in SQL',()=>{
-  assert.match(source,/const canRead=.*w\.centers\.includes\(e\.center\).*disciplineFor\(w\.role\)===e\.discipline/);
   assert.match(source,/WHERE center = ANY\(\$1::text\[\]\) AND discipline=\$2 ORDER BY created_at DESC LIMIT 250/);
   assert.match(source,/\[centers,discipline\]/);
+  assert.match(source,/WHERE id=\$1 AND center = ANY\(\$2::text\[\]\) AND discipline=\$3 LIMIT 1/);
 });
 
 
