@@ -196,6 +196,9 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  res=await handler(request("/api/internal-clinical/attendance",{token:otherPrivilegedToken}),{});
  assert.equal(res.status,401);
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-B",password:otherPassword},ip:"10.10.0.12"}),{});
+ assert.equal(res.status,200);
+ const otherTokenAfterPrivileges=(await responseJson(res)).token;
 
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/disposition`,{method:"POST",token:nurseToken,body:{kind:"ONSITE_INTERVENTION",occurred_at:new Date().toISOString()}}),{});
  assert.equal(res.status,200);
@@ -235,7 +238,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  assert.equal((await responseJson(res)).status,"CERRADO");
 
- res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:otherToken,cookie:workstationCookie}),{});
+ res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:otherTokenAfterPrivileges,cookie:workstationCookie}),{});
  assert.equal(res.status,403);
  assert.equal((await responseJson(res)).detail,"workstation_center_denied");
 
@@ -273,7 +276,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/attendance/clock-out",{method:"POST",token:nurseToken,cookie:reboundCookie}),{});
  assert.equal(res.status,201);
 
- res=await handler(request("/api/internal-clinical/attendance",{token:otherToken}),{});
+ res=await handler(request("/api/internal-clinical/attendance",{token:otherTokenAfterPrivileges}),{});
  assert.equal(res.status,200);
  assert.deepEqual(await responseJson(res),[]);
 
