@@ -80,7 +80,7 @@ test("attendance state transition is serialized per worker",()=>{
  assert.match(attendanceRoute,/db\.pool\.connect\(\)/);
  assert.match(attendanceRoute,/client\.query\("BEGIN"\)/);
  assert.match(attendanceRoute,/pg_advisory_xact_lock\(hashtext\(\$1\)\)/);
- const lockAt=attendanceRoute.indexOf("pg_advisory_xact_lock"),stateAt=attendanceRoute.indexOf("SELECT seq,event_type,occurred_at"),insertAt=attendanceRoute.indexOf("INSERT INTO internal_attendance_events");
+ const lockAt=attendanceRoute.indexOf("pg_advisory_xact_lock"),stateAt=attendanceRoute.indexOf("SELECT e.seq,e.event_type,e.occurred_at"),insertAt=attendanceRoute.indexOf("INSERT INTO internal_attendance_events");
  assert.ok(lockAt>=0&&stateAt>lockAt&&insertAt>stateAt,"lock must precede state check and insert");
  assert.match(attendanceRoute,/client\.query\("COMMIT"\)/);
  assert.match(attendanceRoute,/client\.query\("ROLLBACK"\)/);
