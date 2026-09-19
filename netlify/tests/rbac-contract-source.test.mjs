@@ -64,3 +64,13 @@ test("identity activation and revocation are atomic with auth-version invalidati
  const commitAt=route.indexOf('client.query("COMMIT")');
  assert.ok(auditAt>=0&&commitAt>auditAt);
 });
+
+
+test("delegated worker managers cannot create or control administrative identities",()=>{
+ assert.match(api,/role==="admin"&&w\.id!==MASTER\(\).*admin_identity_management_master_only/);
+ const accessStart=api.indexOf("const access=path.match");
+ const accessRoute=api.slice(accessStart,accessStart+4200);
+ assert.match(accessRoute,/target\.role==="admin"&&w\.id!==MASTER\(\).*admin_identity_management_master_only/);
+ assert.match(api,/const privilege=path\.match/);
+ assert.match(api,/if\(w\.id!==MASTER\(\)\)return json\(\{detail:"master_required"\},403\)/);
+});
