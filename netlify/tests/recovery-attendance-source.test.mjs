@@ -40,3 +40,14 @@ test("restore rejects broken attendance references before destructive work",()=>
  assert.match(source,/workstationCenters\.get\(String\(x\.workstation_id\)\)!==String\(x\.center\)/);
  assert.match(source,/related_event_seq!=null&&!attendanceSeqs\.has\(Number\(x\.related_event_seq\)\)/);
 });
+
+test("attendance correction records corrected values and preserves the original event",()=>{
+ const route=source.indexOf('attendanceCorrection=path.match');
+ const end=source.indexOf('const attendance=path.match',route);
+ const correction=source.slice(route,end);
+ assert.match(correction,/corrected_occurred_at/);
+ assert.match(correction,/corrected_event_type/);
+ assert.match(correction,/original_event_type/);
+ assert.match(correction,/original_occurred_at/);
+ assert.doesNotMatch(correction,/UPDATE internal_attendance_events/);
+});
