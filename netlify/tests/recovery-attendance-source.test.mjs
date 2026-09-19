@@ -162,3 +162,14 @@ test("recovery preserves workstation network binding",()=>{
  assert.match(source,/x\.network_fingerprint_hash/);
  assert.match(source,/x\.claimed_at!=null&&!\/\^\[a-f0-9\]\{64\}\$\/\.test\(String\(x\.network_fingerprint_hash\|\|""\)\)/);
 });
+
+
+test("snapshot is generated from one repeatable-read transaction",()=>{
+ const start=source.indexOf('path==="/api/internal-clinical/recovery/snapshot"');
+ const route=source.slice(start,source.indexOf('path==="/api/internal-clinical/recovery/restore"',start));
+ assert.match(route,/client\.query\("BEGIN ISOLATION LEVEL REPEATABLE READ"\)/);
+ assert.match(route,/auditOnClient\(client,w,"RECOVERY_SNAPSHOT_EXPORTED"\)/);
+ assert.match(route,/client\.query\("COMMIT"\)/);
+ assert.match(route,/client\.query\("ROLLBACK"\)/);
+ assert.doesNotMatch(route,/Promise\.all/);
+});
