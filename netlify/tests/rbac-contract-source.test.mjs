@@ -25,6 +25,6 @@ test("professional roles can carry delegated administrative worker management wi
  const profile=fs.readFileSync(new URL("../../frontend/src/pages/InternalProfile.jsx",import.meta.url),"utf8");
  assert.match(auth,/delegatedPrivileges\?\.includes\('worker_access_management'\)/);
  assert.match(profile,/canManageWorkers/);
- assert.match(profile,/canManageWorkers && <Link to="\/interno\/trabajadores"/);
- assert.match(profile,/session\.role !== 'admin' && <Link to="\/interno\/fichaje"/);
+ assert.match(profile,/canManageWorkers\s*&&\s*<Link to="\/interno\/trabajadores"/);
+ assert.match(profile,/session\.role\s*!==\s*'admin'\s*&&\s*<Link to="\/interno\/fichaje"/);
 });
