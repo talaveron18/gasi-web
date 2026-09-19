@@ -91,7 +91,21 @@ test("delegated worker management is center-scoped at query and mutation time",(
  const create=api.slice(api.indexOf('if(req.method==="POST"&&path==="/api/internal-clinical/workers")'),api.indexOf("const access=path.match"));
  assert.match(create,/!canManageWorkerCenters\(w,centers\)/);
  const access=api.slice(api.indexOf("const access=path.match"),api.indexOf("const passwordReset=path.match"));
- assert.match(access,/!canManageWorkerCenters\(w,target\.centers\)/);
+ assert.match(access,/WHERE id=\$1 AND role<>'admin' AND centers <@ \$2::jsonb FOR UPDATE/);
+ assert.match(access,/worker_not_visible/);
  const reset=api.slice(api.indexOf("const passwordReset=path.match"),api.indexOf("const privilege=path.match"));
- assert.match(reset,/!canManageWorkerCenters\(w,target\.centers\)/);
+ assert.match(reset,/WHERE id=\$1 AND role<>'admin' AND centers <@ \$2::jsonb FOR UPDATE/);
+ assert.match(reset,/worker_not_visible/);
+});
+
+
+test("delegated direct-id worker mutations stay invisible across centers",()=>{
+ const access=api.slice(api.indexOf("const access=path.match"),api.indexOf("const passwordReset=path.match"));
+ const accessSelect=access.indexOf("WHERE id=$1 AND role<>'admin' AND centers <@ $2::jsonb FOR UPDATE");
+ const accessTarget=access.indexOf("const target=q.rows[0]");
+ assert.ok(accessSelect>=0&&accessTarget>accessSelect);
+ const reset=api.slice(api.indexOf("const passwordReset=path.match"),api.indexOf("const privilege=path.match"));
+ const resetSelect=reset.indexOf("WHERE id=$1 AND role<>'admin' AND centers <@ $2::jsonb FOR UPDATE");
+ const resetTarget=reset.indexOf("const target=q.rows[0]");
+ assert.ok(resetSelect>=0&&resetTarget>resetSelect);
 });
