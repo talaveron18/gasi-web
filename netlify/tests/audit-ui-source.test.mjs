@@ -9,7 +9,7 @@ const profile=fs.readFileSync(new URL("../../frontend/src/pages/InternalProfile.
 test("master audit console is authenticated and master-gated",()=>{
  assert.match(app,/path="\/interno\/auditoria" element=\{<Guard><InternalAudit\/><\/Guard>\}/);
  assert.match(page,/if\(!isMaster\)return/);
- assert.match(page,/\/api\/internal-clinical\/audit\?limit=500/);
+ assert.match(page,/URLSearchParams\(\{limit:String\(PAGE_SIZE\)\}\)/);
  assert.match(profile,/to="\/interno\/auditoria"/);
 });
 
@@ -18,4 +18,12 @@ test("audit console exposes traceability metadata without clinical narrative fie
  assert.match(page,/row\.previous_hash/);
  assert.match(page,/Object\.entries\(row\.metadata\|\|\{\}\)/);
  assert.doesNotMatch(page,/patient_ref|summary|diagnosis|symptoms|clinical_note/);
+});
+
+
+test("audit console paginates older events without duplicates",()=>{
+ assert.match(page,/before_seq/);
+ assert.match(page,/mergeRows/);
+ assert.match(page,/Cargar eventos anteriores/);
+ assert.match(page,/scope="col"/);
 });
