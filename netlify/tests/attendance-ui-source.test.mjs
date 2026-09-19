@@ -41,7 +41,7 @@ test("attendance and workstation management routes remain authenticated",()=>{
 test("master attendance control is guarded and submits append-only corrections",()=>{
  assert.match(app,/path="\/interno\/fichajes" element=\{<Guard><InternalAttendanceAdmin\/><\/Guard>\}/);
  assert.match(admin,/if\(!isMaster\)return/);
- assert.match(admin,/attendance\?limit=250/);
+ assert.match(admin,/URLSearchParams\(\{limit:String\(PAGE_SIZE\)\}\)/);
  assert.match(admin,/\/attendance\/\$\{editing\}\/correct/);
  assert.match(admin,/corrected_event_type:form\.event_type/);
  assert.match(admin,/corrected_occurred_at:corrected\.toISOString\(\)/);
@@ -58,4 +58,14 @@ test("workstation and correction actions prevent duplicate submissions",()=>{
  assert.match(admin,/if\(!editing\|\|busy\)return/);
  assert.match(admin,/finally\{setBusy\(false\);\}/);
  assert.match(admin,/disabled=\{busy\}/);
+});
+
+
+test("attendance UIs paginate older history by sequence",()=>{
+ assert.match(attendance,/before_seq/);
+ assert.match(attendance,/Cargar fichajes anteriores/);
+ assert.match(attendance,/mergeEvents/);
+ assert.match(admin,/before_seq/);
+ assert.match(admin,/Cargar fichajes anteriores/);
+ assert.match(admin,/mergeEvents/);
 });
