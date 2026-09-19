@@ -21,10 +21,17 @@ test("bounded limit parser rejects NaN and clamps oversized reads",()=>{
  assert.match(source,/const boundedLimit=\(raw:string\|null,fallback:number,max:number\)=>/);
  assert.match(source,/Number\.isSafeInteger\(n\)&&n>0\?Math\.min\(max,n\):fallback/);
  assert.match(source,/boundedLimit\(url\.searchParams\.get\("limit"\),100,250\)/);
- assert.match(source,/boundedLimit\(url\.searchParams\.get\("limit"\),1000,1000\)/);
+ assert.match(source,/boundedLimit\(url\.searchParams\.get\("limit"\),500,500\)/);
 });
 
 
 test("malformed JSON is rejected deterministically",()=>{
  assert.match(source,/e instanceof SyntaxError.*invalid_json.*400/);
+});
+
+
+test("sequence cursor parser rejects malformed history cursors",()=>{
+ assert.match(source,/const positiveSeq=\(raw:string\|null\)=>/);
+ assert.match(source,/Number\.isSafeInteger\(n\)&&n>0\?n:null/);
+ assert.match(source,/invalid_before_seq/);
 });
