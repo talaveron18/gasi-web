@@ -4,7 +4,7 @@ import fs from "node:fs";
 const source=fs.readFileSync(new URL("../functions/internal-clinical.mts",import.meta.url),"utf8");
 test("recovery v2 snapshots attendance and workstation state",()=>{
  assert.match(source,/schema_version:2,episodes,workers,audit:auditRows,counters,workstations,attendance/);
- assert.match(source,/SELECT id,center,label,credential_hash,active,created_at,revoked_at,claimed_at FROM internal_center_workstations/);
+ assert.match(source,/SELECT id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash FROM internal_center_workstations/);
  assert.match(source,/SELECT seq,worker_id,center,workstation_id,event_type,occurred_at,related_event_seq,reason,actor_id,metadata FROM internal_attendance_events/);
 });
 test("restore clears FK dependents first and restores immutable attendance",()=>{
@@ -59,7 +59,7 @@ test("restore sorts attendance by sequence before inserting self-references",()=
 
 
 test("recovery preserves workstation browser binding state",()=>{
- assert.match(source,/SELECT id,center,label,credential_hash,active,created_at,revoked_at,claimed_at FROM internal_center_workstations/);
+ assert.match(source,/SELECT id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash FROM internal_center_workstations/);
  assert.match(source,/INSERT INTO internal_center_workstations\(id,center,label,credential_hash,active,created_at,revoked_at,claimed_at\)/);
  assert.match(source,/x\.claimed_at/);
 });
