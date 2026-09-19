@@ -27,6 +27,7 @@ export default function InternalProfile(){
    {isMaster&&<Link to="/interno/puestos" className="rounded-lg border border-slate-700 px-4 py-2">Gestionar puestos</Link>}
    {isMaster&&<Link to="/interno/fichajes" className="rounded-lg border border-slate-700 px-4 py-2">Control de fichajes</Link>}
    {isMaster&&<Link to="/interno/auditoria" className="rounded-lg border border-slate-700 px-4 py-2">Auditoría</Link>}
+   {isMaster&&<Link to="/interno/recuperacion" className="rounded-lg border border-red-500/50 px-4 py-2 text-red-100">Backup / recuperación</Link>}
   </nav>
  </div></main>;
 }
