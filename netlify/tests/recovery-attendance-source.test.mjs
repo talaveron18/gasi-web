@@ -73,3 +73,11 @@ test("restore bypasses the ordinary delete trigger only through transactional tr
  assert.match(restore,/client\.query\("COMMIT"\)/);
  assert.match(restore,/client\.query\("ROLLBACK"\)/);
 });
+
+
+test("restore explicitly serializes JSONB payloads for node-postgres",()=>{
+ assert.match(source,/JSON\.stringify\(x\.document\)/);
+ assert.match(source,/JSON\.stringify\(x\.centers\)/);
+ assert.match(source,/JSON\.stringify\(x\.delegated_privileges\)/);
+ assert.match(source,/JSON\.stringify\(x\.metadata\)/);
+});
