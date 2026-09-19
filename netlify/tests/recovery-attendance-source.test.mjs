@@ -115,3 +115,13 @@ test("restore rejects duplicate ids and sequence keys before destructive work",(
  const connect=source.indexOf("const client=await db.pool.connect()",source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
  assert.ok(validation>=0&&connect>validation);
 });
+
+
+test("restore requires an active administrative master identity",()=>{
+ assert.match(source,/masterSnapshot=snapshot\.workers\.find\(\(x:any\)=>String\(x\.id\)===MASTER\(\)\)/);
+ assert.match(source,/!masterSnapshot\|\|masterSnapshot\.role!=="admin"\|\|masterSnapshot\.active!==true/);
+ assert.match(source,/invalid_recovery_snapshot_master/);
+ const validation=source.indexOf("invalid_recovery_snapshot_master");
+ const connect=source.indexOf("const client=await db.pool.connect()",source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
+ assert.ok(validation>=0&&connect>validation);
+});
