@@ -8,7 +8,7 @@ test("recovery v2 snapshots attendance and workstation state",()=>{
  assert.match(source,/SELECT seq,worker_id,center,workstation_id,event_type,occurred_at,related_event_seq,reason,actor_id,metadata FROM internal_attendance_events/);
 });
 test("restore clears FK dependents first and restores immutable attendance",()=>{
- const a=source.indexOf('DELETE FROM internal_attendance_events'), w=source.indexOf('DELETE FROM internal_clinical_workers');
+ const a=source.indexOf('TRUNCATE TABLE internal_attendance_events RESTART IDENTITY'), w=source.indexOf('DELETE FROM internal_clinical_workers');
  assert.ok(a>=0&&w>a);
  assert.match(source,/INSERT INTO internal_center_workstations/);
  assert.match(source,/INSERT INTO internal_attendance_events/);
@@ -62,4 +62,14 @@ test("recovery preserves workstation browser binding state",()=>{
  assert.match(source,/SELECT id,center,label,credential_hash,active,created_at,revoked_at,claimed_at FROM internal_center_workstations/);
  assert.match(source,/INSERT INTO internal_center_workstations\(id,center,label,credential_hash,active,created_at,revoked_at,claimed_at\)/);
  assert.match(source,/x\.claimed_at/);
+});
+
+
+test("restore bypasses the ordinary delete trigger only through transactional truncate",()=>{
+ assert.match(source,/TRUNCATE TABLE internal_attendance_events RESTART IDENTITY/);
+ const restore=source.slice(source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
+ assert.doesNotMatch(restore,/DELETE FROM internal_attendance_events/);
+ assert.match(restore,/client\.query\("BEGIN"\)/);
+ assert.match(restore,/client\.query\("COMMIT"\)/);
+ assert.match(restore,/client\.query\("ROLLBACK"\)/);
 });
