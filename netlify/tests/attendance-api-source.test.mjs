@@ -64,7 +64,7 @@ test("attendance corrections are separate privileged audited events",()=>{
  assert.match(correctionRoute,/original_event_type:original\.event_type/);
  assert.match(correctionRoute,/original_occurred_at:original\.occurred_at/);
  assert.match(correctionRoute,/corrected_event_type:correctedEventType/);
- assert.match(correctionRoute,/corrected_occurred_at:new Date\(correctedOccurredAt\)\.toISOString\(\)/);
+ assert.match(correctionRoute,/corrected_occurred_at:normalizedCorrectedAt/);
 });
 
 test("attendance history prevents horizontal worker access",()=>{
@@ -132,4 +132,16 @@ test("workstation one-time claim is serialized per workstation",()=>{
  assert.match(route,/client\.query\("COMMIT"\)/);
  assert.match(route,/client\.query\("ROLLBACK"\)/);
  assert.match(route,/client\.release\(\)/);
+});
+
+
+test("attendance corrections preserve a valid alternating timeline and serialize with clock events",()=>{
+ const start=source.indexOf("const attendanceCorrection=path.match");
+ const route=source.slice(start,start+6200);
+ assert.match(route,/pg_advisory_xact_lock\(hashtext\(\$1\)\)/);
+ assert.match(route,/corrected_occurred_at/);
+ assert.match(route,/ORDER BY e\.seq/);
+ assert.match(route,/expected=i%2===0\?"CLOCK_IN":"CLOCK_OUT"/);
+ assert.match(route,/attendance_correction_breaks_sequence/);
+ assert.match(route,/attendance_correction_breaks_timeline/);
 });
