@@ -142,3 +142,15 @@ test("restore validates real bcrypt hash syntax and domain semantics",()=>{
  assert.match(source,/DELEGABLE_PRIVILEGES\.has\(String\(p\)\)/);
  assert.match(source,/RECOVERY_EPISODE_STATUSES\.has\(String\(x\.status\)\)/);
 });
+
+
+test("restore validates attendance and audit referential semantics",()=>{
+ assert.match(source,/attendanceBySeq=new Map/);
+ assert.match(source,/x\.event_type==="CORRECTION"/);
+ assert.match(source,/!\["CLOCK_IN","CLOCK_OUT"\]\.includes\(String\(related\.event_type\)\)/);
+ assert.match(source,/String\(related\.worker_id\)!==String\(x\.worker_id\)/);
+ assert.match(source,/x\.event_type!=="CORRECTION"&&x\.related_event_seq!=null/);
+ assert.match(source,/badAuditReference=snapshot\.audit\.some/);
+ assert.match(source,/!workerIds\.has\(String\(x\.actor_id\)\)/);
+ assert.match(source,/x\.episode_id!=null&&!episodeIds\.has\(String\(x\.episode_id\)\)/);
+});
