@@ -22,3 +22,13 @@ test("episode actions mirror server write scope and stay disabled for closed or 
  assert.match(actions,/readOnly=false/);
  assert.match(focused,/showNarrative&&!privileged&&<InternalClinicalEpisodeActions/);
 });
+
+
+test("episode UI can review late responses, advance delivery evidence and close with backend gates",()=>{
+ assert.match(actions,/api\.reviewLateResponse\(episode\.id,responseId\)/);
+ assert.match(actions,/api\.advanceMessage\(episode\.id,latestResponse\.id,kind\)/);
+ assert.match(actions,/api\.closeEpisode\(episode\.id,\{follow_up_pending:!noFollowUp,handoff_required:handoffRequired,handoff_acknowledged:handoffAcknowledged,acknowledgement_required:acknowledgementRequired\}\)/);
+ assert.match(actions,/pendingLate\.length===0/);
+ assert.match(actions,/latestResponse\?\.status==='LEIDA'/);
+ assert.match(actions,/no se permite autorrevisión/);
+});
