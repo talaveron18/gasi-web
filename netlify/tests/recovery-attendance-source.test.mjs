@@ -93,3 +93,12 @@ test("restore verifies the audit hash chain before destructive work",()=>{
  const connect=source.indexOf("const client=await db.pool.connect()",source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
  assert.ok(validation>=0&&connect>validation);
 });
+
+
+test("recovery export and successful restore are audited",()=>{
+ assert.match(source,/RECOVERY_SNAPSHOT_EXPORTED/);
+ assert.match(source,/RECOVERY_RESTORED/);
+ assert.match(source,/episode_count:restored\.episodes/);
+ assert.match(source,/worker_count:restored\.workers/);
+ assert.match(source,/attendance_count:restored\.attendance/);
+});
