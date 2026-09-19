@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const sql = fs.readFileSync(new URL("../database/migrations/20260919121000_internal-attendance-v1/migration.sql", import.meta.url), "utf8");
+const onePerCenter = fs.readFileSync(new URL("../database/migrations/20260919224500_one-workstation-per-center/migration.sql", import.meta.url), "utf8");
 
 test("attendance requires a center-bound workstation credential", () => {
   assert.match(sql, /internal_center_workstations/);
@@ -21,4 +22,10 @@ test("attendance history is append-only and corrections reference prior evidence
   assert.match(sql, /related_event_seq BIGINT REFERENCES internal_attendance_events\(seq\)/);
   assert.match(sql, /BEFORE UPDATE OR DELETE ON internal_attendance_events/);
   assert.match(sql, /RAISE EXCEPTION 'internal_attendance_events are append-only'/);
+});
+
+
+test("one fixed workstation per center is enforced by PostgreSQL",()=>{
+ assert.match(onePerCenter,/CREATE UNIQUE INDEX IF NOT EXISTS uq_internal_center_workstations_center/);
+ assert.match(onePerCenter,/ON internal_center_workstations\(center\)/);
 });
