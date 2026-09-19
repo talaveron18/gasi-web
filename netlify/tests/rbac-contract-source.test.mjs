@@ -39,3 +39,28 @@ test("privileged access accepts only explicit operational reasons",()=>{
  const fullLoad=route.indexOf("SELECT * FROM internal_clinical_episodes");
  assert.ok(validate>=0&&fullLoad>validate,"reason must be validated before narrative load");
 });
+
+
+test("delegated privileges are allowlisted and mutated atomically with audit",()=>{
+ assert.match(api,/DELEGABLE_PRIVILEGES=new Set\(\["worker_access_management","clinical_privileged_read"\]\)/);
+ assert.match(api,/!DELEGABLE_PRIVILEGES\.has\(p\).*invalid_privilege/);
+ const start=api.indexOf("const privilege=path.match");
+ const route=api.slice(start,start+4200);
+ assert.match(route,/FOR UPDATE/);
+ assert.match(route,/auth_version=auth_version\+1/);
+ assert.match(route,/auditOnClient\(client,w,grant\?"PRIVILEGE_GRANTED":"PRIVILEGE_REVOKED"/);
+ const auditAt=route.indexOf("auditOnClient");
+ const commitAt=route.indexOf('client.query("COMMIT")');
+ assert.ok(auditAt>=0&&commitAt>auditAt);
+});
+
+test("identity activation and revocation are atomic with auth-version invalidation and audit",()=>{
+ const start=api.indexOf("const access=path.match");
+ const route=api.slice(start,start+3600);
+ assert.match(route,/FOR UPDATE/);
+ assert.match(route,/auth_version=auth_version\+1/);
+ assert.match(route,/auditOnClient\(client,w,active\?"IDENTITY_REACTIVATED":"IDENTITY_REVOKED"/);
+ const auditAt=route.indexOf("auditOnClient");
+ const commitAt=route.indexOf('client.query("COMMIT")');
+ assert.ok(auditAt>=0&&commitAt>auditAt);
+});
