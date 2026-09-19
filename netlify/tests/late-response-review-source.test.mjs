@@ -8,7 +8,9 @@ test("late physician responses can be reviewed by another authorized clinical ac
  const start=source.indexOf("const lateReview=path.match");
  assert.ok(start>=0,"late review route missing");
  const route=source.slice(start,start+3200);
- assert.match(route,/writableEpisodeOnClient\(client,w,id,true\)/);\n assert.match(route,/FOR UPDATE/);\n assert.match(route,/auditOnClient\(client,w,"LATE_RESPONSE_REVIEWED"/);
+ assert.match(route,/writableEpisodeOnClient\(client,w,id,true\)/);
+ assert.match(route,/FOR UPDATE/);
+ assert.match(route,/auditOnClient\(client,w,"LATE_RESPONSE_REVIEWED"/);
  assert.match(route,/episode_write_denied/);
  assert.match(route,/late_after_disposition/);
  assert.match(route,/response\.author_id===w\.id.*late_response_self_review_denied/);
