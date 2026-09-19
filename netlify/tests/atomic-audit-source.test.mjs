@@ -70,3 +70,22 @@ test("core clinical record mutations lock the episode and audit before commit",(
   assert.ok(auditAt>=0&&commitAt>auditAt,`${auditAction} must audit before commit`);
  }
 });
+
+
+test("remaining episode mutations also lock and audit before commit",()=>{
+ const cases=[
+  ["const levelMatch=path.match","LEVEL_CHANGED"],
+  ["const disposition=path.match","DISPOSITION_RECORDED"],
+  ["const responseDelivery=path.match","MESSAGE_DYNAMIC"],
+  ["const delivery=path.match","DELIVERY_STATE_CHANGED"],
+ ];
+ for(const [routeMarker,auditAction] of cases){
+  const start=source.indexOf(routeMarker);
+  assert.ok(start>=0,"missing route "+routeMarker);
+  const route=source.slice(start,start+5200);
+  assert.match(route,/writableEpisodeOnClient\(client,w,id,true\)/);
+  const auditAt=auditAction==="MESSAGE_DYNAMIC"?route.indexOf("auditOnClient(client,w,\`MESSAGE_\${next}\`"):route.indexOf('auditOnClient(client,w,"'+auditAction+'"');
+  const commitAt=route.indexOf('client.query("COMMIT")');
+  assert.ok(auditAt>=0&&commitAt>auditAt,auditAction+" must audit before commit");
+ }
+});
