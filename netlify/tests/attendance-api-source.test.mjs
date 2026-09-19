@@ -44,3 +44,10 @@ test("attendance corrections are separate privileged audited events",()=>{
  assert.doesNotMatch(source,/UPDATE internal_attendance_events/);
  assert.doesNotMatch(source,/DELETE FROM internal_attendance_events/);
 });
+
+test("attendance history prevents horizontal worker access",()=>{
+ assert.match(source,/path==="\/api\/internal-clinical\/attendance"/);
+ assert.match(source,/w\.role==="admin".*worker_access_management/);
+ assert.match(source,/internal_attendance_events WHERE worker_id=\$\{w\.id\}/);
+ assert.doesNotMatch(source,/url\.searchParams\.get\("worker_id"\)/);
+});
