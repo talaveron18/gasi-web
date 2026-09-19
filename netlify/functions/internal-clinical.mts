@@ -10,6 +10,8 @@ const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,
 const jsonCookie=(body:unknown,status:number,cookies:string[])=>{const headers=new Headers(SECURITY_HEADERS);for(const cookie of cookies)headers.append("set-cookie",cookie);return new Response(JSON.stringify(body),{status,headers});};
 const cookieValue=(req:Request,name:string)=>{const raw=req.headers.get("cookie")||"";for(const part of raw.split(";")){const [k,...rest]=part.trim().split("=");if(k===name)return decodeURIComponent(rest.join("="));}return "";};
 const mobileClient=(req:Request)=>/android|iphone|ipad|ipod|mobile/i.test(req.headers.get("user-agent")||"");
+const edgeClientIp=(req:Request)=>(req.headers.get("x-nf-client-connection-ip")||"").trim();
+const workstationNetworkFingerprint=(deviceSecret:string,ip:string)=>crypto.createHmac("sha256",deviceSecret).update(ip).digest("hex");
 const env=(name:string)=>Netlify.env.get(name)||"";
 const databaseCache=new Map<string,any>();
 function database(){const connectionString=env("NETLIFY_DB_URL"),key=connectionString||"__netlify_default__";if(!databaseCache.has(key))databaseCache.set(key,connectionString?getDatabase({connectionString}):getDatabase());return databaseCache.get(key);}
