@@ -38,3 +38,12 @@ test("recovery preserves mandatory password-change state",()=>{
  assert.match(api,/x\.must_change_password!=null&&typeof x\.must_change_password!=="boolean"/);
  assert.match(api,/password_hash,must_change_password,created_at\) VALUES/);
 });
+
+
+test("worker directory maps authoritative access and first-login state",()=>{
+ assert.match(auth,/status:w\.operational_state\|\| \(w\.active===false\?'REVOKED':'ACTIVE'\)/);
+ assert.match(auth,/mustChangePassword:w\.must_change_password===true/);
+ const workers=fs.readFileSync(new URL("../../frontend/src/pages/InternalWorkers.jsx",import.meta.url),"utf8");
+ assert.match(workers,/Contraseña temporal/);
+ assert.match(workers,/Completado/);
+});
