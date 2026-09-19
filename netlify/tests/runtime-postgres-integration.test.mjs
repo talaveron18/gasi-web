@@ -91,6 +91,15 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  const nurseToken=(await responseJson(res)).token;
 
+ await pool.query("INSERT INTO internal_clinical_episodes(id,center,patient_ref,discipline,level,status,document) VALUES('EP-NURSE','CENTER-A','P1','nursing',1,'OPEN',$1::jsonb),('EP-PSY','CENTER-A','P2','psychology',1,'OPEN',$2::jsonb),('EP-OTHER','CENTER-B','P3','nursing',1,'OPEN',$3::jsonb)",[JSON.stringify({summary:"nursing"}),JSON.stringify({summary:"psych"}),JSON.stringify({summary:"other"})]);
+ res=await handler(request("/api/internal-clinical/episodes",{token:nurseToken}),{});
+ assert.equal(res.status,200);
+ const nurseEpisodes=await responseJson(res);
+ assert.deepEqual(nurseEpisodes.map(x=>x.id),["EP-NURSE"]);
+ res=await handler(request("/api/internal-clinical/episodes/EP-PSY",{token:nurseToken}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"episode_access_denied");
+
  res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:nurseToken}),{});
  assert.equal(res.status,403);
  assert.equal((await responseJson(res)).detail,"workstation_binding_required");
