@@ -12,8 +12,11 @@ test('episode collection is tenant-scoped at the database query', () => {
   );
 });
 
-test('direct episode access keeps an explicit authorization check', () => {
-  assert.match(source, /if\(!canRead\(w,e\)\)return json\(\{detail:"episode_access_denied"\},403\)/);
+test('direct episode access scopes narrative in SQL before loading it', () => {
+  assert.match(source,/SELECT id,center,discipline,level,status,created_at FROM internal_clinical_episodes WHERE id=/);
+  assert.match(source,/SELECT \* FROM internal_clinical_episodes WHERE id=\$1 AND center = ANY\(\$2::text\[\]\) AND discipline=\$3 LIMIT 1/);
+  assert.match(source,/\[id,centers,disciplineFor\(w\.role\)\]/);
+  assert.match(source,/episode_not_visible/);
 });
 
 test('clinical writes require assigned center and reject administrative role', () => {
