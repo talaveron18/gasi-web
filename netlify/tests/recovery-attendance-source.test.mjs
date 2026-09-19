@@ -14,3 +14,19 @@ test("restore clears FK dependents first and restores immutable attendance",()=>
  assert.match(source,/INSERT INTO internal_attendance_events/);
  assert.match(source,/pg_get_serial_sequence\('internal_attendance_events','seq'\)/);
 });
+
+test("restore validates every v2 collection before opening the restore transaction",()=>{
+ const validation=source.indexOf('snapshot.workstations.some');
+ const connect=source.indexOf('const client=await db.pool.connect()');
+ assert.ok(validation>=0&&connect>validation);
+ assert.match(source,/snapshot\.attendance\.some\(\(x:any\)=>.*CLOCK_IN.*CLOCK_OUT.*CORRECTION/);
+ assert.match(source,/snapshot\.audit\.some/);
+ assert.match(source,/snapshot\.counters\.some/);
+});
+
+test("restore order satisfies attendance foreign keys",()=>{
+ const workers=source.indexOf('INSERT INTO internal_clinical_workers');
+ const workstations=source.indexOf('INSERT INTO internal_center_workstations');
+ const attendance=source.indexOf('INSERT INTO internal_attendance_events');
+ assert.ok(workers>=0&&workstations>workers&&attendance>workstations);
+});
