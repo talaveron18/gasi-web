@@ -39,3 +39,14 @@ test("workstation administration and attendance corrections audit before commit"
  assert.ok(admin>=0);
  assert.ok(source.indexOf('client.query("COMMIT")',admin)>admin);
 });
+
+
+test("identity security mutations audit before commit",()=>{
+ for(const marker of ["LOGOUT_ALL_SESSIONS","PASSWORD_CHANGED","IDENTITY_CREATED"]){
+  const start=source.indexOf(`auditOnClient(client,w,"${marker}"`);
+  assert.ok(start>=0,`missing atomic audit for ${marker}`);
+  const commit=source.indexOf('client.query("COMMIT")',start);
+  assert.ok(commit>start,`audit must precede commit for ${marker}`);
+ }
+ assert.match(source,/worker:\$\{id\}/);
+});
