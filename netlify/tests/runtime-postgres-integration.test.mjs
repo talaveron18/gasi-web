@@ -157,6 +157,13 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,403);
  assert.equal((await responseJson(res)).detail,"privileged_access_required");
 
+ const privilegedBeforeInvalid=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_clinical_audit WHERE action='PRIVILEGED_EPISODE_ACCESSED'")).rows[0].n;
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/privileged-access`,{method:"POST",token:masterToken,body:{reason:"free text should fail",reference:"INT-MASTER-BAD"}}),{});
+ assert.equal(res.status,422);
+ assert.equal((await responseJson(res)).detail,"invalid_privileged_access_reason");
+ const privilegedAfterInvalid=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_clinical_audit WHERE action='PRIVILEGED_EPISODE_ACCESSED'")).rows[0].n;
+ assert.equal(privilegedAfterInvalid,privilegedBeforeInvalid);
+
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/privileged-access`,{method:"POST",token:masterToken,body:{reason:"inspection",reference:"INT-MASTER-001"}}),{});
  assert.equal(res.status,200);
  const masterPrivileged=await responseJson(res);
