@@ -422,12 +422,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal((await responseJson(res)).detail,"worker_management_required");
 
  res=await handler(request("/api/internal-clinical/workers/NURSE-A/access",{method:"POST",token:masterToken,body:{state:"REVOKED"}}),{});
- if(res.status!==200){
-  const body=await responseJson(res);
-  const workerDiag=(await pool.query("SELECT id,active,auth_version,delegated_privileges FROM internal_clinical_workers WHERE id='NURSE-A'")).rows[0];
-  const auditDiag=(await pool.query("SELECT seq,action,actor_id,metadata FROM internal_clinical_audit ORDER BY seq DESC LIMIT 5")).rows;
-  assert.fail(JSON.stringify({status:res.status,body,workerDiag,auditDiag}));
- }
+ assert.equal(res.status,200);
  res=await handler(request("/api/internal-clinical/attendance",{token:nurseAfterDelegationToken}),{});
  assert.equal(res.status,401);
  assert.equal((await responseJson(res)).detail,"session_expired_or_revoked");
