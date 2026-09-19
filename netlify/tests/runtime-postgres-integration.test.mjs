@@ -337,9 +337,15 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:nurseToken,cookie:reboundCookie}),{});
  assert.equal(res.status,201);
  const correctedTarget=await responseJson(res);
- res=await handler(request(`/api/internal-clinical/attendance/${correctedTarget.seq}/correct`,{method:"POST",token:masterToken,body:{corrected_event_type:"CLOCK_OUT",corrected_occurred_at:new Date().toISOString(),reason:"Integración: evento corregido"}}),{});
+ res=await handler(request(`/api/internal-clinical/attendance/${correctedTarget.seq}/correct`,{method:"POST",token:masterToken,body:{corrected_event_type:"CLOCK_OUT",corrected_occurred_at:correctedTarget.occurred_at,reason:"Integración: corrección imposible"}}),{});
+ assert.equal(res.status,409);
+ assert.equal((await responseJson(res)).detail,"attendance_correction_breaks_sequence");
+
+ res=await handler(request(`/api/internal-clinical/attendance/${correctedTarget.seq}/correct`,{method:"POST",token:masterToken,body:{corrected_event_type:"CLOCK_IN",corrected_occurred_at:correctedTarget.occurred_at,reason:"Integración: corrección válida"}}),{});
  assert.equal(res.status,201);
 
+ res=await handler(request("/api/internal-clinical/attendance/clock-out",{method:"POST",token:nurseToken,cookie:reboundCookie}),{});
+ assert.equal(res.status,201);
  res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:nurseToken,cookie:reboundCookie}),{});
  assert.equal(res.status,201);
  res=await handler(request("/api/internal-clinical/attendance/clock-out",{method:"POST",token:nurseToken,cookie:reboundCookie}),{});
