@@ -145,6 +145,10 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,404);
  assert.equal((await responseJson(res)).detail,"episode_not_visible");
 
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/addenda`,{method:"POST",token:otherToken,body:{text:"Foreign write must be denied"}}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"episode_write_denied");
+
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/disposition`,{method:"POST",token:nurseToken,body:{kind:"ONSITE_INTERVENTION",occurred_at:new Date().toISOString()}}),{});
  assert.equal(res.status,200);
 
