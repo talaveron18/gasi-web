@@ -17,6 +17,7 @@ const b64=(v:Buffer|string)=>Buffer.from(v).toString("base64url");
 const bearer=(req:Request)=>{const value=req.headers.get("authorization")||"";return value.startsWith("Bearer ")?value.slice(7):"";};
 const profile=(w:any)=>({id:w.id,role:w.role,display_name:w.display_name,centers:w.centers||[],operational_state:w.active?"ACTIVE":"REVOKED",delegated_privileges:w.delegated_privileges||[]});
 const has=(w:any,p:string)=>w.id===MASTER()||(w.delegated_privileges||[]).includes(p);
+const DELEGABLE_PRIVILEGES=new Set(["worker_access_management","clinical_privileged_read"]);
 const required=(v:unknown,name:string)=>{const s=String(v||"").trim();if(!s)throw new Error(`${name}_required`);if(s.length>160)throw new Error(`${name}_too_long`);return s;};
 function secret(){const value=env("GASI_INTERNAL_SESSION_SECRET");if(Buffer.byteLength(value)<32)throw new Error("session_secret_not_configured");return value;}
 function sign(payload:any){const encoded=b64(JSON.stringify(payload));const sig=crypto.createHmac("sha256",secret()).update(encoded).digest("base64url");return `v1.${encoded}.${sig}`;}
