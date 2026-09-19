@@ -94,7 +94,7 @@ jobs:
       - name: Run Netlify production build
         env:
           CI: 'false'
-        run: npx -y netlify-cli@latest build --offline
+        run: npx -y netlify-cli@27.8.0 build --offline
 
   netlify-runtime-integration:
     runs-on: ubuntu-latest
