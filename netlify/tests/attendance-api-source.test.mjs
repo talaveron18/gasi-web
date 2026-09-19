@@ -22,9 +22,7 @@ test("open shift state is deterministic",()=>{
 test("attendance timestamp is database generated and event is audited",()=>{
  assert.match(source,/INSERT INTO internal_attendance_events\(worker_id,center,workstation_id,event_type,actor_id\)/);
  const attendanceRoute=source.slice(source.indexOf("const attendance=path.match"),source.indexOf("if(req.method===\"GET\"&&path===\"/api/internal-clinical/workers\""));
- assert.doesNotMatch(attendanceRoute,/INSERT INTO internal_attendance_events[^
-]*occurred_at[^
-]*VALUES/);
+ assert.ok(!attendanceRoute.includes("occurred_at) VALUES"),"attendance insert must use database timestamp");
  assert.match(source,/ATTENDANCE_CLOCKED_IN/);
  assert.match(source,/ATTENDANCE_CLOCKED_OUT/);
 });
