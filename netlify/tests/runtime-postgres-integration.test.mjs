@@ -145,6 +145,9 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,404);
  assert.equal((await responseJson(res)).detail,"episode_not_visible");
 
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/disposition`,{method:"POST",token:nurseToken,body:{kind:"ONSITE_INTERVENTION",occurred_at:new Date().toISOString()}}),{});
+ assert.equal(res.status,200);
+
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/responses`,{method:"POST",token:nurseToken,body:{text:"Nurse must not author physician response"}}),{});
  assert.equal(res.status,403);
  assert.equal((await responseJson(res)).detail,"physician_only");
@@ -154,12 +157,31 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  const answeredEpisode=await responseJson(res);
  assert.equal(answeredEpisode.status,"RESPONDIDO");
  assert.equal(answeredEpisode.responses.at(-1).author_id,"PHYS-A");
+ assert.equal(answeredEpisode.responses.at(-1).late_after_disposition,true);
 
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}`,{token:nurseToken}),{});
  assert.equal(res.status,200);
  const nurseView=await responseJson(res);
  assert.equal(nurseView.status,"RESPONDIDO");
  assert.equal(nurseView.responses.at(-1).text,"Synthetic physician response");
+ const lateResponseId=nurseView.responses.at(-1).id;
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/close`,{method:"POST",token:nurseToken,body:{follow_up_pending:false,handoff_required:false,acknowledgement_required:false}}),{});
+ assert.equal(res.status,409);
+ assert.equal((await responseJson(res)).detail,"late_response_review_pending");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/responses/${lateResponseId}/late-review`,{method:"POST",token:physicianToken}),{});
+ assert.equal(res.status,409);
+ assert.equal((await responseJson(res)).detail,"late_response_self_review_denied");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/responses/${lateResponseId}/late-review`,{method:"POST",token:nurseToken}),{});
+ assert.equal(res.status,200);
+ const reviewedResponse=await responseJson(res);
+ assert.equal(reviewedResponse.late_reviewed_by_id,"NURSE-A");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/close`,{method:"POST",token:nurseToken,body:{follow_up_pending:false,handoff_required:false,acknowledgement_required:false}}),{});
+ assert.equal(res.status,200);
+ assert.equal((await responseJson(res)).status,"CERRADO");
 
  res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:otherToken,cookie:workstationCookie}),{});
  assert.equal(res.status,403);
