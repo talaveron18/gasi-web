@@ -1,11 +1,11 @@
-import React,{useEffect,useState}from'react';
+import React,{useCallback,useEffect,useState}from'react';
 import{useInternalPrototypeAuth}from'@/contexts/InternalPrototypeAuthContext';
 const apiRoot=()=>String(process.env.REACT_APP_BACKEND_URL||'').replace(/\/$/,'');
 export default function InternalAttendance(){
  const{session,token}=useInternalPrototypeAuth(),[credential,setCredential]=useState(''),[workstationId,setWorkstationId]=useState(()=>localStorage.getItem('gasi_workstation_id')||''),[events,setEvents]=useState([]),[state,setState]=useState('idle'),[message,setMessage]=useState('');
  const headers=(json=false)=>({...json?{'Content-Type':'application/json'}:{},Authorization:`Bearer ${token}`});
- const load=async()=>{if(!token)return;try{const r=await fetch(`${apiRoot()}/api/internal-clinical/attendance`,{headers:headers(),cache:'no-store'});if(r.ok)setEvents(await r.json());}catch(_){}};
- useEffect(()=>{load();},[token]);
+ const load=useCallback(async()=>{if(!token)return;try{const r=await fetch(`${apiRoot()}/api/internal-clinical/attendance`,{headers:headers(),cache:'no-store'});if(r.ok)setEvents(await r.json());}catch(_){}},[token]);
+ useEffect(()=>{load();},[load]);
  const clock=async(action)=>{setState('busy');setMessage('');try{localStorage.setItem('gasi_workstation_id',workstationId);const r=await fetch(`${apiRoot()}/api/internal-clinical/attendance/${action}`,{method:'POST',headers:headers(true),body:JSON.stringify({workstation_id:workstationId,workstation_credential:credential})});const data=await r.json().catch(()=>({}));if(!r.ok){setMessage(data.detail||`Fichaje rechazado (HTTP ${r.status}).`);return;}setMessage(action==='clock-in'?'Entrada registrada.':'Salida registrada.');setCredential('');await load();}catch(_){setMessage('No se pudo conectar con el servicio de fichaje.');}finally{setState('idle');}};
  if(!session)return null;
  if(session.role==='admin')return <main className="min-h-screen bg-slate-950 text-slate-100 py-10"><div className="max-w-3xl mx-auto px-4"><h1 className="text-3xl font-bold">Fichaje</h1><p role="alert" className="mt-4 text-amber-200">La cuenta administrativa no puede fichar como profesional.</p></div></main>;
