@@ -5,7 +5,7 @@ import fs from "node:fs";
 const source = fs.readFileSync(new URL("../functions/internal-clinical.mts", import.meta.url), "utf8");
 
 test("all post-close clinical mutation families are explicitly guarded", () => {
-  const expected=["levelMatch","responseMatch","addendumMatch","correct","disposition","responseDelivery","delivery"];
+  const expected=["levelMatch","responseMatch","lateReview","addendumMatch","correct","disposition","responseDelivery","delivery"];
   for(const marker of expected){
     const start=source.indexOf(`if(req.method==="POST"&&${marker})`);
     assert.notEqual(start,-1,`missing route ${marker}`);
