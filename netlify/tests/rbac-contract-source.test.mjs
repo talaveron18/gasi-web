@@ -15,3 +15,13 @@ test("privileged access remains explicit read-only and audited", () => {
   assert.match(api, /PRIVILEGED_EPISODE_ACCESSED/);
   assert.match(api, /privileged_access:\{read_only:true,reason,reference\}/);
 });
+
+
+test("professional roles can carry delegated administrative worker management without losing clinical role",()=>{
+ const auth=fs.readFileSync(new URL("../../frontend/src/contexts/InternalPrototypeAuthContext.jsx",import.meta.url),"utf8");
+ const profile=fs.readFileSync(new URL("../../frontend/src/pages/InternalProfile.jsx",import.meta.url),"utf8");
+ assert.match(auth,/delegatedPrivileges\?\.includes\('worker_access_management'\)/);
+ assert.match(profile,/canManageWorkers/);
+ assert.match(profile,/canManageWorkers && <Link to="\/interno\/trabajadores"/);
+ assert.match(profile,/session\.role !== 'admin' && <Link to="\/interno\/fichaje"/);
+});
