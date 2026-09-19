@@ -3,7 +3,7 @@ const InternalAuthContext=createContext(null),MASTER_ID='GASI-MASTER-01';
 const ROLE_LABELS={nurse:'Enfermería',physician:'Facultativo',psychologist:'Psicología',physiotherapist:'Fisioterapia',admin:'Administración / Coordinación'};
 const apiRoot=()=>String(process.env.REACT_APP_BACKEND_URL||'').replace(/\/$/,'');
 const canManage=a=>Boolean(a&&(a.id===MASTER_ID||a.delegatedPrivileges?.includes('worker_access_management')));
-const mapWorker=w=>({id:w.id,displayName:w.display_name,role:w.role,roleLabel:ROLE_LABELS[w.role]||w.role,centers:w.centers||[],status:w.active===false?'REVOKED':'ACTIVE',delegatedPrivileges:w.delegated_privileges||[],mustChangePassword:w.must_change_password===true});
+const mapWorker=w=>({id:w.id,displayName:w.display_name,role:w.role,roleLabel:ROLE_LABELS[w.role]||w.role,centers:w.centers||[],status:w.operational_state|| (w.active===false?'REVOKED':'ACTIVE'),delegatedPrivileges:w.delegated_privileges||[],mustChangePassword:w.must_change_password===true});
 const authHeaders=(token,json=false)=>({...json?{'Content-Type':'application/json'}:{},Authorization:`Bearer ${token}`});
 export function InternalPrototypeAuthProvider({children}){
  const[identities,setIdentities]=useState([]),[session,setSession]=useState(null),[token,setToken]=useState(null),[lastError,setLastError]=useState(''),[sessionChecking,setSessionChecking]=useState(false),[directoryLoading,setDirectoryLoading]=useState(false);
