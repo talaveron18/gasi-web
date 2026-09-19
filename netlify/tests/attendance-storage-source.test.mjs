@@ -4,6 +4,7 @@ import fs from "node:fs";
 
 const sql = fs.readFileSync(new URL("../database/migrations/20260919121000_internal-attendance-v1/migration.sql", import.meta.url), "utf8");
 const onePerCenter = fs.readFileSync(new URL("../database/migrations/20260919224500_one-workstation-per-center/migration.sql", import.meta.url), "utf8");
+const networkBinding = fs.readFileSync(new URL("../database/migrations/20260919225500_workstation-network-binding/migration.sql", import.meta.url), "utf8");
 
 test("attendance requires a center-bound workstation credential", () => {
   assert.match(sql, /internal_center_workstations/);
@@ -28,4 +29,10 @@ test("attendance history is append-only and corrections reference prior evidence
 test("one fixed workstation per center is enforced by PostgreSQL",()=>{
  assert.match(onePerCenter,/CREATE UNIQUE INDEX IF NOT EXISTS uq_internal_center_workstations_center/);
  assert.match(onePerCenter,/ON internal_center_workstations\(center\)/);
+});
+
+
+test("workstation network binding stores only a derived fingerprint column",()=>{
+ assert.match(networkBinding,/ADD COLUMN IF NOT EXISTS network_fingerprint_hash TEXT NULL/);
+ assert.doesNotMatch(networkBinding,/client_ip|raw_ip|ip_address/);
 });
