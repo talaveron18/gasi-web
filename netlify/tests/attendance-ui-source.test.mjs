@@ -16,10 +16,20 @@ test("attendance UI renders corrected effective values while preserving original
  assert.match(attendance,/Motivo:/);
 });
 
-test("workstation credential is not persisted by the attendance UI",()=>{
- assert.match(attendance,/localStorage\.getItem\('gasi_workstation_id'\)/);
- assert.match(attendance,/localStorage\.setItem\('gasi_workstation_id',workstationId\)/);
- assert.doesNotMatch(attendance,/localStorage\.(?:setItem|getItem)\(['\"][^'\"]*credential/i);
+test("professional attendance UI uses claimed browser cookie and never handles workstation secret",()=>{
+ assert.match(attendance,/credentials:'include'/);
+ assert.doesNotMatch(attendance,/workstation_credential|enrollment_credential|setCredential|gasi_workstation_id|localStorage/);
+ assert.match(attendance,/body:'\{\}'/);
+ assert.match(attendance,/workstation_binding_required/);
+});
+
+test("master workstation UI supports one-time enrollment, claim and reset",()=>{
+ assert.match(workstations,/workstation_enrollment_credential/);
+ assert.match(workstations,/\/claim`/);
+ assert.match(workstations,/enrollment_credential:enrollment/);
+ assert.match(workstations,/credentials:'include'/);
+ assert.match(workstations,/\/enrollment-reset`/);
+ assert.match(workstations,/claimed_at\?'Navegador vinculado':'Pendiente de vincular'/);
 });
 
 test("attendance and workstation management routes remain authenticated",()=>{
@@ -28,7 +38,6 @@ test("attendance and workstation management routes remain authenticated",()=>{
  assert.match(workstations,/if\(!isMaster\)return/);
  assert.match(attendance,/if\(session\.role==='admin'\)return/);
 });
-
 
 test("master attendance control is guarded and submits append-only corrections",()=>{
  assert.match(app,/path="\/interno\/fichajes" element=\{<Guard><InternalAttendanceAdmin\/><\/Guard>\}/);
