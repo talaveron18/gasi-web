@@ -24,3 +24,9 @@ test("successful authentication clears the shared failure bucket",()=>{
  assert.match(source,/await loginSucceeded\(db,key\)/);
  assert.match(source,/DELETE FROM internal_login_throttle WHERE key_hash=/);
 });
+
+
+test("session TTL falls back safely on invalid environment values",()=>{
+ assert.match(source,/const sessionTtlMinutes=\(\)=>\{const n=Number\(env\("GASI_INTERNAL_SESSION_TTL_MINUTES"\)\);return Number\.isSafeInteger\(n\)&&n>=1&&n<=480\?n:30;\}/);
+ assert.match(source,/const ttl=sessionTtlMinutes\(\)/);
+});
