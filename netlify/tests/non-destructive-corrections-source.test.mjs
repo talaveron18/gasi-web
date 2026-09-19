@@ -32,3 +32,11 @@ test('privilege delegation and revocation invalidate existing sessions', () => {
   assert.match(source,/PRIVILEGE_REVOKED/);
   assert.match(source,/auth_version=auth_version\+1/);
 });
+
+
+test('only the original author can correct a clinical entry',()=>{
+  const start=source.indexOf('const correct=path.match');
+  assert.ok(start>=0,'clinical correction route missing');
+  const route=source.slice(start,start+2600);
+  assert.match(route,/items\[idx\]\.author_id!==w\.id.*clinical_entry_correction_author_only/);
+});
