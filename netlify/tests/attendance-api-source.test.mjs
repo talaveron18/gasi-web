@@ -25,3 +25,12 @@ test("attendance timestamp is database generated and event is audited",()=>{
  assert.match(source,/ATTENDANCE_CLOCKED_IN/);
  assert.match(source,/ATTENDANCE_CLOCKED_OUT/);
 });
+
+test("only master can enroll or change workstation state and raw credential is never persisted",()=>{
+ assert.match(source,/path==="\/api\/internal-clinical\/workstations".*w\.id!==MASTER\(\).*master_account_only/);
+ assert.match(source,/bcrypt\.hash\(credential,12\)/);
+ assert.match(source,/INSERT INTO internal_center_workstations\(id,center,label,credential_hash,active\)/);
+ assert.doesNotMatch(source,/INSERT INTO internal_center_workstations[^\n]*credential,active/);
+ assert.match(source,/WORKSTATION_REGISTERED/);
+ assert.match(source,/WORKSTATION_REVOKED/);
+});
