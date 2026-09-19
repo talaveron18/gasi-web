@@ -204,7 +204,7 @@ test("restore requires system-generated snapshot provenance",()=>{
 
 
 test("snapshot payload is HMAC-signed and verified before restore mutation",()=>{
- assert.match(source,/function recoverySnapshotSignature\\(payload:any\\)\\{return crypto\\.createHmac\\("sha256",recoverySecret\\(\\)\\)\.update\(canonical\(payload\)\)\.digest\("hex"\);\}/);
+ assert.match(source,/function recoverySnapshotSignature\(payload:any\)\{return crypto\.createHmac\("sha256",recoverySecret\(\)\)\.update\(canonical\(payload\)\)\.digest\("hex"\);\}/);
  assert.match(source,/snapshot_signature=recoverySnapshotSignature\(snapshotPayload\)/);
  const restore=source.slice(source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
  const verify=restore.indexOf("expectedSnapshotSignature=recoverySnapshotSignature");
