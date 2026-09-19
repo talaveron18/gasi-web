@@ -435,6 +435,9 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
 
  await assert.rejects(()=>pool.query("UPDATE internal_attendance_events SET center='CENTER-X' WHERE seq=$1",[firstClockIn.seq]),/append-only/);
  await assert.rejects(()=>pool.query("DELETE FROM internal_attendance_events WHERE seq=$1",[firstClockIn.seq]),/append-only/);
+ const auditSeq=(await pool.query("SELECT seq FROM internal_clinical_audit ORDER BY seq LIMIT 1")).rows[0].seq;
+ await assert.rejects(()=>pool.query("UPDATE internal_clinical_audit SET action='TAMPERED' WHERE seq=$1",[auditSeq]),/append-only/);
+ await assert.rejects(()=>pool.query("DELETE FROM internal_clinical_audit WHERE seq=$1",[auditSeq]),/append-only/);
 
  const workingDbUrl=secrets.NETLIFY_DB_URL;
  secrets.NETLIFY_DB_URL="postgresql://postgres:postgres@127.0.0.1:1/gasi";
