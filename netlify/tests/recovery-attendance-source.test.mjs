@@ -102,3 +102,16 @@ test("recovery export and successful restore are audited",()=>{
  assert.match(source,/worker_count:restored\.workers/);
  assert.match(source,/attendance_count:restored\.attendance/);
 });
+
+
+test("restore rejects duplicate ids and sequence keys before destructive work",()=>{
+ assert.match(source,/episodeIds\.size!==snapshot\.episodes\.length/);
+ assert.match(source,/workerIds\.size!==snapshot\.workers\.length/);
+ assert.match(source,/workstationCenters\.size!==snapshot\.workstations\.length/);
+ assert.match(source,/attendanceSeqs\.size!==snapshot\.attendance\.length/);
+ assert.match(source,/auditSeqs\.size!==snapshot\.audit\.length/);
+ assert.match(source,/counterNames\.size!==snapshot\.counters\.length/);
+ const validation=source.indexOf("episodeIds.size!==snapshot.episodes.length");
+ const connect=source.indexOf("const client=await db.pool.connect()",source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
+ assert.ok(validation>=0&&connect>validation);
+});
