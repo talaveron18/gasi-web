@@ -97,6 +97,7 @@ export default function InternalProfile() {
           <Link to="/interno/prototipo-clinico" className="rounded-lg bg-cyan-400 text-slate-950 font-semibold px-4 py-2">Ir al canal clínico</Link>
           {session.role === 'nurse' && <Link to="/interno/prototipo-clinico/nuevo" className="rounded-lg border border-cyan-400/60 px-4 py-2 text-cyan-100">Abrir caso sintético</Link>}
           {session.role !== 'admin' && <Link to="/interno/fichaje" className="rounded-lg border border-slate-700 px-4 py-2">Fichaje</Link>}\n          {canManageWorkers && <Link to="/interno/trabajadores" className="rounded-lg border border-slate-700 px-4 py-2">Gestionar trabajadores</Link>}\n          {isMaster && <Link to="/interno/puestos" className="rounded-lg border border-slate-700 px-4 py-2">Gestionar puestos</Link>}
+          {isMaster && <Link to="/interno/fichajes" className="rounded-lg border border-slate-700 px-4 py-2">Control de fichajes</Link>}
         </nav>
       </div>
     </main>
