@@ -38,7 +38,7 @@ test("restore rejects broken attendance references before destructive work",()=>
  assert.ok(validation>=0&&connect>validation);
  assert.match(source,/workerIds\.has\(String\(x\.worker_id\)\)/);
  assert.match(source,/workstationCenters\.get\(String\(x\.workstation_id\)\)!==String\(x\.center\)/);
- assert.match(source,/related_event_seq!=null&&!attendanceSeqs\.has\(Number\(x\.related_event_seq\)\)/);
+ assert.match(source,/related_event_seq!=null&&\(!attendanceSeqs\.has\(Number\(x\.related_event_seq\)\)\|\|Number\(x\.related_event_seq\)>=Number\(x\.seq\)\)/);
 });
 
 test("attendance correction records corrected values and preserves the original event",()=>{
@@ -50,4 +50,9 @@ test("attendance correction records corrected values and preserves the original 
  assert.match(correction,/original_event_type/);
  assert.match(correction,/original_occurred_at/);
  assert.doesNotMatch(correction,/UPDATE internal_attendance_events/);
+});
+
+
+test("restore sorts attendance by sequence before inserting self-references",()=>{
+ assert.match(source,/\[\.\.\.snapshot\.attendance\]\.sort\(\(a:any,b:any\)=>Number\(a\.seq\)-Number\(b\.seq\)\)/);
 });
