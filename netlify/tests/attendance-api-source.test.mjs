@@ -22,7 +22,9 @@ test("open shift state is deterministic",()=>{
 test("attendance timestamp is database generated and event is audited",()=>{
  assert.match(source,/INSERT INTO internal_attendance_events\(worker_id,center,workstation_id,event_type,actor_id\)/);
  const attendanceRoute=source.slice(source.indexOf("const attendance=path.match"),source.indexOf("if(req.method===\"GET\"&&path===\"/api/internal-clinical/workers\""));
- assert.doesNotMatch(attendanceRoute,/INSERT INTO internal_attendance_events[^\n]*occurred_at[^\n]*VALUES/);
+ assert.doesNotMatch(attendanceRoute,/INSERT INTO internal_attendance_events[^
+]*occurred_at[^
+]*VALUES/);
  assert.match(source,/ATTENDANCE_CLOCKED_IN/);
  assert.match(source,/ATTENDANCE_CLOCKED_OUT/);
 });
@@ -31,7 +33,8 @@ test("only master can enroll or change workstation state and raw credential is n
  assert.match(source,/path==="\/api\/internal-clinical\/workstations".*w\.id!==MASTER\(\).*master_account_only/);
  assert.match(source,/bcrypt\.hash\(credential,12\)/);
  assert.match(source,/INSERT INTO internal_center_workstations\(id,center,label,credential_hash,active\)/);
- assert.doesNotMatch(source,/INSERT INTO internal_center_workstations[^\n]*credential,active/);
+ assert.doesNotMatch(source,/INSERT INTO internal_center_workstations[^
+]*credential,active/);
  assert.match(source,/WORKSTATION_REGISTERED/);
  assert.match(source,/WORKSTATION_REVOKED/);
 });
@@ -42,7 +45,11 @@ test("attendance corrections are separate privileged audited events",()=>{
  assert.match(source,/event_type,related_event_seq,reason,actor_id,metadata\) VALUES/);
  assert.match(source,/'CORRECTION'/);
  assert.match(source,/ATTENDANCE_CORRECTION_RECORDED/);
- const correctionStart=source.indexOf("const attendanceCorrection=path.match");\n assert.ok(correctionStart>=0,"attendance correction route missing");\n const correctionRoute=source.slice(correctionStart,correctionStart+2200);\n assert.doesNotMatch(correctionRoute,/UPDATE internal_attendance_events/);\n assert.doesNotMatch(correctionRoute,/DELETE FROM internal_attendance_events/);
+ const correctionStart=source.indexOf("const attendanceCorrection=path.match");
+ assert.ok(correctionStart>=0,"attendance correction route missing");
+ const correctionRoute=source.slice(correctionStart,correctionStart+2200);
+ assert.doesNotMatch(correctionRoute,/UPDATE internal_attendance_events/);
+ assert.doesNotMatch(correctionRoute,/DELETE FROM internal_attendance_events/);
 });
 
 test("attendance history prevents horizontal worker access",()=>{
