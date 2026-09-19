@@ -19,8 +19,9 @@ test("workstation center must belong to worker",()=>{
 test("open shift state is deterministic",()=>{
  assert.match(source,/shift_already_open/);
  assert.match(source,/no_open_shift/);
- assert.match(source,/eventType==="CLOCK_IN"&&last\?\.event_type==="CLOCK_IN"/);
- assert.match(source,/eventType==="CLOCK_OUT"&&last\?\.event_type!=="CLOCK_IN"/);
+ assert.match(source,/lastEffectiveType=last\?\.corrected_event_type\|\|last\?\.event_type/);
+ assert.match(source,/eventType==="CLOCK_IN"&&lastEffectiveType==="CLOCK_IN"/);
+ assert.match(source,/eventType==="CLOCK_OUT"&&lastEffectiveType!=="CLOCK_IN"/);
 });
 test("attendance timestamp is database generated and event is audited",()=>{
  assert.match(source,/INSERT INTO internal_attendance_events\(worker_id,center,workstation_id,event_type,actor_id\)/);
@@ -107,4 +108,13 @@ test("attendance correction cannot target another correction event",()=>{
  const start=source.indexOf("const attendanceCorrection=path.match");
  const route=source.slice(start,start+2600);
  assert.match(route,/!\["CLOCK_IN","CLOCK_OUT"\]\.includes\(String\(original\.event_type\)\).*attendance_correction_target_invalid/);
+});
+
+
+test("shift state uses the latest correction of the last original attendance event",()=>{
+ const start=source.indexOf("const attendance=path.match");
+ const route=source.slice(start,start+5200);
+ assert.match(route,/metadata->>'corrected_event_type'/);
+ assert.match(route,/c\.related_event_seq=e\.seq ORDER BY c\.seq DESC LIMIT 1/);
+ assert.match(route,/lastEffectiveType=last\?\.corrected_event_type\|\|last\?\.event_type/);
 });
