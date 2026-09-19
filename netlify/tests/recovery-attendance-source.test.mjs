@@ -191,3 +191,13 @@ test("restore clears ephemeral login throttle state",()=>{
  assert.match(route,/internal_login_throttle IN ACCESS EXCLUSIVE MODE/);
  assert.match(route,/TRUNCATE TABLE internal_login_throttle/);
 });
+
+
+test("restore requires system-generated snapshot provenance",()=>{
+ const start=source.indexOf('path==="/api/internal-clinical/recovery/restore"');
+ const route=source.slice(start);
+ assert.match(route,/const lastSnapshotAudit=snapshot\.audit\.at\(-1\)/);
+ assert.match(route,/lastSnapshotAudit\.action\)!=="RECOVERY_SNAPSHOT_EXPORTED"/);
+ assert.match(route,/lastSnapshotAudit\.actor_id\)!==MASTER\(\)/);
+ assert.match(route,/invalid_recovery_snapshot_provenance/);
+});
