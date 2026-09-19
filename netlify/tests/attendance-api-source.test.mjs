@@ -34,3 +34,13 @@ test("only master can enroll or change workstation state and raw credential is n
  assert.match(source,/WORKSTATION_REGISTERED/);
  assert.match(source,/WORKSTATION_REVOKED/);
 });
+
+test("attendance corrections are separate privileged audited events",()=>{
+ assert.match(source,/attendance\\\/\(\[\^\/\]\+\)\\\/correct/);
+ assert.match(source,/worker_access_management/);
+ assert.match(source,/event_type,related_event_seq,reason,actor_id,metadata\) VALUES/);
+ assert.match(source,/'CORRECTION'/);
+ assert.match(source,/ATTENDANCE_CORRECTION_RECORDED/);
+ assert.doesNotMatch(source,/UPDATE internal_attendance_events/);
+ assert.doesNotMatch(source,/DELETE FROM internal_attendance_events/);
+});
