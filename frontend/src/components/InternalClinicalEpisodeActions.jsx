@@ -1,4 +1,4 @@
-import React,{useState}from'react';
+import React,{useEffect,useState}from'react';
 
 const disciplineFor=role=>role==='psychologist'?'psychology':role==='physiotherapist'?'physiotherapy':'nursing';
 
@@ -7,10 +7,14 @@ export default function InternalClinicalEpisodeActions({episode,session,api,onUp
  const[addendumText,setAddendumText]=useState('');
  const[busy,setBusy]=useState('');
  const[message,setMessage]=useState('');
+ const[levelValue,setLevelValue]=useState(Number(episode?.level)||2);
+ const[dispositionKind,setDispositionKind]=useState('');
+ const[dispositionAt,setDispositionAt]=useState('');
  const[noFollowUp,setNoFollowUp]=useState(false);
  const[handoffRequired,setHandoffRequired]=useState(false);
  const[handoffAcknowledged,setHandoffAcknowledged]=useState(false);
  const[acknowledgementRequired,setAcknowledgementRequired]=useState(false);
+ useEffect(()=>{setLevelValue(Number(episode?.level)||2);setDispositionKind('');setDispositionAt('');},[episode?.id,episode?.level]);
  if(!episode||!session||!api||readOnly)return null;
  const canWrite=session.role!=='admin'&&Array.isArray(session.centers)&&session.centers.includes(episode.center)&&disciplineFor(session.role)===episode.discipline;
  if(!canWrite||episode.status==='CERRADO')return null;
@@ -20,6 +24,8 @@ export default function InternalClinicalEpisodeActions({episode,session,api,onUp
  const refresh=async()=>{const updated=await api.getEpisode(episode.id);onUpdate(updated);return updated;};
  const respond=async e=>{e.preventDefault();const text=responseText.trim();if(!text)return;setBusy('response');setMessage('');try{const updated=await api.respond(episode.id,text);onUpdate(updated);setResponseText('');setMessage('Respuesta facultativa registrada.');}catch(err){setMessage(`Respuesta rechazada: ${err.code||'error'}`);}finally{setBusy('');}};
  const addendum=async e=>{e.preventDefault();const text=addendumText.trim();if(!text)return;setBusy('addendum');setMessage('');try{const updated=await api.addAddendum(episode.id,text);onUpdate(updated);setAddendumText('');setMessage('Anotación registrada.');}catch(err){setMessage(`Anotación rechazada: ${err.code||'error'}`);}finally{setBusy('');}};
+ const changeLevel=async e=>{e.preventDefault();if(episode.discipline!=='nursing'||Number(levelValue)===Number(episode.level))return;setBusy('level');setMessage('');try{const updated=await api.changeLevel(episode.id,Number(levelValue));onUpdate(updated);setMessage('Nivel actualizado y trazado.');}catch(err){setMessage(`Cambio de nivel rechazado: ${err.code||'error'}`);}finally{setBusy('');}};
+ const recordDisposition=async e=>{e.preventDefault();const kind=dispositionKind.trim(),millis=Date.parse(dispositionAt);if(!kind||!Number.isFinite(millis))return;setBusy('disposition');setMessage('');try{const updated=await api.recordDisposition(episode.id,kind,new Date(millis).toISOString());onUpdate(updated);setDispositionKind('');setDispositionAt('');setMessage('Disposición registrada.');}catch(err){setMessage(`Disposición rechazada: ${err.code||'error'}`);}finally{setBusy('');}};
  const reviewLate=async responseId=>{setBusy(`review-${responseId}`);setMessage('');try{await api.reviewLateResponse(episode.id,responseId);await refresh();setMessage('Respuesta tardía revisada y registrada.');}catch(err){setMessage(`Revisión rechazada: ${err.code||'error'}`);}finally{setBusy('');}};
  const advance=async(kind,label)=>{if(!latestResponse)return;setBusy(kind);setMessage('');try{await api.advanceMessage(episode.id,latestResponse.id,kind);await refresh();setMessage(label);}catch(err){setMessage(`Estado de entrega rechazado: ${err.code||'error'}`);}finally{setBusy('');}};
  const close=async e=>{e.preventDefault();setBusy('close');setMessage('');try{const updated=await api.closeEpisode(episode.id,{follow_up_pending:!noFollowUp,handoff_required:handoffRequired,handoff_acknowledged:handoffAcknowledged,acknowledgement_required:acknowledgementRequired});onUpdate(updated);setMessage('Episodio cerrado.');}catch(err){setMessage(`Cierre rechazado: ${err.code||'error'}`);}finally{setBusy('');}};
@@ -27,7 +33,9 @@ export default function InternalClinicalEpisodeActions({episode,session,api,onUp
  return <section className="mt-5 rounded-xl border border-slate-800 bg-slate-900 p-5" aria-busy={Boolean(busy)}>
   <h2 className="font-bold">Actuación clínica</h2>
   <p className="mt-1 text-sm text-slate-400">Las acciones se registran con tu identidad y conservan la trazabilidad del episodio.</p>
-  {session.role==='physician'&&<form onSubmit={respond} className="mt-4">
+  {episode.discipline==='nursing'&&<form onSubmit={changeLevel} className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end"><label className="block text-sm">Nivel de prioridad<select value={levelValue} onChange={e=>setLevelValue(Number(e.target.value))} className="mt-1 w-full rounded border border-slate-700 bg-slate-950 p-3"><option value={1}>N1 · Urgencia</option><option value={2}>N2 · Consulta no aguda</option><option value={3}>N3 · Gestión</option></select></label><button disabled={busy!==''||Number(levelValue)===Number(episode.level)} className="rounded border border-cyan-400 px-4 py-3 font-semibold disabled:opacity-50">{busy==='level'?'Actualizando…':'Cambiar nivel'}</button></form>}
+  <form onSubmit={recordDisposition} className="mt-5 border-t border-slate-800 pt-4"><h3 className="font-semibold">Disposición / resultado del episodio</h3><div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="block text-sm">Tipo<input required maxLength={160} value={dispositionKind} onChange={e=>setDispositionKind(e.target.value)} placeholder="Ej.: derivación, alta, traspaso" className="mt-1 w-full rounded border border-slate-700 bg-slate-950 p-3"/></label><label className="block text-sm">Fecha y hora<input type="datetime-local" required value={dispositionAt} onChange={e=>setDispositionAt(e.target.value)} className="mt-1 w-full rounded border border-slate-700 bg-slate-950 p-3"/></label></div><button disabled={busy!==''||!dispositionKind.trim()||!dispositionAt} className="mt-3 rounded border border-slate-600 px-4 py-2 font-semibold disabled:opacity-50">{busy==='disposition'?'Registrando…':'Registrar disposición'}</button></form>
+  {session.role==='physician'&&<form onSubmit={respond} className="mt-5 border-t border-slate-800 pt-4">
    <label className="block text-sm">Respuesta facultativa<textarea required minLength={2} value={responseText} onChange={e=>setResponseText(e.target.value)} className="mt-1 min-h-28 w-full rounded border border-slate-700 bg-slate-950 p-3"/></label>
    <button disabled={busy!==''||!responseText.trim()} className="mt-3 rounded bg-cyan-300 px-4 py-2 font-bold text-slate-950 disabled:opacity-50">{busy==='response'?'Registrando…':'Emitir respuesta'}</button>
   </form>}
