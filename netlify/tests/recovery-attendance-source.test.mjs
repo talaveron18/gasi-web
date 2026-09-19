@@ -183,3 +183,11 @@ test("restore rejects duplicate center assignments before mutation",()=>{
  const connect=source.indexOf("const client=await db.pool.connect()",source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
  assert.ok(validation>=0&&connect>validation);
 });
+
+
+test("restore clears ephemeral login throttle state",()=>{
+ const start=source.indexOf('path==="/api/internal-clinical/recovery/restore"');
+ const route=source.slice(start);
+ assert.match(route,/internal_login_throttle IN ACCESS EXCLUSIVE MODE/);
+ assert.match(route,/TRUNCATE TABLE internal_login_throttle/);
+});
