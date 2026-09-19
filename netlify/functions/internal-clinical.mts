@@ -4,7 +4,8 @@ import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 
 const MASTER=()=>Netlify.env.get("GASI_MASTER_ACTOR_ID")||"GASI-MASTER-01";
-const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json","cache-control":"no-store"}});
+const SECURITY_HEADERS={"content-type":"application/json","cache-control":"no-store","x-content-type-options":"nosniff","x-frame-options":"DENY","referrer-policy":"no-referrer","permissions-policy":"camera=(), microphone=(), geolocation=()","content-security-policy":"default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"};
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:SECURITY_HEADERS});
 const env=(name:string)=>Netlify.env.get(name)||"";
 const b64=(v:Buffer|string)=>Buffer.from(v).toString("base64url");
 const bearer=(req:Request)=>{const value=req.headers.get("authorization")||"";return value.startsWith("Bearer ")?value.slice(7):"";};
