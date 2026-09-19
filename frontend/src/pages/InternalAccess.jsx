@@ -5,7 +5,7 @@ import{useInternalPrototypeAuth}from'@/contexts/InternalPrototypeAuthContext';
 export default function InternalAccess(){
  const navigate=useNavigate(),{session,lastError,sessionChecking,signIn,signOut,changePassword}=useInternalPrototypeAuth();
  const[workerId,setWorkerId]=useState(''),[password,setPassword]=useState(''),[newPassword,setNewPassword]=useState(''),[confirmPassword,setConfirmPassword]=useState(''),[changeMessage,setChangeMessage]=useState('');
- const submit=async e=>{e.preventDefault();if(await signIn(workerId.trim(),password)){setChangeMessage('');}};
+ const submit=async e=>{e.preventDefault();const signed=await signIn(workerId.trim(),password);if(!signed)return;setChangeMessage('');if(!signed.mustChangePassword)navigate('/interno/clinica');};
  const submitPasswordChange=async e=>{e.preventDefault();setChangeMessage('');if(newPassword.length<12){setChangeMessage('La nueva contraseña debe tener al menos 12 caracteres.');return;}if(newPassword!==confirmPassword){setChangeMessage('Las nuevas contraseñas no coinciden.');return;}const result=await changePassword(password,newPassword);if(!result.ok){setChangeMessage(result.error);return;}setPassword('');setNewPassword('');setConfirmPassword('');setChangeMessage('Contraseña actualizada. Vuelve a iniciar sesión.');};
  return <main className="min-h-screen bg-slate-950 text-slate-100 py-12"><div className="max-w-md mx-auto px-4">
   <header className="mb-8"><div className="flex items-center gap-2 text-cyan-300 text-sm font-semibold"><ShieldCheck className="w-4 h-4"/>GASI · Zona interna</div><h1 className="text-3xl font-bold mt-2">Acceso profesional</h1><p className="text-slate-400 mt-2">Acceso individual. Las acciones quedan vinculadas a la identidad autenticada.</p></header>
