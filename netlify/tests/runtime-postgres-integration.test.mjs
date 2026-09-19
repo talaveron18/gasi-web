@@ -44,6 +44,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  const secrets={
   NETLIFY_DB_URL:connectionString,
   GASI_INTERNAL_SESSION_SECRET:"integration-session-secret-at-least-32-bytes-long",
+  GASI_RECOVERY_SIGNING_SECRET:"integration-recovery-signing-secret-at-least-32-bytes-long",
   GASI_MASTER_ACTOR_ID:"GASI-MASTER-01",
   GASI_MASTER_PASSWORD:"MasterIntegrationPassword!123",
   GASI_MASTER_DISPLAY_NAME:"Integration Master",
