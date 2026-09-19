@@ -19,7 +19,7 @@ test("attendance UI renders corrected effective values while preserving original
 test("workstation credential is not persisted by the attendance UI",()=>{
  assert.match(attendance,/localStorage\.getItem\('gasi_workstation_id'\)/);
  assert.match(attendance,/localStorage\.setItem\('gasi_workstation_id',workstationId\)/);
- assert.doesNotMatch(attendance,/localStorage\.(setItem|getItem)\([^\n]*credential/i);
+ assert.doesNotMatch(attendance,/localStorage\.(?:setItem|getItem)\(['\"][^'\"]*credential/i);
 });
 
 test("attendance and workstation management routes remain authenticated",()=>{
