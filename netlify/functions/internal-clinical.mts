@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 const MASTER=()=>Netlify.env.get("GASI_MASTER_ACTOR_ID")||"GASI-MASTER-01";
 const SECURITY_HEADERS={"content-type":"application/json","cache-control":"no-store","x-content-type-options":"nosniff","x-frame-options":"DENY","referrer-policy":"no-referrer","permissions-policy":"camera=(), microphone=(), geolocation=()","content-security-policy":"default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:SECURITY_HEADERS});
-const jsonCookie=(body:unknown,status:number,cookies:string[])=>new Response(JSON.stringify(body),{status,headers:{...SECURITY_HEADERS,"set-cookie":cookies}});
+const jsonCookie=(body:unknown,status:number,cookies:string[])=>{const headers=new Headers(SECURITY_HEADERS);for(const cookie of cookies)headers.append("set-cookie",cookie);return new Response(JSON.stringify(body),{status,headers});};
 const cookieValue=(req:Request,name:string)=>{const raw=req.headers.get("cookie")||"";for(const part of raw.split(";")){const [k,...rest]=part.trim().split("=");if(k===name)return decodeURIComponent(rest.join("="));}return "";};
 const mobileClient=(req:Request)=>/android|iphone|ipad|ipod|mobile/i.test(req.headers.get("user-agent")||"");
 const env=(name:string)=>Netlify.env.get(name)||"";
