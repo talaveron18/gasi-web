@@ -64,6 +64,15 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  const masterToken=masterLogin.token;
  assert.ok(masterToken);
 
+ for(let i=0;i<8;i++){
+  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"UNKNOWN-RATE-LIMIT",password:"wrong"},ip:"10.10.0.99"}),{});
+  assert.equal(res.status,401);
+ }
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"UNKNOWN-RATE-LIMIT",password:"wrong"},ip:"10.10.0.99"}),{});
+ assert.equal(res.status,429);
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"UNKNOWN-RATE-LIMIT",password:"wrong"},ip:"10.10.0.100"}),{});
+ assert.equal(res.status,401);
+
  res=await handler(request("/api/internal-clinical/workstations",{method:"POST",token:masterToken,body:{id:"WS-A",center:"CENTER-A",label:"Centro A fijo"}}),{});
  assert.equal(res.status,201);
  const workstation=await responseJson(res);
@@ -117,15 +126,26 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/workstations/WS-A/activate",{method:"POST",token:masterToken}),{});
  assert.equal(res.status,200);
 
+ res=await handler(request("/api/internal-clinical/workstations/WS-A/enrollment-reset",{method:"POST",token:masterToken}),{});
+ assert.equal(res.status,200);
+ const resetEnrollment=(await responseJson(res)).workstation_enrollment_credential;
+ assert.ok(resetEnrollment);
  res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:nurseToken,cookie:workstationCookie}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"workstation_not_authorized");
+ res=await handler(request("/api/internal-clinical/workstations/WS-A/claim",{method:"POST",token:masterToken,body:{enrollment_credential:resetEnrollment}}),{});
+ assert.equal(res.status,200);
+ const reboundCookie=cookiesFrom(res);
+
+ res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:nurseToken,cookie:reboundCookie}),{});
  assert.equal(res.status,201);
  const correctedTarget=await responseJson(res);
  res=await handler(request(`/api/internal-clinical/attendance/${correctedTarget.seq}/correct`,{method:"POST",token:masterToken,body:{corrected_event_type:"CLOCK_OUT",corrected_occurred_at:new Date().toISOString(),reason:"Integración: evento corregido"}}),{});
  assert.equal(res.status,201);
 
- res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:nurseToken,cookie:workstationCookie}),{});
+ res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:nurseToken,cookie:reboundCookie}),{});
  assert.equal(res.status,201);
- res=await handler(request("/api/internal-clinical/attendance/clock-out",{method:"POST",token:nurseToken,cookie:workstationCookie}),{});
+ res=await handler(request("/api/internal-clinical/attendance/clock-out",{method:"POST",token:nurseToken,cookie:reboundCookie}),{});
  assert.equal(res.status,201);
 
  res=await handler(request("/api/internal-clinical/attendance",{token:otherToken}),{});
