@@ -437,6 +437,34 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  assert.deepEqual(await responseJson(res),[]);
 
+ res=await handler(request("/api/internal-clinical/attendance?limit=2",{token:nurseToken}),{});
+ assert.equal(res.status,200);
+ const attendancePageOne=await responseJson(res);
+ assert.equal(attendancePageOne.length,2);
+ const attendanceCursor=Math.min(...attendancePageOne.map(x=>Number(x.seq)));
+ res=await handler(request(`/api/internal-clinical/attendance?limit=2&before_seq=${attendanceCursor}`,{token:nurseToken}),{});
+ assert.equal(res.status,200);
+ const attendancePageTwo=await responseJson(res);
+ assert.ok(attendancePageTwo.every(x=>Number(x.seq)<attendanceCursor));
+ assert.equal(attendancePageTwo.some(x=>attendancePageOne.some(y=>Number(y.seq)===Number(x.seq))),false);
+ res=await handler(request("/api/internal-clinical/attendance?before_seq=bad",{token:nurseToken}),{});
+ assert.equal(res.status,422);
+ assert.equal((await responseJson(res)).detail,"invalid_before_seq");
+
+ res=await handler(request("/api/internal-clinical/audit?limit=2",{token:masterToken}),{});
+ assert.equal(res.status,200);
+ const auditPageOne=await responseJson(res);
+ assert.equal(auditPageOne.length,2);
+ const auditCursor=Math.min(...auditPageOne.map(x=>Number(x.seq)));
+ res=await handler(request(`/api/internal-clinical/audit?limit=2&before_seq=${auditCursor}`,{token:masterToken}),{});
+ assert.equal(res.status,200);
+ const auditPageTwo=await responseJson(res);
+ assert.ok(auditPageTwo.every(x=>Number(x.seq)<auditCursor));
+ assert.equal(auditPageTwo.some(x=>auditPageOne.some(y=>Number(y.seq)===Number(x.seq))),false);
+ res=await handler(request("/api/internal-clinical/audit?before_seq=bad",{token:masterToken}),{});
+ assert.equal(res.status,422);
+ assert.equal((await responseJson(res)).detail,"invalid_before_seq");
+
  res=await handler(request("/api/internal-clinical/recovery/snapshot",{token:masterToken}),{});
  assert.equal(res.status,200);
  const snapshot=await responseJson(res);
