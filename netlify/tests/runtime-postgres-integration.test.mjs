@@ -53,10 +53,13 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
 
  const nursePassword="NurseIntegrationPassword!123";
  const otherPassword="OtherIntegrationPassword!123";
+ const physicianPassword="PhysicianIntegrationPassword!123";
  const nurseHash=await bcrypt.hash(nursePassword,12);
  const otherHash=await bcrypt.hash(otherPassword,12);
+ const physicianHash=await bcrypt.hash(physicianPassword,12);
  await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'nurse',$2,$3::jsonb,TRUE,1,'[]'::jsonb,$4)",["NURSE-A","Nurse A",JSON.stringify(["CENTER-A"]),nurseHash]);
  await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'nurse',$2,$3::jsonb,TRUE,1,'[]'::jsonb,$4)",["NURSE-B","Nurse B",JSON.stringify(["CENTER-B"]),otherHash]);
+ await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'physician',$2,$3::jsonb,TRUE,1,'[]'::jsonb,$4)",["PHYS-A","Physician A",JSON.stringify(["CENTER-A"]),physicianHash]);
 
  let res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:secrets.GASI_MASTER_PASSWORD}}),{});
  assert.equal(res.status,200);
@@ -119,6 +122,45 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-B",password:otherPassword},ip:"10.10.0.12"}),{});
  assert.equal(res.status,200);
  const otherToken=(await responseJson(res)).token;
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"PHYS-A",password:physicianPassword},ip:"10.10.0.13"}),{});
+ assert.equal(res.status,200);
+ const physicianToken=(await responseJson(res)).token;
+
+ res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient_ref:"SYNTH-PAT-01",center:"CENTER-A",summary:"Synthetic nursing escalation",level:2}}),{});
+ assert.equal(res.status,201);
+ const episode=await responseJson(res);
+ assert.equal(episode.status,"ABIERTO");
+ assert.equal(episode.discipline,"nursing");
+
+ res=await handler(request("/api/internal-clinical/episodes",{token:nurseToken}),{});
+ assert.equal(res.status,200);
+ assert.ok((await responseJson(res)).some(x=>x.id===episode.id&&x.status==="ABIERTO"));
+
+ res=await handler(request("/api/internal-clinical/episodes",{token:physicianToken}),{});
+ assert.equal(res.status,200);
+ assert.ok((await responseJson(res)).some(x=>x.id===episode.id));
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}`,{token:otherToken}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"episode_access_denied");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/responses`,{method:"POST",token:nurseToken,body:{text:"Nurse must not author physician response"}}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"physician_only");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/responses`,{method:"POST",token:physicianToken,body:{text:"Synthetic physician response"}}),{});
+ assert.equal(res.status,200);
+ const answeredEpisode=await responseJson(res);
+ assert.equal(answeredEpisode.status,"RESPONDIDO");
+ assert.equal(answeredEpisode.responses.at(-1).author_id,"PHYS-A");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}`,{token:nurseToken}),{});
+ assert.equal(res.status,200);
+ const nurseView=await responseJson(res);
+ assert.equal(nurseView.status,"RESPONDIDO");
+ assert.equal(nurseView.responses.at(-1).text,"Synthetic physician response");
+
  res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:otherToken,cookie:workstationCookie}),{});
  assert.equal(res.status,403);
  assert.equal((await responseJson(res)).detail,"workstation_center_denied");
