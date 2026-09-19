@@ -95,3 +95,36 @@ jobs:
         env:
           CI: 'false'
         run: npx -y netlify-cli@latest build --offline
+
+  netlify-runtime-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gasi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gasi"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: netlify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Install Netlify function dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: PostgreSQL attendance and recovery integration
+        env:
+          GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
+        run: node --test tests/runtime-postgres-integration.test.mjs
