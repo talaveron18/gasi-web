@@ -16,3 +16,12 @@ test("recovery uses truncate rather than row delete for append-only audit",()=>{
  const restore=source.slice(source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
  assert.doesNotMatch(restore,/DELETE FROM internal_clinical_audit/);
 });
+
+
+test("master audit-log reads are themselves audited",()=>{
+ const start=source.indexOf('if(req.method==="GET"&&path==="/api/internal-clinical/audit")');
+ assert.ok(start>=0);
+ const route=source.slice(start,start+900);
+ assert.match(route,/w\.id!==MASTER\(\).*master_account_only/);
+ assert.match(route,/await audit\(db,w,"AUDIT_LOG_VIEWED",\{limit\}\)/);
+});
