@@ -44,12 +44,14 @@ test('clinical mutations load episodes only through SQL-scoped writableEpisode',
   assert.doesNotMatch(source,/const rows=await db\.sql`SELECT \* FROM internal_clinical_episodes WHERE id=\$\{id\} LIMIT 1`;const e=rows\[0\];if\(!e\)return json\(\{detail:"episode_not_found"\},404\);if\(!canWrite\(w,e\)\)/);
 });
 
-test('privileged narrative is gated before full clinical data is loaded',()=>{
+test('privileged narrative is gated and audited before full clinical data is loaded',()=>{
   const start=source.indexOf('const privileged=path.match');
   assert.ok(start>=0,'privileged route missing');
-  const route=source.slice(start,start+3400);
+  const route=source.slice(start,start+4200);
   const gate=route.indexOf('if(!has(w,"clinical_privileged_read"))');
+  const audit=route.indexOf('auditOnClient(client,w,"PRIVILEGED_EPISODE_ACCESSED"');
   const fullLoad=route.indexOf('SELECT * FROM internal_clinical_episodes');
-  assert.ok(gate>=0&&fullLoad>gate,'privilege gate must precede narrative load');
+  assert.ok(gate>=0&&audit>gate&&fullLoad>audit,'privilege gate and audit must precede narrative load');
+  assert.match(route,/SELECT id,center FROM internal_clinical_episodes/);
   assert.match(route,/center = ANY\(\$2::text\[\]\) LIMIT 1/);
 });
