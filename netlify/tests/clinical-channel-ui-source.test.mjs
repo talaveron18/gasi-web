@@ -32,3 +32,11 @@ test("episode UI can review late responses, advance delivery evidence and close 
  assert.match(actions,/latestResponse\?\.status==='LEIDA'/);
  assert.match(actions,/no se permite autorrevisión/);
 });
+
+
+test("episode UI exposes level changes and disposition through authoritative API",()=>{
+ assert.match(actions,/api\.changeLevel\(episode\.id,Number\(levelValue\)\)/);
+ assert.match(actions,/api\.recordDisposition\(episode\.id,kind,new Date\(millis\)\.toISOString\(\)\)/);
+ assert.match(actions,/episode\.discipline==='nursing'/);
+ assert.match(actions,/Registrar disposición/);
+});
