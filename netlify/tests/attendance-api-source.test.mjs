@@ -70,7 +70,7 @@ test("attendance corrections are separate privileged audited events",()=>{
 test("attendance history prevents horizontal worker access",()=>{
  assert.match(source,/path==="\/api\/internal-clinical\/attendance"/);
  assert.match(source,/w\.role==="admin".*w\.id!==MASTER\(\).*attendance_global_read_denied/);
- assert.match(source,/internal_attendance_events WHERE worker_id=\$\{w\.id\}/);
+ assert.match(source,/internal_attendance_events WHERE worker_id=\$1 ORDER BY seq DESC LIMIT \$2/);
  assert.doesNotMatch(source,/url\.searchParams\.get\("worker_id"\)/);
 });
 
@@ -173,4 +173,16 @@ test("attendance requires the claimed Netlify edge network without storing raw I
  assert.match(source,/workstation_network_unavailable/);
  assert.match(source,/workstation_network_denied/);
  assert.doesNotMatch(source,/network_fingerprint_hash=.*claimIp/);
+});
+
+
+test("attendance history paginates by validated sequence cursor",()=>{
+ const start=source.indexOf('if(req.method==="GET"&&path==="/api/internal-clinical/attendance")');
+ const route=source.slice(start,source.indexOf("const attendanceCorrection=path.match"));
+ assert.match(source,/const positiveSeq=\(raw:string\|null\)=>/);
+ assert.match(route,/url\.searchParams\.get\("before_seq"\)/);
+ assert.match(route,/invalid_before_seq/);
+ assert.match(route,/WHERE seq<\$1 ORDER BY seq DESC LIMIT \$2/);
+ assert.match(route,/WHERE worker_id=\$1 AND seq<\$2 ORDER BY seq DESC LIMIT \$3/);
+ assert.match(route,/auditOnClient\(client,w,"ATTENDANCE_GLOBAL_VIEWED"/);
 });
