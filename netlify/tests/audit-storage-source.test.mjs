@@ -23,5 +23,5 @@ test("master audit-log reads are themselves audited",()=>{
  assert.ok(start>=0);
  const route=source.slice(start,start+900);
  assert.match(route,/w\.id!==MASTER\(\).*master_account_only/);
- assert.match(route,/await audit\(db,w,"AUDIT_LOG_VIEWED",\{limit\}\)/);
+ assert.match(route,/await audit\(db,w,"AUDIT_LOG_VIEWED",\{limit,before_seq:beforeSeq\|\|0\}\)/);
 });
