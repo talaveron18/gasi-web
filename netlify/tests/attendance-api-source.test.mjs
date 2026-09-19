@@ -83,3 +83,15 @@ test("attendance state transition is serialized per worker",()=>{
  assert.match(attendanceRoute,/client\.query\("ROLLBACK"\)/);
  assert.match(attendanceRoute,/client\.release\(\)/);
 });
+
+
+test("administrative worker-management privilege does not grant global attendance read",()=>{
+ const start=source.indexOf('if(req.method==="GET"&&path==="/api/internal-clinical/attendance")');
+ assert.ok(start>=0,"attendance history route missing");
+ const route=source.slice(start,start+1700);
+ assert.match(route,/w\.role==="admin"/);
+ assert.match(route,/w\.id!==MASTER\(\).*attendance_global_read_denied/);
+ assert.doesNotMatch(route,/has\(w,"worker_access_management"\).*SELECT seq,worker_id,center/);
+ assert.match(route,/ATTENDANCE_GLOBAL_VIEWED/);
+ assert.match(route,/WHERE worker_id=\$\{w\.id\}/);
+});
