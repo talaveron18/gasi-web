@@ -1,4 +1,6 @@
-const configured = (process.env.REACT_APP_BACKEND_URL || '').trim().replace(/\/+$/, '');
+const configured = process.env.NODE_ENV === 'development'
+  ? (process.env.REACT_APP_BACKEND_URL || '').trim().replace(/\/+$/, '')
+  : '';
 
 export const PUBLIC_API_BASE = configured ? `${configured}/api` : '/api';
 
