@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { GraduationCap, Clock, BookOpen, ArrowLeft, CheckCircle, Users, Calendar, Award, FileText } from 'lucide-react';
+import { GraduationCap, Clock, BookOpen, ArrowLeft, CheckCircle, Users, Calendar, Award, FileText, Download } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -15,6 +15,7 @@ const CursoDetalle = () => {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [materials, setMaterials] = useState([]);
+  const [progressState, setProgressState] = useState(null);
   const [hasCourseAccess, setHasCourseAccess] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
@@ -61,9 +62,31 @@ const CursoDetalle = () => {
     }
   }, [courseId, user]);
 
+  const fetchProgress = useCallback(async () => {
+    if (!user) {
+      setProgressState(null);
+      return;
+    }
+    try {
+      const response = await axios.get(`${API}/courses/${courseId}/progress`, {
+        withCredentials: true
+      });
+      setProgressState(response.data);
+      setHasCourseAccess(true);
+    } catch (error) {
+      if (error.response?.status === 403 || error.response?.status === 401) {
+        setProgressState(null);
+        setHasCourseAccess(false);
+        return;
+      }
+      toast.error('No se pudo cargar tu progreso');
+    }
+  }, [courseId, user]);
+
   useEffect(() => {
     fetchMaterials();
-  }, [fetchMaterials]);
+    fetchProgress();
+  }, [fetchMaterials, fetchProgress]);
 
   useEffect(() => {
     return () => {
@@ -119,7 +142,7 @@ const CursoDetalle = () => {
           withCredentials: true
         });
         toast.success('¡Te has inscrito correctamente!');
-        await fetchMaterials();
+        await Promise.all([fetchMaterials(), fetchProgress()]);
       } else {
         const response = await axios.post(`${API}/payments/create-checkout`, null, {
           withCredentials: true,
@@ -139,6 +162,54 @@ const CursoDetalle = () => {
       } else {
         toast.error(course.is_free ? 'Error al inscribirse' : 'No se pudo iniciar el pago');
       }
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const completeModule = async (moduleId) => {
+    if (!hasCourseAccess) return;
+    setLoadingAction(true);
+    try {
+      const response = await axios.post(
+        `${API}/courses/${courseId}/modules/${moduleId}/complete`,
+        {},
+        { withCredentials: true }
+      );
+      setProgressState(response.data);
+      toast.success(response.data.progress === 100 ? 'Curso completado' : 'Progreso actualizado');
+    } catch (error) {
+      if (error.response?.status === 403 || error.response?.status === 401) {
+        setHasCourseAccess(false);
+        setMaterials([]);
+        setProgressState(null);
+        toast.error('Tu sesión ya no permite actualizar este curso');
+      } else {
+        toast.error('No se pudo guardar el progreso');
+      }
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const downloadCertificate = async () => {
+    if (!progressState?.certificate_id || progressState.progress !== 100) return;
+    setLoadingAction(true);
+    try {
+      const response = await axios.get(`${API}/courses/${courseId}/certificate`, {
+        withCredentials: true,
+        responseType: 'blob'
+      });
+      const blobUrl = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `certificado-${progressState.certificate_id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error('No se pudo descargar el certificado');
     } finally {
       setLoadingAction(false);
     }
@@ -219,7 +290,35 @@ const CursoDetalle = () => {
                 <div className="space-y-4">
                   {course.modules.map((module, index) => (
                     <Card key={module.module_id || index} className="border-l-4 border-l-[#005EB8]">
-                      <CardContent className="p-5"><div className="flex items-start gap-4"><div className="w-10 h-10 bg-[#005EB8] text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">{index + 1}</div><div><h3 className="font-semibold text-[#0F172A] text-lg">{module.title}</h3>{module.description && <p className="text-gray-600 mt-1">{module.description}</p>}</div></div></CardContent>
+                      <CardContent className="p-5">
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 bg-[#005EB8] text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">{index + 1}</div>
+                          <div className="flex-1">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <h3 className="font-semibold text-[#0F172A] text-lg">{module.title}</h3>
+                              {hasCourseAccess && (
+                                progressState?.completed_module_ids?.includes(module.module_id) ? (
+                                  <span className="inline-flex items-center gap-1 text-sm font-semibold text-green-700" data-testid={`module-complete-${module.module_id}`}>
+                                    <CheckCircle className="w-4 h-4" aria-hidden="true" /> Completado
+                                  </span>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={loadingAction}
+                                    onClick={() => completeModule(module.module_id)}
+                                    data-testid={`complete-module-${module.module_id}`}
+                                  >
+                                    Marcar completado
+                                  </Button>
+                                )
+                              )}
+                            </div>
+                            {module.description && <p className="text-gray-600 mt-1">{module.description}</p>}
+                          </div>
+                        </div>
+                      </CardContent>
                     </Card>
                   ))}
                 </div>
@@ -249,13 +348,37 @@ const CursoDetalle = () => {
       {user && hasCourseAccess && (
         <section id="materiales-del-curso" className="py-12 bg-[#F8FAFC]" data-testid="course-materials">
           <div className="max-w-4xl mx-auto px-6">
-            <div className="flex items-center gap-3 mb-6">
-              <FileText className="w-6 h-6 text-[#005EB8]" aria-hidden="true" />
-              <div>
-                <h2 className="text-2xl font-bold text-[#0F172A]">Materiales del curso</h2>
-                <p className="text-sm text-gray-600">Acceso disponible únicamente con tu sesión y matrícula activas.</p>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                <FileText className="w-6 h-6 text-[#005EB8]" aria-hidden="true" />
+                <div>
+                  <h2 className="text-2xl font-bold text-[#0F172A]">Materiales del curso</h2>
+                  <p className="text-sm text-gray-600">Acceso disponible únicamente con tu sesión y matrícula activas.</p>
+                </div>
               </div>
+              {progressState && (
+                <div className="min-w-[220px]" data-testid="course-progress">
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span>Progreso</span>
+                    <strong>{progressState.progress}%</strong>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                    <div className="h-full bg-[#005EB8]" style={{ width: `${progressState.progress}%` }} />
+                  </div>
+                </div>
+              )}
             </div>
+            {progressState?.progress === 100 && progressState?.certificate_id && (
+              <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" data-testid="course-completed">
+                <div>
+                  <p className="font-semibold text-green-800">Curso completado</p>
+                  <p className="text-sm text-green-700">Certificado {progressState.certificate_id}</p>
+                </div>
+                <Button type="button" onClick={downloadCertificate} disabled={loadingAction}>
+                  <Download className="w-4 h-4 mr-2" aria-hidden="true" /> Descargar certificado
+                </Button>
+              </div>
+            )}
             {materials.length > 0 ? (
               <div className="space-y-3">
                 {materials.map((material) => (
