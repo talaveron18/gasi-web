@@ -210,5 +210,5 @@ try{
 }finally{
   chrome.kill("SIGTERM");
   server.close();
-  fs.rmSync(profileDir,{recursive:true,force:true});
+  try{fs.rmSync(profileDir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}catch{}
 }
