@@ -3,7 +3,7 @@ import{Link,useNavigate}from'react-router-dom';
 import{HeartPulse,LogOut,Plus,RefreshCw,ShieldCheck,Stethoscope,UserCog}from'lucide-react';
 import{useInternalPrototypeAuth}from'@/contexts/InternalPrototypeAuthContext';
 import{createInternalClinicalApi}from'@/lib/internalClinicalApi';
-import{loadAuthoritativeEpisodes,partitionAuthoritativeEpisodes}from'@/lib/internalClinicalAuthority';import InternalContingencyPanel from'@/components/InternalContingencyPanel';
+import{loadAuthoritativeEpisodes,partitionAuthoritativeEpisodes}from'@/lib/internalClinicalAuthority';import{readContingencyCache,writeContingencyCache}from'@/lib/internalContingencyCache';import InternalContingencyPanel from'@/components/InternalContingencyPanel';
 
 const ROLES={nurse:{label:'Enfermería',icon:HeartPulse},physician:{label:'Facultativo',icon:Stethoscope},admin:{label:'Administración / Coordinación',icon:UserCog},psychologist:{label:'Psicología',icon:HeartPulse},physiotherapist:{label:'Fisioterapia',icon:HeartPulse}};
 const badge=s=>({ABIERTO:'bg-amber-100 text-amber-900',RESPONDIDO:'bg-blue-100 text-blue-900',CERRADO:'bg-emerald-100 text-emerald-900'}[s]||'bg-slate-200 text-slate-900');
@@ -13,11 +13,11 @@ export default function InternalClinicalPrototype(){
  const{session,token,signOut,canManageWorkers,isMaster}=useInternalPrototypeAuth();
  const api=useMemo(()=>token?createInternalClinicalApi({token}):null,[token]);
  const contingencyCacheKey=session?`gasi-contingency:${session.tenantId||''}:${[...(session.centers||[])].sort().join('|')}`:'';
- const refreshContingency=useCallback(async()=>{if(!api||!contingencyCacheKey)return;try{const rows=await api.listContingency();setContingency(rows);sessionStorage.setItem(contingencyCacheKey,JSON.stringify(rows));}catch(_){try{const cached=JSON.parse(sessionStorage.getItem(contingencyCacheKey)||'[]');setContingency(Array.isArray(cached)?cached:[]);}catch{setContingency([]);}}},[api,contingencyCacheKey]);
+ const refreshContingency=useCallback(async()=>{if(!api||!contingencyCacheKey)return;try{const rows=await api.listContingency();setContingency(writeContingencyCache(sessionStorage,contingencyCacheKey,rows));}catch(_){setContingency(readContingencyCache(sessionStorage,contingencyCacheKey));}},[api,contingencyCacheKey]);
  const[episodes,setEpisodes]=useState([]),[state,setState]=useState('LOADING'),[error,setError]=useState(''),[contingency,setContingency]=useState([]);
  const RoleIcon=ROLES[session?.role]?.icon||ShieldCheck;
  const load=useCallback(async()=>{if(!api)return;setState('LOADING');setError('');const r=await loadAuthoritativeEpisodes(api);if(!r.ok){setEpisodes([]);setError(r.errorCode);setState('ERROR');return;}setEpisodes(r.episodes);setState('READY');},[api]);
- useEffect(()=>{if(contingencyCacheKey)try{const cached=JSON.parse(sessionStorage.getItem(contingencyCacheKey)||'[]');setContingency(Array.isArray(cached)?cached:[]);}catch{setContingency([]);}refreshContingency();},[contingencyCacheKey,refreshContingency]);useEffect(()=>{load();},[load]);
+ useEffect(()=>{setContingency(readContingencyCache(sessionStorage,contingencyCacheKey));refreshContingency();},[contingencyCacheKey,refreshContingency]);useEffect(()=>{load();},[load]);
  if(!session||!token)return null;
  const{pending,closed}=partitionAuthoritativeEpisodes(episodes);
  const canCreate=['nurse','psychologist','physiotherapist'].includes(session.role);
