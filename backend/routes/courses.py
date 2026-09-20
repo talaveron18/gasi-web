@@ -117,7 +117,7 @@ async def list_course_materials(
         {"course_id": course_id},
         {"_id": 0, "object_key": 0, "created_by": 0}
     ).to_list(500)
-    return materials
+    return [material for material in materials if material.get("status") != "DELETING"]
 
 
 @router.get("/{course_id}/materials/{material_id}/content")
@@ -135,7 +135,7 @@ async def stream_course_material(
         {"material_id": material_id, "course_id": course_id},
         {"_id": 0}
     )
-    if not material:
+    if not material or material.get("status") == "DELETING":
         raise HTTPException(status_code=404, detail="material_not_found")
     if material.get("content_type") != "application/pdf":
         raise HTTPException(status_code=415, detail="unsupported_material_type")
