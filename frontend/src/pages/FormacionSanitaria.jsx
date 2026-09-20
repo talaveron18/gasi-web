@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const OAUTH_LOGIN_URL = (process.env.REACT_APP_OAUTH_LOGIN_URL || '').trim();
 
 const FormacionSanitaria = () => {
   const [courses, setCourses] = useState([]);
@@ -91,8 +92,10 @@ const FormacionSanitaria = () => {
   };
 
   const handleGoogleLogin = () => {
-    const redirectUrl = `${window.location.origin}/dashboard`;
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    if (!OAUTH_LOGIN_URL) return;
+    const redirectUrl = `${window.location.origin}/auth/callback`;
+    const separator = OAUTH_LOGIN_URL.includes('?') ? '&' : '?';
+    window.location.href = `${OAUTH_LOGIN_URL}${separator}redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
   const handleCourseAccess = (course) => {
@@ -542,6 +545,7 @@ const FormacionSanitaria = () => {
             </div>
           </div>
 
+          {OAUTH_LOGIN_URL && (
           <Button 
             variant="outline" 
             className="w-full" 
@@ -557,6 +561,7 @@ const FormacionSanitaria = () => {
             </svg>
             Continuar con Google
           </Button>
+          )}
 
           <div className="text-center text-sm mt-4">
             <button 
