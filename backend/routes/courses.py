@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Response
 from fastapi.responses import StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from models import Course, CourseCreate, Enrollment, EnrollmentCreate
 from auth import get_current_user
 from course_material_storage import CourseMaterialStorageError, get_course_material_storage
+from course_certificate import build_course_certificate_pdf
 from typing import List
 import re
 from datetime import datetime, timezone
@@ -44,6 +45,22 @@ def safe_inline_filename(value: str) -> str:
     if not cleaned.lower().endswith(".pdf"):
         cleaned = f"{cleaned or 'material'}.pdf"
     return cleaned[:180]
+
+
+def enrollment_progress_payload(enrollment: dict, course: dict):
+    module_ids = [str(module.get("module_id")) for module in (course.get("modules") or [])]
+    completed = [str(value) for value in (enrollment.get("completed_module_ids") or []) if str(value) in set(module_ids)]
+    total = len(module_ids)
+    progress = round((len(set(completed)) / total) * 100, 2) if total else 0.0
+    return {
+        "course_id": course["course_id"],
+        "completed_module_ids": sorted(set(completed)),
+        "completed_modules": len(set(completed)),
+        "total_modules": total,
+        "progress": progress,
+        "completed_at": enrollment.get("completed_at"),
+        "certificate_id": enrollment.get("certificate_id"),
+    }
 
 @router.get("/", response_model=List[Course])
 async def get_courses(db: AsyncIOMotorDatabase = Depends(get_db)):
@@ -157,6 +174,120 @@ async def stream_course_material(
     if stored.content_length > 0:
         headers["Content-Length"] = str(stored.content_length)
     return StreamingResponse(body, media_type="application/pdf", headers=headers)
+
+
+@router.get("/{course_id}/progress")
+async def get_course_progress(
+    course_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    course = await db.courses.find_one({"course_id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    enrollment = await db.enrollments.find_one(
+        {"user_id": current_user["user_id"], "course_id": course_id},
+        {"_id": 0}
+    )
+    if not enrollment:
+        raise HTTPException(status_code=403, detail="course_access_required")
+    return enrollment_progress_payload(enrollment, course)
+
+
+@router.post("/{course_id}/modules/{module_id}/complete")
+async def complete_course_module(
+    course_id: str,
+    module_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    course = await db.courses.find_one({"course_id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    module_ids = [str(module.get("module_id")) for module in (course.get("modules") or [])]
+    if module_id not in module_ids:
+        raise HTTPException(status_code=404, detail="module_not_found")
+
+    enrollment = await db.enrollments.find_one(
+        {"user_id": current_user["user_id"], "course_id": course_id},
+        {"_id": 0}
+    )
+    if not enrollment:
+        raise HTTPException(status_code=403, detail="course_access_required")
+
+    completed = {str(value) for value in (enrollment.get("completed_module_ids") or []) if str(value) in set(module_ids)}
+    completed.add(module_id)
+    progress = round((len(completed) / len(module_ids)) * 100, 2) if module_ids else 0.0
+
+    completed_at = enrollment.get("completed_at")
+    certificate_id = enrollment.get("certificate_id")
+    if progress == 100.0:
+        if not completed_at:
+            completed_at = datetime.now(timezone.utc).isoformat()
+        if not certificate_id:
+            certificate_id = f"GASI-{uuid.uuid4().hex[:16].upper()}"
+
+    await db.enrollments.update_one(
+        {"user_id": current_user["user_id"], "course_id": course_id},
+        {"$set": {
+            "completed_module_ids": sorted(completed),
+            "progress": progress,
+            "completed_at": completed_at,
+            "certificate_id": certificate_id,
+        }}
+    )
+    updated = await db.enrollments.find_one(
+        {"user_id": current_user["user_id"], "course_id": course_id},
+        {"_id": 0}
+    )
+    return enrollment_progress_payload(updated, course)
+
+
+@router.get("/{course_id}/certificate")
+async def get_course_certificate(
+    course_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    course = await db.courses.find_one({"course_id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    enrollment = await db.enrollments.find_one(
+        {"user_id": current_user["user_id"], "course_id": course_id},
+        {"_id": 0}
+    )
+    if not enrollment:
+        raise HTTPException(status_code=403, detail="course_access_required")
+    if float(enrollment.get("progress") or 0) < 100 or not enrollment.get("completed_at") or not enrollment.get("certificate_id"):
+        raise HTTPException(status_code=409, detail="course_not_completed")
+
+    user = await db.users.find_one(
+        {"user_id": current_user["user_id"]},
+        {"_id": 0, "name": 1}
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    try:
+        completed_at = datetime.fromisoformat(str(enrollment["completed_at"]))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=409, detail="course_completion_invalid")
+
+    pdf = build_course_certificate_pdf(
+        student_name=user["name"],
+        course_title=course["title"],
+        certificate_id=enrollment["certificate_id"],
+        completed_at=completed_at,
+    )
+    filename = f"certificado-{enrollment['certificate_id']}.pdf"
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={
+            "Cache-Control": "private, no-store",
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.get("/{course_id}", response_model=Course)
