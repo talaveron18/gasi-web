@@ -46,7 +46,7 @@ if '*' in cors_origins:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=False,
+    allow_credentials=True,
     allow_origins=cors_origins,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
@@ -75,6 +75,8 @@ async def initialize_internal_clinical_store():
         os.environ.get('GASI_MASTER_DISPLAY_NAME', 'Administración maestra GASI'),
         hash_password(master_password),
     )
+    await db.users.create_index('email', unique=True, name='uniq_public_user_email')
+    await db.user_sessions.create_index('session_token', unique=True, name='uniq_public_session_token')
     await db.enrollments.create_index([('user_id', 1), ('course_id', 1)], unique=True, name='uniq_user_course_enrollment')
 
 @app.on_event("shutdown")
