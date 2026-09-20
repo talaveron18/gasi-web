@@ -374,7 +374,7 @@ const CursoDetalle = () => {
                   <p className="font-semibold text-green-800">Curso completado</p>
                   <p className="text-sm text-green-700">Certificado {progressState.certificate_id}</p>
                 </div>
-                <Button type="button" onClick={downloadCertificate} disabled={loadingAction}>
+                <Button type="button" onClick={downloadCertificate} disabled={loadingAction} data-testid="download-certificate">
                   <Download className="w-4 h-4 mr-2" aria-hidden="true" /> Descargar certificado
                 </Button>
               </div>
