@@ -120,7 +120,7 @@ test("restore rejects duplicate ids and sequence keys before destructive work",(
 
 test("restore requires an active administrative master identity",()=>{
  assert.match(source,/masterSnapshot=snapshot\.workers\.find\(\(x:any\)=>String\(x\.id\)===MASTER\(\)\)/);
- assert.match(source,/!masterSnapshot\|\|masterSnapshot\.tenant_id!=="__MASTER__"\|\|masterSnapshot\.role!=="admin"\|\|masterSnapshot\.active!==true/);
+ assert.match(source,/!masterSnapshot\|\|masterSnapshot\.tenant_id!==MASTER_TENANT\|\|masterSnapshot\.role!=="admin"\|\|masterSnapshot\.active!==true/);
  assert.match(source,/invalid_recovery_snapshot_master/);
  const validation=source.indexOf("invalid_recovery_snapshot_master");
  const connect=source.indexOf("const client=await db.pool.connect()",source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
@@ -263,7 +263,7 @@ test("recovery v3 rejects cross-tenant references before destructive mutation",(
  assert.match(source,/ws\.tenant_id!==String\(x\.tenant_id\)/);
  assert.match(source,/String\(related\.tenant_id\)!==String\(x\.tenant_id\)/);
  assert.match(source,/badEpisodeReference/);
- assert.match(source,/masterSnapshot\.tenant_id!=="__MASTER__"/);
+ assert.match(source,/masterSnapshot\.tenant_id!==MASTER_TENANT/);
 });
 
 test("recovery v3 restores tenant ids on every operational collection",()=>{
