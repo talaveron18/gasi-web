@@ -245,7 +245,7 @@ export default function AdminCourses() {
             <Button variant="outline" onClick={() => loadCourses(selectedId)} disabled={loading || busy}>
               <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" /> Actualizar
             </Button>
-            <Button onClick={chooseNew}>
+            <Button onClick={chooseNew} data-testid="admin-new-course">
               <Plus className="w-4 h-4 mr-2" aria-hidden="true" /> Nuevo curso
             </Button>
           </div>
@@ -276,7 +276,7 @@ export default function AdminCourses() {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <h2 className="text-xl font-bold text-[#0F172A]">{selectedId ? 'Editar curso' : 'Crear curso'}</h2>
                     {selectedId && (
-                      <Button type="button" variant="destructive" onClick={deleteCourse} disabled={busy}>
+                      <Button type="button" variant="destructive" onClick={deleteCourse} disabled={busy} data-testid="admin-delete-course">
                         <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" /> Eliminar curso
                       </Button>
                     )}
@@ -284,13 +284,13 @@ export default function AdminCourses() {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <label className="text-sm font-medium">Título
-                      <input required value={form.title} onChange={e => updateField('title', e.target.value)} className="mt-1 w-full rounded-lg border p-3" />
+                      <input required value={form.title} onChange={e => updateField('title', e.target.value)} className="mt-1 w-full rounded-lg border p-3" data-testid="admin-course-title" />
                     </label>
                     <label className="text-sm font-medium">Duración
-                      <input required value={form.duration} onChange={e => updateField('duration', e.target.value)} className="mt-1 w-full rounded-lg border p-3" />
+                      <input required value={form.duration} onChange={e => updateField('duration', e.target.value)} className="mt-1 w-full rounded-lg border p-3" data-testid="admin-course-duration" />
                     </label>
                     <label className="text-sm font-medium">Modalidad
-                      <input required value={form.type} onChange={e => updateField('type', e.target.value)} className="mt-1 w-full rounded-lg border p-3" />
+                      <input required value={form.type} onChange={e => updateField('type', e.target.value)} className="mt-1 w-full rounded-lg border p-3" data-testid="admin-course-type" />
                     </label>
                     <label className="text-sm font-medium">Imagen/thumbnail opcional
                       <input value={form.thumbnail} onChange={e => updateField('thumbnail', e.target.value)} className="mt-1 w-full rounded-lg border p-3" />
@@ -298,7 +298,7 @@ export default function AdminCourses() {
                   </div>
 
                   <label className="text-sm font-medium block">Descripción
-                    <textarea required rows={4} value={form.description} onChange={e => updateField('description', e.target.value)} className="mt-1 w-full rounded-lg border p-3" />
+                    <textarea required rows={4} value={form.description} onChange={e => updateField('description', e.target.value)} className="mt-1 w-full rounded-lg border p-3" data-testid="admin-course-description" />
                   </label>
 
                   <div className="flex flex-wrap items-center gap-6">
@@ -316,7 +316,7 @@ export default function AdminCourses() {
                   <section aria-labelledby="modules-title">
                     <div className="flex items-center justify-between gap-3 mb-3">
                       <h3 id="modules-title" className="font-bold text-[#0F172A]">Módulos</h3>
-                      <Button type="button" variant="outline" onClick={addModule}>
+                      <Button type="button" variant="outline" onClick={addModule} data-testid="admin-add-module">
                         <Plus className="w-4 h-4 mr-2" aria-hidden="true" /> Añadir módulo
                       </Button>
                     </div>
@@ -330,7 +330,7 @@ export default function AdminCourses() {
                                 <Trash2 className="w-4 h-4" aria-hidden="true" />
                               </Button>
                             </div>
-                            <input required value={module.title} onChange={e => updateModule(index, 'title', e.target.value)} placeholder="Título del módulo" className="w-full rounded-lg border p-3" />
+                            <input required value={module.title} onChange={e => updateModule(index, 'title', e.target.value)} placeholder="Título del módulo" className="w-full rounded-lg border p-3" data-testid={`admin-module-title-${index}`} />
                             <textarea value={module.description || ''} onChange={e => updateModule(index, 'description', e.target.value)} placeholder="Descripción" rows={2} className="w-full rounded-lg border p-3" />
                             {selectedId && (
                               <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium">
@@ -339,6 +339,7 @@ export default function AdminCourses() {
                                   type="file"
                                   accept="application/pdf,.pdf"
                                   className="sr-only"
+                                  data-testid={`admin-material-file-${index}`}
                                   disabled={busy}
                                   onChange={e => {
                                     const file = e.target.files?.[0];
@@ -354,7 +355,7 @@ export default function AdminCourses() {
                     </div>
                   </section>
 
-                  <Button type="submit" disabled={busy}>
+                  <Button type="submit" disabled={busy} data-testid="admin-save-course">
                     <Save className="w-4 h-4 mr-2" aria-hidden="true" /> {busy ? 'Guardando…' : 'Guardar curso'}
                   </Button>
                 </form>
@@ -377,7 +378,7 @@ export default function AdminCourses() {
                             {form.modules.find(module => module.module_id === material.module_id)?.title || material.module_id}
                           </p>
                         </div>
-                        <Button type="button" variant="destructive" onClick={() => deleteMaterial(material)} disabled={busy}>
+                        <Button type="button" variant="destructive" onClick={() => deleteMaterial(material)} disabled={busy} data-testid={`admin-delete-material-${material.material_id}`}>
                           <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" /> Eliminar
                         </Button>
                       </div>
