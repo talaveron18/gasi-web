@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { GraduationCap, Clock, BookOpen, LogIn, Plus, Edit, Trash2, Shield } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ const FormacionSanitaria = () => {
   
   const { user, login, register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -45,6 +46,14 @@ const FormacionSanitaria = () => {
   useEffect(() => {
     fetchCourses();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.openAuth && !user) {
+      setIsLogin(true);
+      setShowAuthModal(true);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate, user]);
 
   const fetchCourses = async () => {
     try {
