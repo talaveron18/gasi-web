@@ -22,6 +22,11 @@ class ApiError extends Error{
   constructor(status:number,detail:any){super(typeof detail==="string"?detail:"api_error");this.status=status;this.detail=detail;}
 }
 const env=(name:string)=>String((globalThis as any).Netlify?.env?.get?.(name)||process.env[name]||"");
+
+function coarseSurface(pathname:string){
+  const segment=pathname.split("/").filter(Boolean)[1]||"root";
+  return ["auth","courses","admin","payments","health"].includes(segment)?segment:"other";
+}
 const databaseCache=new Map<string,any>();
 function database(){
   const connectionString=env("NETLIFY_DB_URL"),key=connectionString||"__netlify_default__";
@@ -316,7 +321,7 @@ function stripeSignature(raw:string,header:string,secret:string){
   return expected.length===supplied.length&&crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(supplied));
 }
 
-export default async (req:Request,_context:Context)=>{
+async function handlePublicApi(req:Request,_context:Context){
   const url=new URL(req.url),path=url.pathname,db=database();
   try{
     enforceBrowserMutationOrigin(req,path);
@@ -585,10 +590,39 @@ export default async (req:Request,_context:Context)=>{
     return json({detail:"public_route_not_found"},404);
   }catch(e:any){
     if(e instanceof ApiError)return json({detail:e.detail},e.status);
-    console.error("public_api_error",{path,method:req.method,name:e?.name||"Error"});
+    console.error("public_api_error",{surface:coarseSurface(path),method:req.method,name:e?.name||"Error"});
     return json({detail:"internal_error"},500);
   }
+}
+
+const publicApi=async (req:Request,context:Context)=>{
+  const requestId=crypto.randomUUID();
+  const started=Date.now();
+  let response:Response;
+  try{
+    response=await handlePublicApi(req,context);
+  }catch(error:any){
+    console.error("public_api_unhandled",{surface:coarseSurface(new URL(req.url).pathname),method:req.method,name:error?.name||"Error"});
+    response=json({detail:"internal_error"},500);
+  }
+  const durationMs=Math.max(0,Date.now()-started);
+  response.headers.set("x-request-id",requestId);
+  response.headers.set("server-timing",`app;dur=${durationMs}`);
+  const surface=coarseSurface(new URL(req.url).pathname);
+  const status=response.status;
+  const outcome=status>=500?"server_error":status===429?"rate_limited":status===403?"forbidden":status>=400?"client_error":"ok";
+  console.info("public_api_request",JSON.stringify({
+    request_id:requestId,
+    surface,
+    method:req.method,
+    status,
+    outcome,
+    duration_ms:durationMs
+  }));
+  return response;
 };
+
+export default publicApi;
 
 export const config:Config={path:[
   "/api/health",
