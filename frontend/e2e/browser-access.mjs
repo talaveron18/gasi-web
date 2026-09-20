@@ -36,9 +36,6 @@ async function startStaticServer(){
       res.writeHead(401,{"content-type":"application/json","cache-control":"no-store"});
       res.end(JSON.stringify({detail:"unauthenticated"}));return;
     }
-    if(u.pathname==="/api/internal-clinical/login"&&req.method==="POST"){
-      req.socket.destroy();return;
-    }
     if(u.pathname.startsWith("/api/internal-clinical/")){
       res.writeHead(401,{"content-type":"application/json","cache-control":"no-store"});
       res.end(JSON.stringify({detail:"missing_session"}));return;
@@ -157,6 +154,7 @@ try{
   await send("Page.enable");
   await send("Runtime.enable");
   await send("Accessibility.enable");
+  await send("Network.enable");
 
   await navigate(send,`${origin}/acceso`,'[data-testid="access-portal"]');
   const landing=await value(send,"document.body.innerText");
@@ -188,12 +186,14 @@ try{
   assert.match(teamLogin,/Identificador de acceso/);
   assert.doesNotMatch(teamLogin,/Acceso profesional/);
 
-  await send("Runtime.evaluate",{expression:`(()=>{const set=(selector,v)=>{const el=document.querySelector(selector);const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}));};set('input[autocomplete="username"]','E2E-NETWORK');set('input[autocomplete="current-password"]','SyntheticCredential123!');document.querySelector('main form button').focus();})()`});
-  await key(send,"Enter","Enter",13);
+  await send("Runtime.evaluate",{expression:`(()=>{const set=(selector,v)=>{const el=document.querySelector(selector);const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}));};set('input[autocomplete="username"]','E2E-NETWORK');set('input[autocomplete="current-password"]','SyntheticCredential123!');})()`});
+  await send("Network.emulateNetworkConditions",{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
+  await send("Runtime.evaluate",{expression:"document.querySelector('main form').requestSubmit()"});
   await waitFor(send,`document.querySelector('[role="alert"]')?.innerText.includes("No se puede conectar con el servicio de acceso.")`);
   const safeNetworkError=await value(send,`document.querySelector('[role="alert"]')?.innerText||''`);
   assert.equal(safeNetworkError,"No se puede conectar con el servicio de acceso.");
   assert.doesNotMatch(safeNetworkError,/ECONN|fetch failed|TypeError|stack|https?:/i);
+  await send("Network.emulateNetworkConditions",{offline:false,latency:0,downloadThroughput:10000000,uploadThroughput:10000000});
 
   await navigate(send,`${origin}/acceso`,'[data-testid="access-portal"]');
   await tabUntil(send,"access-student");
