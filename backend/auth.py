@@ -49,8 +49,23 @@ async def get_current_user(
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    try:
-        payload = decode_token(token)
-        return payload
-    except:
+    payload = decode_token(token)
+    user_id = payload.get("user_id")
+    if not user_id:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+
+    from server import db
+    session = await db.user_sessions.find_one(
+        {"user_id": user_id, "session_token": token},
+        {"_id": 0, "expires_at": 1}
+    )
+    if not session:
+        raise HTTPException(status_code=401, detail="Session expired or revoked")
+    try:
+        expires_at = datetime.fromisoformat(session["expires_at"])
+    except (KeyError, TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Session expired or revoked")
+    if expires_at <= datetime.now(timezone.utc):
+        await db.user_sessions.delete_many({"session_token": token})
+        raise HTTPException(status_code=401, detail="Session expired or revoked")
+    return payload
