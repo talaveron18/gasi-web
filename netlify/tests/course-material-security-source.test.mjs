@@ -2,36 +2,32 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const admin=fs.readFileSync(new URL("../../backend/routes/admin.py",import.meta.url),"utf8");
-const courses=fs.readFileSync(new URL("../../backend/routes/courses.py",import.meta.url),"utf8");
-const models=fs.readFileSync(new URL("../../backend/models.py",import.meta.url),"utf8");
-const storage=fs.readFileSync(new URL("../../backend/course_material_storage.py",import.meta.url),"utf8");
+const api=fs.readFileSync(new URL("../functions/public-api.mts",import.meta.url),"utf8");
+const migration=fs.readFileSync(new URL("../database/migrations/20260920190000_public-web-v1/migration.sql",import.meta.url),"utf8");
 
-test("course materials never fall back to local public uploads",()=>{
-  const joined=admin+"\n"+courses+"\n"+storage;
-  assert.doesNotMatch(joined,/\/app\/uploads|\/uploads\/courses/);
-  assert.match(storage,/COURSE_MATERIAL_BUCKET/);
-  assert.match(storage,/course_material_storage_not_configured/);
+test("course materials never fall back to public local uploads",()=>{
+  assert.equal(api.includes("/app/uploads"),false);
+  assert.equal(api.includes("/uploads/courses"),false);
+  assert.equal(api.includes("COURSE_MATERIAL_BUCKET"),false);
+  assert.equal(api.includes("object_key"),false);
+  assert.equal(migration.includes("content BYTEA NOT NULL"),true);
 });
 
-test("public course schema does not expose storage references",()=>{
-  assert.doesNotMatch(models,/pdfs:\s*List\[str\]/);
-  assert.doesNotMatch(models,/videos:\s*List\[str\]/);
-  assert.match(courses,/object_key": 0/);
-  assert.match(courses,/created_by": 0/);
+test("public material metadata omits binary content",()=>{
+  assert.equal(api.includes("SELECT material_id,course_id,module_id,filename,content_type,size_bytes AS size,created_at,status FROM public_course_materials"),true);
+  assert.equal(api.includes("SELECT * FROM public_course_materials WHERE course_id"),false);
 });
 
 test("course material content is authorized and private",()=>{
-  assert.match(courses,/require_course_access/);
-  assert.match(courses,/course_access_required/);
-  assert.match(courses,/Cache-Control": "private, no-store"/);
-  assert.match(courses,/Content-Disposition": f'inline;/);
-  assert.match(courses,/material_id": material_id, "course_id": course_id/);
+  assert.equal(api.includes("courseAccess(client,user,courseId)"),true);
+  assert.equal(api.includes("course_access_required"),true);
+  assert.equal(api.includes("private, no-store"),true);
+  assert.equal(api.includes("material_id=$1 AND course_id=$2"),true);
 });
 
-test("admin PDF upload validates signature and private storage",()=>{
-  assert.match(admin,/content\.startswith\(b"%PDF-"\)/);
-  assert.match(admin,/MAX_PDF_BYTES/);
-  assert.match(admin,/get_course_material_storage\(\)/);
-  assert.doesNotMatch(admin,/return \{[^}]*"url"/s);
+test("admin PDF upload validates extension signature and size",()=>{
+  assert.equal(api.includes("MAX_PDF_BYTES"),true);
+  assert.equal(api.includes("endsWith(\".pdf\")"),true);
+  assert.equal(api.includes("Buffer.from(\"%PDF-\")"),true);
+  assert.equal(api.includes("INSERT INTO public_course_materials"),true);
 });
