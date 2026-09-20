@@ -1,9 +1,10 @@
 import os
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
@@ -11,7 +12,8 @@ if str(BACKEND_DIR) not in sys.path:
 
 import auth
 from models import CourseCreate, EnrollmentCreate
-from routes import courses, payments
+from routes import auth as auth_routes, courses, payments
+from models import UserCreate
 
 
 class FakeResult:
@@ -37,6 +39,11 @@ class FakeCollection:
         self.docs.append(dict(doc))
         return FakeResult(upserted_id=len(self.docs))
 
+    async def delete_many(self, query):
+        before=len(self.docs)
+        self.docs=[doc for doc in self.docs if not self._matches(doc,query)]
+        return SimpleNamespace(deleted_count=before-len(self.docs))
+
     async def update_one(self, query, update, upsert=False):
         for doc in self.docs:
             if self._matches(doc, query):
@@ -52,10 +59,11 @@ class FakeCollection:
 
 
 class FakeDB:
-    def __init__(self, *, courses_docs=None, users=None, enrollments=None):
+    def __init__(self, *, courses_docs=None, users=None, enrollments=None, sessions=None):
         self.courses = FakeCollection(courses_docs)
         self.users = FakeCollection(users)
         self.enrollments = FakeCollection(enrollments)
+        self.user_sessions = FakeCollection(sessions)
 
 
 def paid_course():
@@ -213,3 +221,76 @@ async def test_unpaid_webhook_does_not_create_enrollment(monkeypatch):
     db = FakeDB(courses_docs=[paid_course()])
     assert await payments.stripe_webhook(Request(), db=db) == {"status": "ignored"}
     assert db.enrollments.docs == []
+
+
+@pytest.mark.asyncio
+async def test_registration_sets_revocable_http_only_cookie(monkeypatch):
+    monkeypatch.setenv("JWT_SECRET_KEY", "synthetic-public-jwt-secret-32-bytes-minimum-2026")
+    db=FakeDB()
+    response=Response()
+    result=await auth_routes.register(
+        UserCreate(name="Alumno Prueba",email="student@example.com",password="SyntheticPass123!"),
+        response=response,
+        db=db,
+    )
+    assert result.user.email=="student@example.com"
+    cookie=response.headers.get("set-cookie","")
+    assert "session_token=" in cookie
+    assert "HttpOnly" in cookie
+    assert "Secure" in cookie
+    assert "SameSite=none" in cookie
+    assert len(db.user_sessions.docs)==1
+
+
+@pytest.mark.asyncio
+async def test_public_session_store_revokes_existing_jwt(monkeypatch):
+    monkeypatch.setenv("JWT_SECRET_KEY", "synthetic-public-jwt-secret-32-bytes-minimum-2026")
+    token=auth.create_access_token({"user_id":"PUBLIC-1","email":"public@example.com"})
+    future="2099-01-01T00:00:00+00:00"
+    db=FakeDB(sessions=[{"user_id":"PUBLIC-1","session_token":token,"expires_at":future}])
+    monkeypatch.setitem(sys.modules,"server",SimpleNamespace(db=db))
+    payload=await auth.get_current_user(session_token=token,authorization=None)
+    assert payload["user_id"]=="PUBLIC-1"
+
+    db.user_sessions.docs.clear()
+    with pytest.raises(HTTPException) as exc:
+        await auth.get_current_user(session_token=token,authorization=None)
+    assert exc.value.status_code==401
+    assert exc.value.detail=="Session expired or revoked"
+
+
+@pytest.mark.asyncio
+async def test_oauth_requires_real_provider_and_mints_local_token(monkeypatch):
+    monkeypatch.setenv("JWT_SECRET_KEY", "synthetic-public-jwt-secret-32-bytes-minimum-2026")
+    monkeypatch.delenv("OAUTH_BACKEND_URL",raising=False)
+    db=FakeDB()
+    with pytest.raises(HTTPException) as exc:
+        await auth_routes.create_session_from_oauth("provider-session",Response(),db)
+    assert exc.value.status_code==503
+    assert exc.value.detail=="oauth_not_configured"
+
+    monkeypatch.setenv("OAUTH_BACKEND_URL","https://oauth.example.invalid")
+
+    class ProviderResponse:
+        status_code=200
+        def json(self):
+            return {
+                "email":"oauth@example.com",
+                "name":"OAuth Student",
+                "picture":None,
+                "session_token":"provider-token-must-not-be-used-locally",
+            }
+
+    class Client:
+        async def __aenter__(self): return self
+        async def __aexit__(self,*args): return False
+        async def get(self,*args,**kwargs): return ProviderResponse()
+
+    monkeypatch.setattr(auth_routes.httpx,"AsyncClient",lambda:Client())
+    response=Response()
+    result=await auth_routes.create_session_from_oauth("provider-session",response,db)
+    assert result.user.email=="oauth@example.com"
+    assert result.token!="provider-token-must-not-be-used-locally"
+    assert auth.decode_token(result.token)["user_id"]==result.user.user_id
+    assert result.token in response.headers.get("set-cookie","")
+    assert db.user_sessions.docs[0]["session_token"]==result.token
