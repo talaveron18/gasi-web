@@ -49,16 +49,30 @@ async def admin_update_course(
     current_user: dict = Depends(verify_admin),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
-    result = await db.courses.update_one(
+    existing = await db.courses.find_one({"course_id": course_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    material_rows = await db.course_materials.find(
+        {"course_id": course_id},
+        {"_id": 0, "module_id": 1}
+    ).to_list(1000)
+    material_modules = {str(row.get("module_id")) for row in material_rows if row.get("module_id")}
+    requested_modules = {str(module.module_id) for module in course_data.modules}
+    removed_with_material = sorted(material_modules - requested_modules)
+    if removed_with_material:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "module_has_materials", "module_ids": removed_with_material},
+        )
+
+    await db.courses.update_one(
         {"course_id": course_id},
         {"$set": {
             **course_data.model_dump(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
-    
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Course not found")
     
     course = await db.courses.find_one({"course_id": course_id}, {"_id": 0})
     if isinstance(course.get("created_at"), str):
@@ -71,6 +85,14 @@ async def admin_delete_course(
     current_user: dict = Depends(verify_admin),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
+    course = await db.courses.find_one({"course_id": course_id}, {"_id": 0, "course_id": 1})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    if await db.enrollments.find_one({"course_id": course_id}, {"_id": 0, "enrollment_id": 1}):
+        raise HTTPException(status_code=409, detail="course_has_enrollments")
+    if await db.course_materials.find_one({"course_id": course_id}, {"_id": 0, "material_id": 1}):
+        raise HTTPException(status_code=409, detail="course_has_materials")
+
     result = await db.courses.delete_one({"course_id": course_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -120,6 +142,7 @@ async def admin_upload_course_material(
         "size": len(content),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "created_by": current_user["user_id"],
+        "status": "ACTIVE",
     }
     try:
         await db.course_materials.insert_one(material_doc)
@@ -139,6 +162,68 @@ async def admin_upload_course_material(
         "size": material_doc["size"],
         "created_at": material_doc["created_at"],
     }
+
+@router.get("/courses/{course_id}/materials")
+async def admin_list_course_materials(
+    course_id: str,
+    current_user: dict = Depends(verify_admin),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    course = await db.courses.find_one({"course_id": course_id}, {"_id": 0, "course_id": 1})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    rows = await db.course_materials.find(
+        {"course_id": course_id},
+        {"_id": 0, "object_key": 0}
+    ).to_list(1000)
+    return [row for row in rows if row.get("status") != "DELETING"]
+
+
+@router.delete("/courses/{course_id}/materials/{material_id}")
+async def admin_delete_course_material(
+    course_id: str,
+    material_id: str,
+    current_user: dict = Depends(verify_admin),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    material = await db.course_materials.find_one(
+        {"course_id": course_id, "material_id": material_id},
+        {"_id": 0}
+    )
+    if not material:
+        raise HTTPException(status_code=404, detail="material_not_found")
+
+    await db.course_materials.update_one(
+        {"course_id": course_id, "material_id": material_id},
+        {"$set": {
+            "status": "DELETING",
+            "deleting_at": datetime.now(timezone.utc).isoformat(),
+            "deleting_by": current_user["user_id"],
+        }}
+    )
+    try:
+        storage = get_course_material_storage()
+        storage.delete(object_key=material["object_key"])
+    except CourseMaterialStorageError as exc:
+        await db.course_materials.update_one(
+            {"course_id": course_id, "material_id": material_id},
+            {"$set": {"status": "ACTIVE"}}
+        )
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception:
+        await db.course_materials.update_one(
+            {"course_id": course_id, "material_id": material_id},
+            {"$set": {"status": "ACTIVE"}}
+        )
+        raise HTTPException(status_code=502, detail="material_storage_unavailable")
+
+    result = await db.course_materials.delete_one(
+        {"course_id": course_id, "material_id": material_id}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=409, detail="material_delete_incomplete")
+    return {"message": "Material deleted successfully"}
+
 
 @router.get("/users")
 async def admin_get_users(
