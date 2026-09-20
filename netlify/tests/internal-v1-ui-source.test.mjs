@@ -33,3 +33,10 @@ test("clinical channel exposes daily internal navigation without weakening guard
  assert.match(clinical,/isMaster&&<Link to="\/interno\/fichajes"/);
  assert.match(clinical,/isMaster&&<Link to="\/interno\/auditoria"/);
 });
+
+
+test("episode list cards do not render clinical narrative",()=>{
+ const clinical=fs.readFileSync(new URL("../../frontend/src/pages/InternalClinicalPrototype.jsx",import.meta.url),"utf8");
+ assert.doesNotMatch(clinical,/episode\.summary/);
+ assert.match(clinical,/Abre el episodio para consultar contenido clínico; esa lectura queda auditada/);
+});
