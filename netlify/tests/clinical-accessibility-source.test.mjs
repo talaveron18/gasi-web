@@ -8,7 +8,8 @@ const newEpisode=fs.readFileSync(new URL("../../frontend/src/pages/InternalClini
 const focused=fs.readFileSync(new URL("../../frontend/src/pages/InternalClinicalFocusedEpisode.jsx",import.meta.url),"utf8");
 
 test("clinical queue exposes keyboard focus and selection semantics",()=>{
- assert.match(queue,/aria-pressed=\{episode\.id === selectedId\}/);
+ assert.match(queue,/const selected = episode\.id === selectedId/);
+ assert.match(queue,/aria-pressed=\{selected\}/);
  assert.match(queue,/aria-label=\{\`Episodio /);
  assert.match(queue,/focus-visible:ring-2/);
  assert.match(queue,/role="list"/);
