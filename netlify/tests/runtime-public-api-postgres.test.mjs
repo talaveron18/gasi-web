@@ -85,9 +85,24 @@ test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async
   globalThis.Netlify={env:{get:name=>secrets[name]||""}};
   const {default:handler}=await import("../functions/public-api.mts?public-runtime");
 
+  const requestLogs=[];
+  const originalConsoleInfo=console.info;
+  console.info=(...args)=>{
+    if(args[0]==="public_api_request")requestLogs.push(args);
+    else originalConsoleInfo(...args);
+  };
   let res=await handler(request("/api/health"),{});
   assert.equal(res.status,200);
   assert.deepEqual(await payload(res),{ok:true,storage:"postgresql"});
+  assert.match(res.headers.get("x-request-id")||"",/^[0-9a-f-]{36}$/i);
+  assert.match(res.headers.get("server-timing")||"",/^app;dur=\d+$/);
+  assert.equal(requestLogs.length,1);
+  assert.equal(requestLogs[0][0],"public_api_request");
+  const firstLog=JSON.parse(String(requestLogs[0][1]||"{}"));
+  assert.equal(firstLog.surface,"health");
+  assert.equal(firstLog.method,"GET");
+  assert.equal(firstLog.status,200);
+  assert.equal(firstLog.outcome,"ok");
 
   res=await handler(request("/api/auth/register",{method:"POST",body:{name:"Admin Runtime",email:"admin@example.com",password:"SyntheticAdminPass123!"}}),{});
   assert.equal(res.status,201);
@@ -190,6 +205,10 @@ test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async
   res=await handler(request(`/api/courses/${freeCourse.course_id}/materials`,{cookie:studentCookie}),{});
   assert.equal(res.status,200);
   const materials=await payload(res);
+  const serializedLogs=JSON.stringify(requestLogs);
+  assert.equal(serializedLogs.includes(freeCourse.course_id),false);
+  assert.equal(serializedLogs.includes(student.email),false);
+  assert.equal(serializedLogs.includes(`/api/courses/${freeCourse.course_id}/materials`),false);
   assert.equal(materials.length,1);
   assert.equal(materials[0].filename,"runtime.pdf");
   assert.equal("content" in materials[0],false);
@@ -324,6 +343,7 @@ test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async
   const sessionRows=(await pool.query("SELECT COUNT(*)::int n FROM public_sessions WHERE user_id=$1",[student.user_id])).rows[0].n;
   assert.equal(sessionRows,0);
 
+  console.info=originalConsoleInfo;
   await pool.end();
   await adminPool.query("DROP SCHEMA IF EXISTS public_web_runtime CASCADE");
   await adminPool.end();
