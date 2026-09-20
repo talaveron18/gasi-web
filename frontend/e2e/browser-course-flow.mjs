@@ -222,6 +222,13 @@ async function click(send,selector){
   await send("Runtime.evaluate",{expression:`document.querySelector(${JSON.stringify(selector)}).click()`});
 }
 
+function unnamedInteractive(nodes){
+  const interactive=new Set(["button","link","textbox","combobox","checkbox","radio","switch","menuitem","tab"]);
+  return nodes
+    .filter(n=>!n.ignored&&interactive.has(String(n.role?.value||""))&&!String(n.name?.value||"").trim())
+    .map(n=>String(n.role?.value||"unknown"));
+}
+
 const {server,origin}=await startServer();
 const debugPort=await freePort();
 const profileDir=fs.mkdtempSync(path.join(os.tmpdir(),"gasi-course-e2e-"));
@@ -238,11 +245,14 @@ try{
   const {ws,send}=await cdp(wsUrl);
   await send("Page.enable");
   await send("Runtime.enable");
+  await send("Accessibility.enable");
 
   await navigate(send,`${origin}/curso/COURSE-E2E`,'[data-testid="curso-detalle-page"]');
   await waitFor(send,"document.body.innerText.includes('Curso E2E alumno')");
   await waitFor(send,"document.querySelector('[data-testid=\"course-materials\"]')");
   assert.equal(await value(send,"document.querySelector('[data-testid=\"course-progress\"]')?.innerText.includes('0%')"),true);
+  const courseAx=await send("Accessibility.getFullAXTree");
+  assert.deepEqual(unnamedInteractive(courseAx.nodes||[]),[],"Student course page has unnamed interactive controls");
 
   await click(send,'[data-testid="open-material-MAT-1"]');
   await waitFor(send,"document.querySelector('iframe[title=\"tema.pdf\"]')");
