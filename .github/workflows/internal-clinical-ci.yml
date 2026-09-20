@@ -1,31 +1,160 @@
 name: Internal Clinical CI
+
 on:
   push:
-    branches: ['automation/web-internal-clinical-*','work/web-infra-v1-*']
+    branches:
+      - 'automation/web-internal-clinical-*'
+      - 'work/web-infra-v1-*'
   workflow_dispatch:
+
 permissions:
-  contents: write
+  contents: read
+
 jobs:
-  repair-runtime-suite:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: yarn install --non-interactive --frozen-lockfile
+      - name: Build
+        env:
+          CI: 'true'
+          GENERATE_SOURCEMAP: 'false'
+        run: yarn build
+      - name: Tests
+        env:
+          CI: 'true'
+        run: yarn test --watchAll=false --passWithNoTests
+      - name: Browser E2E access and accessibility
+        run: node e2e/browser-access.mjs
+      - name: Browser E2E authenticated clinical flow
+        run: node e2e/browser-clinical.mjs
+      - name: Browser E2E student course flow
+        run: node e2e/browser-course-flow.mjs
+      - name: Browser E2E course administration
+        run: node e2e/browser-course-admin.mjs
+
+  backend-clinical:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          fetch-depth: 0
-      - name: Restore runtime suite and harden DB failure boundary
-        run: |
-          git show 108a478658953c2afc28024a18e9d43badc07a0b:netlify/tests/runtime-postgres-integration.test.mjs > netlify/tests/runtime-postgres-integration.test.mjs
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('netlify/tests/runtime-postgres-integration.test.mjs')
-          s=p.read_text()
-          old=''' res=await handler(request("/api/internal-clinical/health"),{});\n assert.equal(res.status,500);\n assert.deepEqual(await responseJson(res),{detail:"internal_error"});\n secrets.NETLIFY_DB_URL=workingDbUrl;'''
-          new=''' res=await handler(request("/api/internal-clinical/health"),{});\n assert.equal(res.status,500);\n assert.deepEqual(await responseJson(res),{detail:"internal_error"});\n assert.match(res.headers.get("x-request-id")||"",/^[0-9a-f-]{36}$/i);\n assert.match(res.headers.get("server-timing")||"",/^app;dur=\\d+$/);\n assert.equal(res.headers.get("content-type"),"application/json");\n secrets.NETLIFY_DB_URL=workingDbUrl;'''
-          if old not in s: raise SystemExit('failure-boundary block missing')
-          p.write_text(s.replace(old,new))
-          PY
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add netlify/tests/runtime-postgres-integration.test.mjs
-          git commit -m 'test: restore and harden clinical runtime suite'
-          git push
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Internal clinical and security tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest -q backend/tests/test_internal_*.py --junitxml=backend/internal-clinical-junit.xml
+      - name: Preserve internal clinical diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: internal-clinical-test-results
+          path: backend/internal-clinical-junit.xml
+          if-no-files-found: warn
+
+  netlify-clinical:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: netlify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+      - name: Install Netlify function dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck clinical function
+        run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-clinical.mts
+      - name: Typecheck public API function
+        run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/public-api.mts
+      - name: Tenant isolation and security regression
+        run: node --test tests/*.test.mjs
+
+  netlify-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+      - name: Scan tracked files for committed secrets
+        run: node scripts/secret-scan.mjs
+      - name: Install project dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install frontend dependencies
+        run: yarn --cwd frontend install --non-interactive --frozen-lockfile
+      - name: Install Netlify function dependencies
+        run: npm --prefix netlify ci --ignore-scripts --no-audit --no-fund
+      - name: Audit root runtime dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Audit Netlify runtime dependencies
+        run: npm --prefix netlify audit --omit=dev --audit-level=high
+      - name: Run Netlify production build
+        env:
+          CI: 'false'
+        run: npx -y netlify-cli@27.8.0 build --offline
+      - name: Netlify HTTP header smoke
+        run: node scripts/netlify-http-smoke.mjs
+      - name: Rehearse release artifact restore
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: node scripts/release-rehearsal.mjs
+      - name: Preserve release rehearsal evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: web-infra-release-rehearsal-${{ github.sha }}
+          path: release-evidence.json
+          if-no-files-found: error
+
+  netlify-runtime-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gasi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gasi"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: netlify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+      - name: Install Netlify function dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: PostgreSQL attendance and recovery integration
+        env:
+          GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
+        run: node --test tests/runtime-postgres-integration.test.mjs
