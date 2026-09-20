@@ -9,7 +9,7 @@ test("late physician responses can be reviewed by another authorized clinical ac
  assert.ok(start>=0,"late review route missing");
  const route=source.slice(start,start+3200);
  assert.match(route,/writableEpisodeOnClient\(client,w,id,true\)/);
- assert.match(source,/const sql=lock\?"SELECT \* FROM internal_clinical_episodes WHERE id=\$1 AND center = ANY\(\$2::text\[\]\) AND discipline=\$3 LIMIT 1 FOR UPDATE"/);
+ assert.match(source,/const sql=lock\?"SELECT \* FROM internal_clinical_episodes WHERE id=\$1 AND tenant_id=\$2 AND center = ANY\(\$3::text\[\]\) AND discipline=\$4 LIMIT 1 FOR UPDATE"/);
  assert.match(route,/auditOnClient\(client,w,"LATE_RESPONSE_REVIEWED"/);
  assert.match(route,/episode_write_denied/);
  assert.match(route,/late_after_disposition/);
