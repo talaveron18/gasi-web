@@ -1,8 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from models import Course, CourseCreate, Enrollment, EnrollmentCreate
 from auth import get_current_user
+from course_material_storage import CourseMaterialStorageError, get_course_material_storage
 from typing import List
+import re
 from datetime import datetime, timezone
 import uuid
 
@@ -20,6 +23,27 @@ async def require_admin(
     if not user or not user.get("is_admin", False):
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
+
+async def require_course_access(course_id: str, current_user: dict, db: AsyncIOMotorDatabase):
+    user = await db.users.find_one(
+        {"user_id": current_user["user_id"]},
+        {"_id": 0, "is_admin": 1}
+    )
+    if user and user.get("is_admin", False):
+        return
+    enrollment = await db.enrollments.find_one(
+        {"user_id": current_user["user_id"], "course_id": course_id},
+        {"_id": 0, "enrollment_id": 1}
+    )
+    if not enrollment:
+        raise HTTPException(status_code=403, detail="course_access_required")
+
+
+def safe_inline_filename(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9._ -]+", "_", value or "material.pdf").strip(" .")
+    if not cleaned.lower().endswith(".pdf"):
+        cleaned = f"{cleaned or 'material'}.pdf"
+    return cleaned[:180]
 
 @router.get("/", response_model=List[Course])
 async def get_courses(db: AsyncIOMotorDatabase = Depends(get_db)):
@@ -78,6 +102,62 @@ async def get_my_enrollments(
             })
     
     return result
+
+@router.get("/{course_id}/materials")
+async def list_course_materials(
+    course_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    course = await db.courses.find_one({"course_id": course_id}, {"_id": 0, "course_id": 1})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    await require_course_access(course_id, current_user, db)
+    materials = await db.course_materials.find(
+        {"course_id": course_id},
+        {"_id": 0, "object_key": 0, "created_by": 0}
+    ).to_list(500)
+    return materials
+
+
+@router.get("/{course_id}/materials/{material_id}/content")
+async def stream_course_material(
+    course_id: str,
+    material_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    course = await db.courses.find_one({"course_id": course_id}, {"_id": 0, "course_id": 1})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    await require_course_access(course_id, current_user, db)
+    material = await db.course_materials.find_one(
+        {"material_id": material_id, "course_id": course_id},
+        {"_id": 0}
+    )
+    if not material:
+        raise HTTPException(status_code=404, detail="material_not_found")
+    if material.get("content_type") != "application/pdf":
+        raise HTTPException(status_code=415, detail="unsupported_material_type")
+
+    try:
+        stored = get_course_material_storage().get_pdf(object_key=material["object_key"])
+    except CourseMaterialStorageError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception:
+        raise HTTPException(status_code=502, detail="material_storage_unavailable")
+
+    filename = safe_inline_filename(material.get("filename") or "material.pdf")
+    body = stored.body.iter_chunks(chunk_size=64 * 1024) if hasattr(stored.body, "iter_chunks") else stored.body
+    headers = {
+        "Cache-Control": "private, no-store",
+        "Content-Disposition": f'inline; filename="{filename}"',
+        "X-Content-Type-Options": "nosniff",
+    }
+    if stored.content_length > 0:
+        headers["Content-Length"] = str(stored.content_length)
+    return StreamingResponse(body, media_type="application/pdf", headers=headers)
+
 
 @router.get("/{course_id}", response_model=Course)
 async def get_course(course_id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
