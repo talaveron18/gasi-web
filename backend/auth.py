@@ -7,9 +7,14 @@ import os
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-JWT_SECRET = os.getenv("JWT_SECRET_KEY", "default_secret_key")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_DAYS = 7
+
+def _jwt_secret() -> str:
+    value = os.getenv("JWT_SECRET_KEY", "")
+    if len(value.encode("utf-8")) < 32:
+        raise RuntimeError("JWT_SECRET_KEY must be configured with at least 32 bytes")
+    return value
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -21,11 +26,11 @@ def create_access_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(days=JWT_EXPIRATION_DAYS)
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return jwt.encode(to_encode, _jwt_secret(), algorithm=JWT_ALGORITHM)
 
 def decode_token(token: str) -> dict:
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, _jwt_secret(), algorithms=[JWT_ALGORITHM])
         return payload
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
