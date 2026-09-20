@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 const source=fs.readFileSync(new URL("../functions/internal-clinical.mts",import.meta.url),"utf8");
-test("recovery v3 snapshots tenant attendance and workstation state",()=>{
- assert.match(source,/schema_version:3,episodes,workers,audit:auditRows,counters,workstations,attendance/);
+test("recovery v4 snapshots tenant attendance and workstation state",()=>{
+ assert.match(source,/schema_version:4,episodes,workers,audit:auditRows,counters,workstations,attendance,contingency/);
+ assert.match(source,/SELECT tenant_id,center,channel_type,label,target,active,updated_at,updated_by_id FROM internal_contingency_channels/);
  assert.match(source,/SELECT id,tenant_id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash FROM internal_center_workstations/);
  assert.match(source,/SELECT seq,worker_id,tenant_id,center,workstation_id,event_type,occurred_at,related_event_seq,reason,actor_id,metadata FROM internal_attendance_events/);
 });
@@ -131,7 +132,7 @@ test("restore requires an active administrative master identity",()=>{
 test("restore takes exclusive table locks before destructive replacement",()=>{
  const start=source.indexOf('path==="/api/internal-clinical/recovery/restore"');
  const route=source.slice(start);
- const lock=route.indexOf("LOCK TABLE internal_attendance_events,internal_center_workstations,internal_clinical_episodes,internal_clinical_workers,internal_clinical_audit,internal_clinical_counters,internal_login_throttle IN ACCESS EXCLUSIVE MODE");
+ const lock=route.indexOf("LOCK TABLE internal_attendance_events,internal_center_workstations,internal_contingency_channels,internal_clinical_episodes,internal_clinical_workers,internal_clinical_audit,internal_clinical_counters,internal_login_throttle IN ACCESS EXCLUSIVE MODE");
  const truncate=route.indexOf("TRUNCATE TABLE internal_attendance_events RESTART IDENTITY");
  assert.ok(lock>=0&&truncate>lock);
 });
@@ -256,7 +257,7 @@ test("restore invalidates every worker session from both live and snapshot state
 });
 
 
-test("recovery v3 rejects cross-tenant references before destructive mutation",()=>{
+test("recovery v4 rejects cross-tenant references before destructive mutation",()=>{
  assert.match(source,/workerTenants=new Map/);
  assert.match(source,/workstationScope=new Map/);
  assert.match(source,/workerTenants\.get\(String\(x\.worker_id\)\)!==String\(x\.tenant_id\)/);
@@ -266,9 +267,23 @@ test("recovery v3 rejects cross-tenant references before destructive mutation",(
  assert.match(source,/masterSnapshot\.tenant_id!==MASTER_TENANT/);
 });
 
-test("recovery v3 restores tenant ids on every operational collection",()=>{
+test("recovery v4 restores tenant ids on every operational collection",()=>{
  assert.match(source,/INSERT INTO internal_clinical_episodes\(id,tenant_id,center/);
  assert.match(source,/INSERT INTO internal_clinical_workers\(id,tenant_id,role/);
  assert.match(source,/INSERT INTO internal_center_workstations\(id,tenant_id,center/);
  assert.match(source,/INSERT INTO internal_attendance_events\(seq,worker_id,tenant_id,center/);
+});
+
+
+test("recovery v4 preserves and validates contingency channels",()=>{
+ assert.match(source,/snapshot\.contingency\.some\(\(x:any\)=>!validContingencySnapshotChannel\(x\)\)/);
+ assert.match(source,/contingencyScope=new Set\(snapshot\.contingency\.map/);
+ assert.match(source,/badContingencyReference=snapshot\.contingency\.some/);
+ assert.match(source,/contingencyScope\.size!==snapshot\.contingency\.length/);
+ assert.match(source,/DELETE FROM internal_contingency_channels/);
+ assert.match(source,/INSERT INTO internal_contingency_channels\(tenant_id,center,channel_type,label,target,active,updated_at,updated_by_id\)/);
+ assert.match(source,/contingency_count:restored\.contingency/);
+ const workers=source.indexOf('INSERT INTO internal_clinical_workers');
+ const contingency=source.indexOf('INSERT INTO internal_contingency_channels');
+ assert.ok(workers>=0&&contingency>workers,'contingency must restore after worker identities because updated_by_id is a foreign key');
 });
