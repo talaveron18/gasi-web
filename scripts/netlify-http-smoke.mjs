@@ -43,7 +43,10 @@ try{
   assert.equal(response.headers.get("referrer-policy"),"no-referrer");
   assert.equal(response.headers.get("x-frame-options"),"DENY");
   assert.equal(response.headers.get("permissions-policy"),"camera=(), microphone=(), geolocation=()");
-  assert.equal(response.headers.get("cache-control"),"no-cache");
+  const shellCacheControl=response.headers.get("cache-control")||"";
+  const shellRevalidates=/\bno-cache\b/i.test(shellCacheControl)||/\bmax-age=0\b/i.test(shellCacheControl);
+  assert.equal(shellRevalidates,true,"SPA shell must be immediately stale/revalidated");
+  assert.doesNotMatch(shellCacheControl,/immutable|s-maxage\s*=\s*[1-9]/i,"SPA shell must not be immutable or shared-cache pinned");
 
   const body=await response.text();
   assert.match(body,/<!doctype html>/i);
@@ -58,7 +61,8 @@ try{
       referrer_policy:response.headers.get("referrer-policy"),
       x_frame_options:response.headers.get("x-frame-options"),
       permissions_policy:response.headers.get("permissions-policy"),
-      cache_control:response.headers.get("cache-control")
+      cache_control:response.headers.get("cache-control"),
+      shell_revalidation_semantics:"no-cache OR max-age=0; immutable forbidden"
     }
   };
   console.log(JSON.stringify(evidence));
