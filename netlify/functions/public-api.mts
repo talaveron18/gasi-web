@@ -439,7 +439,8 @@ export default async (req:Request,_context:Context)=>{
       const user=await actor(req,db,true);if(!user.is_admin)throw new ApiError(403,"Admin access required");
       const courseId=decodeURIComponent(adminMaterials[1]),client=await db.pool.connect(),form=await req.formData(),moduleId=required(form.get("module_id"),"module_id",120),file=form.get("file");
       if(!(file instanceof File))throw new ApiError(422,"invalid_material_type");
-      const filename=safeFilename(file.name);if(!filename.toLowerCase().endsWith(".pdf"))throw new ApiError(422,"invalid_material_type");
+      if(!String(file.name||"").toLowerCase().endsWith(".pdf"))throw new ApiError(422,"invalid_material_type");
+      const filename=safeFilename(file.name);
       const bytes=Buffer.from(await file.arrayBuffer());if(!bytes.length||bytes.length>MAX_PDF_BYTES)throw new ApiError(413,"invalid_material_size");if(!bytes.subarray(0,5).equals(Buffer.from("%PDF-")))throw new ApiError(422,"invalid_pdf_content");
       try{
         const course=(await client.query("SELECT modules FROM public_courses WHERE id=$1",[courseId])).rows[0];if(!course)throw new ApiError(404,"Course not found");
