@@ -12,7 +12,7 @@ export default function InternalClinicalPrototype(){
  const navigate=useNavigate();
  const{session,token,signOut,canManageWorkers,isMaster}=useInternalPrototypeAuth();
  const api=useMemo(()=>token?createInternalClinicalApi({token}):null,[token]);
- const contingencyCacheKey=useMemo(()=>session?`gasi-contingency:${session.tenantId||''}:${[...(session.centers||[])].sort().join('|')}`:'',[session?.tenantId,session?.centers]);
+ const contingencyCacheKey=session?`gasi-contingency:${session.tenantId||''}:${[...(session.centers||[])].sort().join('|')}`:'';
  const refreshContingency=useCallback(async()=>{if(!api||!contingencyCacheKey)return;try{const rows=await api.listContingency();setContingency(rows);sessionStorage.setItem(contingencyCacheKey,JSON.stringify(rows));}catch(_){try{const cached=JSON.parse(sessionStorage.getItem(contingencyCacheKey)||'[]');setContingency(Array.isArray(cached)?cached:[]);}catch{setContingency([]);}}},[api,contingencyCacheKey]);
  const[episodes,setEpisodes]=useState([]),[state,setState]=useState('LOADING'),[error,setError]=useState(''),[contingency,setContingency]=useState([]);
  const RoleIcon=ROLES[session?.role]?.icon||ShieldCheck;
