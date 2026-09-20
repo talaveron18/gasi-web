@@ -198,6 +198,9 @@ async def enroll_course(
         "user_id": current_user["user_id"],
         "course_id": enrollment_data.course_id,
         "progress": 0.0,
+        "completed_module_ids": [],
+        "completed_at": None,
+        "certificate_id": None,
         "enrolled_at": datetime.now(timezone.utc).isoformat()
     }
     
