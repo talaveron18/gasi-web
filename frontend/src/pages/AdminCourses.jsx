@@ -2,11 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, BookOpen, FileText, Plus, RefreshCw, Save, Trash2, Upload } from 'lucide-react';
 import axios from 'axios';
+import { PUBLIC_API_BASE as API } from '@/lib/publicApi';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const emptyCourse = () => ({
   title: '',
