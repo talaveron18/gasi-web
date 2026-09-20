@@ -2,11 +2,11 @@
 
 **Fecha de evidencia:** 2026-09-20  
 **Rama:** `work/web-infra-v1-netlify-20260918`  
-**SHA verificado:** `e288818076292a27155daa1acf5b9e9e58458f4f`  
-**GitHub Actions:** Internal Clinical CI run **#765 / 35522603280**  
+**SHA verificado:** `90afc0e64eba02e1201030ac784ce49de14d82dc`  
+**GitHub Actions:** Internal Clinical CI run **#773 / 35523003537**  
 **Resultado:** **PASS — 5/5 jobs** (`frontend`, `backend-clinical`, `netlify-clinical`, `netlify-build`, `netlify-runtime-integration`).  
 **Frontend:** 12 suites / 68 tests PASS + navegador Chrome real PASS.  
-**Runtime PostgreSQL 17:** 2 pruebas de integración PASS, 0 FAIL.
+**Runtime PostgreSQL 17:** 2 pruebas de integración PASS, 0 FAIL.\n**Release rehearsal:** PASS sin despliegue; `build_tree_sha256` = `restored_tree_sha256` = `591d378ed992976e0f8eb53b679768e0b2c996c24ea7499ebe0ac40fbbb31aa2`.
 
 Esta matriz demuestra capacidades técnicas con datos sintéticos. No declara cumplimiento jurídico ni habilita por sí sola uso clínico real. Cualquier gate jurídico, de autorización, privacidad, RC o configuración real sigue siendo competencia de la línea correspondiente y puede bloquear la activación aunque la capacidad técnica sea PASS.
 
@@ -32,8 +32,8 @@ Esta matriz demuestra capacidades técnicas con datos sintéticos. No declara cu
 | Fallo de red de autenticación | PASS | Chrome/CDP E2E | Mensaje seguro; no filtra stack, URL ni error técnico |
 | Acceso público genérico | PASS | Chrome/CDP E2E | “Acceder” → Alumnado / Equipo GASI |
 | Accesibilidad de superficies probadas | PASS_CON_RESERVA | 68 tests + Chrome accessibility tree | Puerta pública, foco/teclado y componentes internos probados; no equivale a auditoría WCAG completa |
-| Build Netlify de producción | PASS | job `netlify-build` run #765 | Build reproducible de la rama |
-| Grafo de dependencias frontend | PASS | `frontend/yarn.lock` + `yarn install --frozen-lockfile` en run #765 | Lockfile versionado; CI con `contents: read`; sin auto-commit |
+| Build Netlify de producción | PASS | job `netlify-build` run #773 | Build reproducible de la rama |
+| Grafo de dependencias frontend | PASS | `frontend/yarn.lock` + `yarn install --frozen-lockfile` en run #773 | Lockfile versionado; CI con `contents: read`; sin auto-commit |\n| GitHub Actions fijadas | PASS | workflow usa SHAs verificados para checkout/setup-node/setup-python/upload-artifact | Evita deriva de tags mutables en CI |\n| Headers estáticos Netlify | PASS | `static-site-security-source.test.mjs` + run #773 | `nosniff`, `no-referrer`, `DENY`, permissions policy, HSTS y caché de assets fingerprinted |\n| Rehearsal de release/restore | PASS | artifact `web-infra-release-rehearsal-90afc0e...` id `10609242456` | 7 ficheros / 3.967.702 bytes; copia restaurada re-hasheada con digest idéntico; `production_deploy=false` |
 | Despliegue a producción | BLOQUEADO | Sin acción | Requiere autorización expresa; `main` y producción no se modifican desde esta rama |
 
 ## Negativos obligatorios
@@ -60,7 +60,7 @@ Esta matriz demuestra capacidades técnicas con datos sintéticos. No declara cu
 
 ## Evidencia del navegador
 
-Entrada observada en el run #765:
+Entrada observada en el run #773:
 
 - `public_entry = Acceder`
 - destino alumnado: `/formacion-sanitaria` + modal de login
@@ -71,7 +71,7 @@ Entrada observada en el run #765:
 
 ## Estado de activación
 
-**Rama técnica:** PASS sobre el SHA indicado.  
+**Rama técnica:** PASS sobre el SHA indicado y release rehearsal PASS.  
 **Datos reales:** BLOQUEADO hasta que los gates aplicables estén cerrados para cliente + centro + configuración.  
 **Producción:** NO DESPLEGADA.  
 **Main:** SIN MERGE.  
