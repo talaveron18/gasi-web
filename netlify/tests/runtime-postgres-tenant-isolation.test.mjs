@@ -23,13 +23,16 @@ async function json(response){
   const text=await response.text();
   return text?JSON.parse(text):null;
 }
-function request(pathname,{method="GET",token,body,ip="10.20.0.10"}={}){
+function request(pathname,{method="GET",token,body,ip="10.20.0.10",cookie}={}){
   const headers={"user-agent":"Mozilla/5.0 Chrome/153","x-nf-client-connection-ip":ip};
   if(token)headers.authorization=`Bearer ${token}`;
+  if(cookie)headers.cookie=cookie;
   if(body!==undefined)headers["content-type"]="application/json";
   return new Request(`http://localhost${pathname}`,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});
 }
 const syntheticSecret=()=>crypto.randomBytes(32).toString("base64url");
+const canonical=value=>value===null||typeof value!=="object"?JSON.stringify(value):Array.isArray(value)?"["+value.map(canonical).join(",")+"]":"{"+Object.keys(value).sort().map(k=>JSON.stringify(k)+":"+canonical(value[k])).join(",")+"}";
+const responseCookie=response=>{const values=typeof response.headers.getSetCookie==="function"?response.headers.getSetCookie():[response.headers.get("set-cookie")||""];return values.filter(Boolean).map(v=>v.split(";")[0]).join("; ");};
 
 test("runtime: tenant boundary survives identical center ids across clients",{skip:!enabled},async()=>{
   const pool=new Pool({connectionString});
@@ -85,6 +88,10 @@ test("runtime: tenant boundary survives identical center ids across clients",{sk
   assert.equal(res.status,200);
   const adminTokenA=(await json(res)).token;
 
+  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:masterCredential},ip:"10.20.0.14"}),{});
+  assert.equal(res.status,200);
+  const masterToken=(await json(res)).token;
+
   res=await handler(request("/api/internal-clinical/episodes",{token:tokenA}),{});
   assert.equal(res.status,200);
   assert.deepEqual((await json(res)).map(x=>x.id),["EP-TA"]);
@@ -101,6 +108,9 @@ test("runtime: tenant boundary survives identical center ids across clients",{sk
   assert.equal(res.status,200);
   assert.deepEqual((await json(res)).map(x=>x.id),["EP-TA"]);
 
+  res=await handler(request("/api/internal-clinical/episodes/EP-TB",{token:adminTokenA}),{});
+  assert.equal(res.status,404);
+
   res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:tokenA,body:{patient_ref:"PAT-A2",center:"HQ",summary:"new tenant A case",level:2}}),{});
   assert.equal(res.status,201);
   const created=await json(res);
@@ -108,6 +118,55 @@ test("runtime: tenant boundary survives identical center ids across clients",{sk
   const stored=(await pool.query("SELECT tenant_id,center FROM internal_clinical_episodes WHERE id=$1",[created.id])).rows[0];
   assert.equal(stored.tenant_id,"TENANT-A");
   assert.equal(stored.center,"HQ");
+
+  // Delegated exceptional read stays inside the worker tenant even when center ids collide.
+  res=await handler(request("/api/internal-clinical/workers/NURSE-TB/privileges/grant",{method:"POST",token:masterToken,body:{privilege:"clinical_privileged_read"}}),{});
+  assert.equal(res.status,200);
+  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-TB",password:credentialB},ip:"10.20.0.15"}),{});
+  assert.equal(res.status,200);
+  const tokenBPrivileged=(await json(res)).token;
+  res=await handler(request("/api/internal-clinical/episodes/EP-TA/privileged-access",{method:"POST",token:tokenBPrivileged,body:{reason:"inspection",reference:"TENANT-CROSS-READ"}}),{});
+  assert.equal(res.status,403);
+  assert.equal((await json(res)).detail,"privileged_access_center_denied");
+
+  // A fixed workstation for tenant A cannot be used by tenant B even at the same center and network.
+  res=await handler(request("/api/internal-clinical/workstations",{method:"POST",token:masterToken,body:{id:"WS-TA-HQ",tenant_id:"TENANT-A",center:"HQ",label:"Tenant A HQ"}}),{});
+  assert.equal(res.status,201);
+  const workstation=await json(res);
+  res=await handler(request("/api/internal-clinical/workstations/WS-TA-HQ/claim",{method:"POST",token:masterToken,body:{enrollment_credential:workstation.workstation_enrollment_credential},ip:"10.20.0.50"}),{});
+  assert.equal(res.status,200);
+  const workstationCookie=responseCookie(res);
+  assert.match(workstationCookie,/gasi_ws_id=WS-TA-HQ/);
+  assert.match(workstationCookie,/gasi_ws_secret=/);
+
+  res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:tokenBPrivileged,cookie:workstationCookie,ip:"10.20.0.50"}),{});
+  assert.equal(res.status,403);
+  assert.equal((await json(res)).detail,"workstation_tenant_denied");
+
+  res=await handler(request("/api/internal-clinical/attendance/clock-in",{method:"POST",token:tokenA,cookie:workstationCookie,ip:"10.20.0.50"}),{});
+  assert.equal(res.status,201);
+
+  // Recovery V3 rejects a correctly signed snapshot whose attendance tenant is cross-wired.
+  res=await handler(request("/api/internal-clinical/recovery/snapshot",{token:masterToken}),{});
+  assert.equal(res.status,200);
+  const snapshot=await json(res);
+  assert.equal(snapshot.schema_version,3);
+  const tampered=structuredClone(snapshot);
+  const attendanceA=tampered.attendance.find(x=>x.worker_id==="NURSE-TA");
+  assert.ok(attendanceA);
+  attendanceA.tenant_id="TENANT-B";
+  const payload={schema_version:tampered.schema_version,episodes:tampered.episodes,workers:tampered.workers,audit:tampered.audit,counters:tampered.counters,workstations:tampered.workstations,attendance:tampered.attendance};
+  tampered.snapshot_signature=crypto.createHmac("sha256",secrets.GASI_RECOVERY_SIGNING_SECRET).update(canonical(payload)).digest("hex");
+  res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:tampered}),{});
+  assert.equal(res.status,422);
+  assert.equal((await json(res)).detail,"invalid_recovery_snapshot_references");
+
+  // Revocation invalidates the delegated token immediately.
+  res=await handler(request("/api/internal-clinical/workers/NURSE-TB/privileges/revoke",{method:"POST",token:masterToken,body:{privilege:"clinical_privileged_read"}}),{});
+  assert.equal(res.status,200);
+  res=await handler(request("/api/internal-clinical/attendance",{token:tokenBPrivileged}),{});
+  assert.equal(res.status,401);
+  assert.equal((await json(res)).detail,"session_expired_or_revoked");
 
   await pool.end();
 });
