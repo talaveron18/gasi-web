@@ -16,6 +16,7 @@ const migration=fs.readFileSync(new URL("../database/migrations/20260920190000_p
 test("public frontend defaults to one same-origin API helper",()=>{
   assert.match(apiHelper,/PUBLIC_API_BASE/);
   assert.match(apiHelper,/configured/);
+  assert.equal(apiHelper.includes("NODE_ENV === 'development'"),true);
   assert.match(apiHelper,/\/api/);
   for(const source of [auth,training,dashboard,course,admin,callback]){
     assert.match(source,/PUBLIC_API_BASE as API/);
@@ -73,4 +74,15 @@ test("public API keeps paid enrollment behind verified payment",()=>{
   assert.match(publicApi,/checkout\.session\.completed/);
   assert.match(publicApi,/payment_status!=="paid"/);
   assert.match(publicApi,/public_payment_events/);
+});
+
+test("public mutation surface rejects explicit cross-site requests and bounds abuse",()=>{
+  assert.equal(publicApi.includes("enforceBrowserMutationOrigin(req,path)"),true);
+  assert.equal(publicApi.includes("cross_site_request_rejected"),true);
+  assert.equal(publicApi.includes("sec-fetch-site"),true);
+  assert.equal(publicApi.includes("MAX_JSON_BYTES"),true);
+  assert.equal(publicApi.includes("request_too_large"),true);
+  assert.equal(publicApi.includes("consumeRegistrationAttempt(db,req,email)"),true);
+  assert.equal(publicApi.includes("too_many_registration_attempts"),true);
+  assert.equal(publicApi.includes('path==="/api/payments/webhook"'),true);
 });
