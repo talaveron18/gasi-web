@@ -232,3 +232,14 @@ test("restore preserves the live master credential and invalidates existing mast
  assert.match(route,/passwordHash=isMaster\?currentMaster\.password_hash:x\.password_hash/);
  assert.match(route,/master_reauthentication_required:true/);
 });
+
+
+test("restore validates effective attendance chronology and alternating state",()=>{
+ assert.match(source,/function validAttendanceSnapshot\(rows:any\[\]\)/);
+ assert.match(source,/latestCorrection=new Map<number,any>\(\)/);
+ assert.match(source,/corrected_event_type/);
+ assert.match(source,/corrected_occurred_at/);
+ assert.match(source,/events\[i\]\.type!==\(i%2===0\?"CLOCK_IN":"CLOCK_OUT"\)/);
+ assert.match(source,/Date\.parse\(events\[i\]\.at\)<Date\.parse\(events\[i-1\]\.at\)/);
+ assert.match(source,/invalid_recovery_attendance_semantics/);
+});
