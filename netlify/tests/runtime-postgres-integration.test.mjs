@@ -230,6 +230,10 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  const adminToken=(await responseJson(res)).token;
 
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"PSY-A",password:psychologistPassword},ip:"10.10.0.15"}),{});
+ assert.equal(res.status,200);
+ const psychologistToken=(await responseJson(res)).token;
+
  res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient_ref:"SYNTH-PAT-01",center:"CENTER-A",summary:"Synthetic nursing escalation",level:2}}),{});
  assert.equal(res.status,201);
  const episode=await responseJson(res);
@@ -362,6 +366,25 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(reviewedResponse.late_reviewed_by_id,"NURSE-A");
 
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/close`,{method:"POST",token:nurseToken,body:{follow_up_pending:false,handoff_required:false,acknowledgement_required:false}}),{});
+ assert.equal(res.status,200);
+ assert.equal((await responseJson(res)).status,"CERRADO");
+
+ res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:psychologistToken,body:{patient_ref:"SYNTH-PSY-01",center:"CENTER-A",summary:"Synthetic psychology consultation",level:2}}),{});
+ assert.equal(res.status,201);
+ const psychologyEpisode=await responseJson(res);
+ assert.equal(psychologyEpisode.discipline,"psychology");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${psychologyEpisode.id}/level`,{method:"POST",token:psychologistToken,body:{level:1}}),{});
+ assert.equal(res.status,409);
+ assert.equal((await responseJson(res)).detail,"level_not_applicable");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${psychologyEpisode.id}/responses`,{method:"POST",token:psychologistToken,body:{text:"Synthetic psychology professional response"}}),{});
+ assert.equal(res.status,200);
+ const psychologyAnswered=await responseJson(res);
+ assert.equal(psychologyAnswered.status,"RESPONDIDO");
+ assert.equal(psychologyAnswered.responses.at(-1).author_id,"PSY-A");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${psychologyEpisode.id}/close`,{method:"POST",token:psychologistToken,body:{follow_up_pending:false,handoff_required:false,acknowledgement_required:false}}),{});
  assert.equal(res.status,200);
  assert.equal((await responseJson(res)).status,"CERRADO");
 
