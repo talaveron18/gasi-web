@@ -35,6 +35,37 @@ function stripeHeader(raw,secret,timestamp=Math.floor(Date.now()/1000)){
   const sig=crypto.createHmac("sha256",secret).update(`${timestamp}.${raw}`).digest("hex");
   return `t=${timestamp},v1=${sig}`;
 }
+async function snapshotPublicData(pool){
+  const query=async sql=>(await pool.query(sql)).rows;
+  return {
+    users:await query("SELECT * FROM public_users ORDER BY id"),
+    courses:await query("SELECT * FROM public_courses ORDER BY id"),
+    sessions:await query("SELECT * FROM public_sessions ORDER BY id"),
+    enrollments:await query("SELECT * FROM public_enrollments ORDER BY id"),
+    materials:await query("SELECT * FROM public_course_materials ORDER BY material_id"),
+    throttle:await query("SELECT * FROM public_login_throttle ORDER BY key_hash"),
+    payments:await query("SELECT * FROM public_payment_events ORDER BY event_id")
+  };
+}
+
+async function restorePublicData(pool,snapshot){
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    await client.query("TRUNCATE public_course_materials,public_enrollments,public_sessions,public_login_throttle,public_payment_events,public_courses,public_users CASCADE");
+    for(const r of snapshot.users)await client.query("INSERT INTO public_users(id,email,name,password_hash,picture,is_admin,created_at) VALUES($1,$2,$3,$4,$5,$6,$7)",[r.id,r.email,r.name,r.password_hash,r.picture,r.is_admin,r.created_at]);
+    for(const r of snapshot.courses)await client.query("INSERT INTO public_courses(id,title,description,duration,course_type,price,is_free,thumbnail,modules,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11)",[r.id,r.title,r.description,r.duration,r.course_type,r.price,r.is_free,r.thumbnail,JSON.stringify(r.modules),r.created_at,r.updated_at]);
+    for(const r of snapshot.sessions)await client.query("INSERT INTO public_sessions(id,user_id,token_hash,expires_at,created_at) VALUES($1,$2,$3,$4,$5)",[r.id,r.user_id,r.token_hash,r.expires_at,r.created_at]);
+    for(const r of snapshot.enrollments)await client.query("INSERT INTO public_enrollments(id,user_id,course_id,progress,completed_module_ids,completed_at,certificate_id,payment_status,stripe_checkout_session_id,stripe_event_id,enrolled_at) VALUES($1,$2,$3,$4,$5::jsonb,$6,$7,$8,$9,$10,$11)",[r.id,r.user_id,r.course_id,r.progress,JSON.stringify(r.completed_module_ids),r.completed_at,r.certificate_id,r.payment_status,r.stripe_checkout_session_id,r.stripe_event_id,r.enrolled_at]);
+    for(const r of snapshot.materials)await client.query("INSERT INTO public_course_materials(material_id,course_id,module_id,filename,content_type,size_bytes,content,status,created_by,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",[r.material_id,r.course_id,r.module_id,r.filename,r.content_type,r.size_bytes,r.content,r.status,r.created_by,r.created_at]);
+    for(const r of snapshot.throttle)await client.query("INSERT INTO public_login_throttle(key_hash,failures,window_started_at,blocked_until,updated_at) VALUES($1,$2,$3,$4,$5)",[r.key_hash,r.failures,r.window_started_at,r.blocked_until,r.updated_at]);
+    for(const r of snapshot.payments)await client.query("INSERT INTO public_payment_events(event_id,event_type,received_at) VALUES($1,$2,$3)",[r.event_id,r.event_type,r.received_at]);
+    await client.query("COMMIT");
+  }catch(error){
+    await client.query("ROLLBACK");
+    throw error;
+  }finally{client.release();}
+}
 
 test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async()=>{
   const adminPool=new Pool({connectionString});
