@@ -1,4 +1,5 @@
 import "./runtime-postgres-tenant-isolation.test.mjs";
+import "./runtime-public-api-postgres.test.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
