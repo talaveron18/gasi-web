@@ -26,16 +26,17 @@ test("recovery export encrypts the signed snapshot before any file is written",(
  assert.doesNotMatch(page,/localStorage|sessionStorage|indexedDB/);
 });
 
-test("destructive restore decrypts only in memory then still requires signed V2 content and typed confirmation",()=>{
+test("destructive restore decrypts only in memory then still requires signed V4 content and typed confirmation",()=>{
  assert.match(page,/const CONFIRM='RESTAURAR'/);
  assert.match(page,/const FILE_FORMAT='gasi-recovery-encrypted-v1'/);
  assert.match(page,/crypto\.subtle\.decrypt/);
  assert.match(page,/const parsed=await decryptSnapshot\(envelope,restorePass\)/);
- assert.match(page,/schema_version!==2/);
+ assert.match(page,/schema_version!==4/);
  assert.match(page,/snapshot_signature/);
  assert.match(page,/confirm!==CONFIRM/);
  assert.match(page,/\/api\/internal-clinical\/recovery\/restore/);
  assert.match(page,/Restaurar estado completo/);
+ assert.match(page,/canales de contingencia/);
 });
 
 
