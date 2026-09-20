@@ -272,7 +272,23 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
 
  res=await handler(request("/api/internal-clinical/episodes",{token:nurseToken}),{});
  assert.equal(res.status,200);
- assert.ok((await responseJson(res)).some(x=>x.id===episode.id&&x.status==="ABIERTO"));
+ const nurseCollection=await responseJson(res);
+ const nurseCollectionEpisode=nurseCollection.find(x=>x.id===episode.id);
+ assert.ok(nurseCollectionEpisode);
+ assert.equal(nurseCollectionEpisode.status,"ABIERTO");
+ assert.equal("summary" in nurseCollectionEpisode,false);
+ assert.equal("patient_ref" in nurseCollectionEpisode,false);
+ const collectionAudit=await pool.query("SELECT action,metadata FROM internal_clinical_audit WHERE action='EPISODE_COLLECTION_VIEWED' ORDER BY seq DESC LIMIT 1");
+ assert.equal(collectionAudit.rows[0].metadata.metadata_only,true);
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}`,{token:nurseToken}),{});
+ assert.equal(res.status,200);
+ const nurseFullEpisode=await responseJson(res);
+ assert.equal(nurseFullEpisode.summary,"Synthetic nursing escalation");
+ assert.equal(nurseFullEpisode.patient_ref,"SYNTH-PAT-01");
+ const directReadAudit=await pool.query("SELECT action,metadata FROM internal_clinical_audit WHERE action='EPISODE_VIEWED' AND episode_id=$1 ORDER BY seq DESC LIMIT 1",[episode.id]);
+ assert.equal(directReadAudit.rows[0].action,"EPISODE_VIEWED");
+ assert.equal(directReadAudit.rows[0].metadata.metadata_only,false);
 
  res=await handler(request("/api/internal-clinical/episodes",{token:physicianToken}),{});
  assert.equal(res.status,200);
