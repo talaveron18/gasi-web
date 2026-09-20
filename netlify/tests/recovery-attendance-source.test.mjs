@@ -37,7 +37,8 @@ test("restore rejects broken attendance references before destructive work",()=>
  const connect=source.indexOf('const client=await db.pool.connect()',source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
  assert.ok(validation>=0&&connect>validation);
  assert.match(source,/workerIds\.has\(String\(x\.worker_id\)\)/);
- assert.match(source,/ws\.tenant_id!==String\(x\.tenant_id\)/);\n assert.match(source,/ws\.center!==String\(x\.center\)/);
+ assert.match(source,/ws\.tenant_id!==String\(x\.tenant_id\)/);
+ assert.match(source,/ws\.center!==String\(x\.center\)/);
  assert.match(source,/related_event_seq!=null&&\(!attendanceSeqs\.has\(Number\(x\.related_event_seq\)\)\|\|Number\(x\.related_event_seq\)>=Number\(x\.seq\)\)/);
 });
 
