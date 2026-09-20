@@ -25,9 +25,8 @@ jobs:
           p.write_text(s.replace(old,new))
           PY
           git show 108a478658953c2afc28024a18e9d43badc07a0b:.github/workflows/internal-clinical-ci.yml > .github/workflows/internal-clinical-ci.yml
-          rm -f .github/workflows/repair-runtime-test.yml
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add netlify/tests/runtime-postgres-integration.test.mjs .github/workflows/internal-clinical-ci.yml .github/workflows/repair-runtime-test.yml
+          git add netlify/tests/runtime-postgres-integration.test.mjs .github/workflows/internal-clinical-ci.yml
           git commit -m 'test: restore and harden clinical runtime suite'
           git push
