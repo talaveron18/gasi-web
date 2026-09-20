@@ -50,6 +50,8 @@ export const AuthProvider = ({ children }) => {
         name,
         email,
         password
+      }, {
+        withCredentials: true
       });
       setUser(response.data.user);
       return { success: true };
