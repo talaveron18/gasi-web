@@ -44,6 +44,11 @@ try{
   assert.equal(response.headers.get("referrer-policy"),"no-referrer");
   assert.equal(response.headers.get("x-frame-options"),"DENY");
   assert.equal(response.headers.get("permissions-policy"),"camera=(), microphone=(), geolocation=()");
+  const csp=response.headers.get("content-security-policy")||"";
+  assert.equal(csp.includes("script-src 'self'"),true);
+  assert.equal(csp.includes("connect-src 'self'"),true);
+  assert.equal(csp.includes("object-src 'none'"),true);
+  assert.equal(csp.includes("frame-ancestors 'none'"),true);
   const shellCacheControl=response.headers.get("cache-control")||"";
   const shellRevalidates=/\bno-cache\b/i.test(shellCacheControl)||/\bmax-age=0\b/i.test(shellCacheControl);
   assert.equal(shellRevalidates,true,"SPA shell must be immediately stale/revalidated");
@@ -62,6 +67,7 @@ try{
       referrer_policy:response.headers.get("referrer-policy"),
       x_frame_options:response.headers.get("x-frame-options"),
       permissions_policy:response.headers.get("permissions-policy"),
+      content_security_policy:response.headers.get("content-security-policy"),
       cache_control:response.headers.get("cache-control"),
       shell_revalidation_semantics:"no-cache OR max-age=0; immutable forbidden"
     }
