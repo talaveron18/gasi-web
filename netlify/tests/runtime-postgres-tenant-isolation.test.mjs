@@ -90,7 +90,18 @@ test("runtime: tenant boundary survives identical center ids across clients",{sk
 
   res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:masterCredential},ip:"10.20.0.14"}),{});
   assert.equal(res.status,200);
-  const masterToken=(await json(res)).token;
+  const masterLogin=await json(res);
+  const masterToken=masterLogin.token;
+  assert.equal(masterLogin.profile.tenant_id,"__MASTER__");
+
+  const reservedCredential=syntheticSecret();
+  res=await handler(request("/api/internal-clinical/workers",{method:"POST",token:masterToken,body:{id:"RESERVED-WORKER",tenant_id:"__MASTER__",display_name:"Reserved tenant worker",role:"nurse",centers:["HQ"],temporary_password:reservedCredential}}),{});
+  assert.equal(res.status,422);
+  assert.equal((await json(res)).detail,"reserved_tenant_id");
+
+  res=await handler(request("/api/internal-clinical/workstations",{method:"POST",token:masterToken,body:{id:"WS-RESERVED",tenant_id:"__MASTER__",center:"HQ",label:"Reserved tenant"}}),{});
+  assert.equal(res.status,422);
+  assert.equal((await json(res)).detail,"reserved_tenant_id");
 
   res=await handler(request("/api/internal-clinical/episodes",{token:tokenA}),{});
   assert.equal(res.status,200);
@@ -160,6 +171,16 @@ test("runtime: tenant boundary survives identical center ids across clients",{sk
   res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:tampered}),{});
   assert.equal(res.status,422);
   assert.equal((await json(res)).detail,"invalid_recovery_snapshot_references");
+
+  const reservedSnapshot=structuredClone(snapshot);
+  const reservedWorker=reservedSnapshot.workers.find(x=>x.id==="NURSE-TA");
+  assert.ok(reservedWorker);
+  reservedWorker.tenant_id="__MASTER__";
+  const reservedPayload={schema_version:reservedSnapshot.schema_version,episodes:reservedSnapshot.episodes,workers:reservedSnapshot.workers,audit:reservedSnapshot.audit,counters:reservedSnapshot.counters,workstations:reservedSnapshot.workstations,attendance:reservedSnapshot.attendance};
+  reservedSnapshot.snapshot_signature=crypto.createHmac("sha256",secrets.GASI_RECOVERY_SIGNING_SECRET).update(canonical(reservedPayload)).digest("hex");
+  res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:reservedSnapshot}),{});
+  assert.equal(res.status,422);
+  assert.equal((await json(res)).detail,"invalid_recovery_snapshot_semantics");
 
   // Revocation invalidates the delegated token immediately.
   res=await handler(request("/api/internal-clinical/workers/NURSE-TB/privileges/revoke",{method:"POST",token:masterToken,body:{privilege:"clinical_privileged_read"}}),{});
