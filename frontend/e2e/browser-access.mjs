@@ -190,10 +190,10 @@ try{
 
   await send("Runtime.evaluate",{expression:`(()=>{const set=(selector,v)=>{const el=document.querySelector(selector);const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}));};set('input[autocomplete="username"]','E2E-NETWORK');set('input[autocomplete="current-password"]','SyntheticCredential123!');document.querySelector('main form button').focus();})()`});
   await key(send,"Enter","Enter",13);
-  await waitFor(send,"document.querySelector('[role=\\\"alert\\"]')?.innerText.includes('No se puede conectar con el servicio de acceso.')");
-  const safeNetworkError=await value(send,"document.querySelector('[role=\\\"alert\\"]')?.innerText||''");
+  await waitFor(send,`document.querySelector('[role="alert"]')?.innerText.includes("No se puede conectar con el servicio de acceso.")`);
+  const safeNetworkError=await value(send,`document.querySelector('[role="alert"]')?.innerText||''`);
   assert.equal(safeNetworkError,"No se puede conectar con el servicio de acceso.");
-  assert.doesNotMatch(safeNetworkError,/ECONN|fetch failed|TypeError|stack|http:\\/\\//i);
+  assert.doesNotMatch(safeNetworkError,/ECONN|fetch failed|TypeError|stack|https?:/i);
 
   await navigate(send,`${origin}/acceso`,'[data-testid="access-portal"]');
   await tabUntil(send,"access-student");
