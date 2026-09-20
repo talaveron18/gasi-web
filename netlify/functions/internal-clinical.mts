@@ -14,6 +14,12 @@ const mobileClient=(req:Request)=>/android|iphone|ipad|ipod|mobile/i.test(req.he
 const edgeClientIp=(req:Request)=>(req.headers.get("x-nf-client-connection-ip")||"").trim();
 const workstationNetworkFingerprint=(deviceSecret:string,ip:string)=>crypto.createHmac("sha256",deviceSecret).update(ip).digest("hex");
 const env=(name:string)=>Netlify.env.get(name)||"";
+
+const CLINICAL_LOG_SURFACES=new Set(["health","login","session","password","workers","workstations","attendance","contingency","episodes","audit","recovery"]);
+function clinicalSurface(pathname:string){
+  const segment=pathname.split("/").filter(Boolean)[2]||"root";
+  return CLINICAL_LOG_SURFACES.has(segment)?segment:"other";
+}
 const databaseCache=new Map<string,any>();
 function database(){const connectionString=env("NETLIFY_DB_URL"),key=connectionString||"__netlify_default__";if(!databaseCache.has(key))databaseCache.set(key,connectionString?getDatabase({connectionString}):getDatabase());return databaseCache.get(key);}
 const b64=(v:Buffer|string)=>Buffer.from(v).toString("base64url");
@@ -64,7 +70,7 @@ async function hashPassword(password:string){if(password.length<12||password.len
 
 async function ensureMaster(db:any){const id=MASTER();const rows=await db.sql`SELECT id,tenant_id FROM internal_clinical_workers WHERE id=${id} LIMIT 1`;if(rows[0]){if(String(rows[0].tenant_id||"")!==MASTER_TENANT)await db.sql`UPDATE internal_clinical_workers SET tenant_id=${MASTER_TENANT} WHERE id=${id}`;return;}const configuredHash=env("GASI_MASTER_PASSWORD_HASH");const password=env("GASI_MASTER_PASSWORD");let passwordHash="";if(/^\$2[aby]\$/.test(configuredHash))passwordHash=configuredHash;else{if(password.length<12||password.length>128)throw new Error("master_bootstrap_not_configured");passwordHash=await bcrypt.hash(password,12);}const displayName=env("GASI_MASTER_DISPLAY_NAME")||"GASI Master";await db.sql`INSERT INTO internal_clinical_workers(id,tenant_id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES(${id},${MASTER_TENANT},'admin',${displayName},'[]'::jsonb,TRUE,1,'[]'::jsonb,${passwordHash}) ON CONFLICT (id) DO NOTHING`;}
 
-export default async (req:Request,_context:Context)=>{const url=new URL(req.url);const path=url.pathname;try{const db=database();
+async function handleInternalClinical(req:Request,_context:Context){const url=new URL(req.url);const path=url.pathname;try{const db=database();
  if(req.method==="GET"&&path==="/api/internal-clinical/health"){await db.sql`SELECT 1`;return json({ok:true,storage:"netlify-database"});}
  if(req.method==="POST"&&path==="/api/internal-clinical/login"){await ensureMaster(db);const body=await req.json() as any;const id=String(body.worker_id||"").trim(),buckets=loginBuckets(req,id);await pruneLoginThrottle(db);if(await loginLimited(db,buckets))return json({detail:"too_many_login_attempts"},429);const rows=await db.sql`SELECT * FROM internal_clinical_workers WHERE id=${id} LIMIT 1`;const w=rows[0];if(!w||!w.active||!(await verifyPassword(String(body.password||""),w.password_hash))){await loginFailed(db,buckets);return json({detail:"invalid_credentials"},401);}await loginSucceeded(db,buckets);const ttl=sessionTtlMinutes();const now=Math.floor(Date.now()/1000);const token=sign({sid:crypto.randomUUID(),sub:w.id,iat:now,exp:now+ttl*60,av:Number(w.auth_version)});await audit(db,w,"LOGIN_SUCCESS");return json({token,expires_at:new Date((now+ttl*60)*1000).toISOString(),profile:profile(w)});}
  const w=await actor(req,db);
@@ -107,4 +113,33 @@ export default async (req:Request,_context:Context)=>{const url=new URL(req.url)
  const delivery=path.match(/^\/api\/internal-clinical\/episodes\/([^/]+)\/delivery$/);if(req.method==="POST"&&delivery){const id=decodeURIComponent(delivery[1]),b=await req.json() as any,state=String(b.state||"");if(!["DELIVERED","READ","DELIVERY_FAILED","ALTERNATE_CHANNEL_REQUIRED"].includes(state))return json({detail:"invalid_delivery_state"},422);const client=await db.pool.connect();try{await client.query("BEGIN");const e=await writableEpisodeOnClient(client,w,id,true);if(!e){await client.query("ROLLBACK");return json({detail:"episode_write_denied"},403);}if(e.status==="CERRADO"){await client.query("ROLLBACK");return json({detail:"closed_episode_immutable"},409);}const doc=e.document||{},history=doc.delivery_history||[],last=history.at(-1),previous=last?.state||null,allowed=previous===null?["DELIVERED","DELIVERY_FAILED"]:previous==="DELIVERY_FAILED"?["ALTERNATE_CHANNEL_REQUIRED"]:previous==="ALTERNATE_CHANNEL_REQUIRED"?["DELIVERED","DELIVERY_FAILED"]:previous==="DELIVERED"?["READ"]:[];if(!allowed.includes(state)){await client.query("ROLLBACK");if(state==="READ")return json({detail:"read_requires_delivery"},409);if(state==="ALTERNATE_CHANNEL_REQUIRED")return json({detail:"alternate_channel_requires_failure"},409);if(state==="DELIVERY_FAILED"&&["DELIVERED","READ"].includes(previous))return json({detail:"proven_delivery_cannot_fail"},409);return json({detail:"invalid_delivery_transition"},409);}let reason="";if(state==="DELIVERY_FAILED")reason=required(b.failure_reason,"failure_reason",1000);if(state==="ALTERNATE_CHANNEL_REQUIRED")reason=required(b.reason,"reason",1000);const event={state,at:new Date().toISOString(),actor_id:w.id,...(reason?{reason}:{})};doc.delivery_history=[...history,event];await client.query("UPDATE internal_clinical_episodes SET document=$2::jsonb WHERE id=$1",[id,JSON.stringify(doc)]);await auditOnClient(client,w,"DELIVERY_STATE_CHANGED",{episode_id:id,state,reason_recorded:Boolean(reason)});await client.query("COMMIT");return json({episode_id:id,delivery:event,delivery_history:doc.delivery_history});}catch(err){await client.query("ROLLBACK");throw err;}finally{client.release();}}
  return json({detail:"netlify_clinical_route_not_migrated"},501);
 }catch(e:any){const code=String(e?.message||"internal_error");if(e instanceof SyntaxError)return json({detail:"invalid_json"},400);if(["missing_session","invalid_session_token","session_expired_or_revoked"].includes(code))return json({detail:code},401);if(["session_secret_not_configured","recovery_signing_secret_not_configured"].includes(code))return json({detail:code},503);if(code.endsWith("_required")||code.endsWith("_too_long")||code==="invalid_temporary_password")return json({detail:code},422);return json({detail:"internal_error"},500);}};
+
+const internalClinical=async (req:Request,context:Context)=>{
+ const requestId=crypto.randomUUID();
+ const started=Date.now();
+ let response:Response;
+ try{
+  response=await handleInternalClinical(req,context);
+ }catch(error:any){
+  console.error("internal_clinical_unhandled",{surface:clinicalSurface(new URL(req.url).pathname),method:req.method,name:error?.name||"Error"});
+  response=json({detail:"internal_error"},500);
+ }
+ const durationMs=Math.max(0,Date.now()-started);
+ response.headers.set("x-request-id",requestId);
+ response.headers.set("server-timing",`app;dur=${durationMs}`);
+ const surface=clinicalSurface(new URL(req.url).pathname);
+ const status=response.status;
+ const outcome=status>=500?"server_error":status===429?"rate_limited":status===403?"forbidden":status>=400?"client_error":"ok";
+ console.info("internal_clinical_request",JSON.stringify({
+  request_id:requestId,
+  surface,
+  method:req.method,
+  status,
+  outcome,
+  duration_ms:durationMs
+ }));
+ return response;
+};
+
+export default internalClinical;
 export const config:Config={path:"/api/internal-clinical/*"};
