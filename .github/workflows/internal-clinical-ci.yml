@@ -80,6 +80,8 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Typecheck clinical function
         run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-clinical.mts
+      - name: Typecheck public API function
+        run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/public-api.mts
       - name: Tenant isolation and security regression
         run: node --test tests/*.test.mjs
 
