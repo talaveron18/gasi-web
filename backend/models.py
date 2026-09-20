@@ -5,10 +5,10 @@ import uuid
 
 class UserBase(BaseModel):
     email: EmailStr
-    name: str
+    name: str = Field(min_length=2, max_length=80)
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(min_length=12, max_length=128)
 
 class UserResponse(UserBase):
     user_id: str
@@ -18,7 +18,7 @@ class UserResponse(UserBase):
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(min_length=1, max_length=128)
 
 class TokenResponse(BaseModel):
     token: str
