@@ -226,9 +226,10 @@ test("recovery signing is independent from session signing",()=>{
 test("restore preserves the live master credential and invalidates existing master sessions",()=>{
  const start=source.indexOf('path==="/api/internal-clinical/recovery/restore"');
  const route=source.slice(start);
- assert.match(route,/SELECT password_hash,auth_version,must_change_password,display_name,created_at FROM internal_clinical_workers WHERE id=\$1 FOR UPDATE/);
- assert.match(route,/const isMaster=String\(x\.id\)===MASTER\(\)/);
- assert.match(route,/authVersion=isMaster\?Number\(currentMaster\.auth_version\)\+1:x\.auth_version/);
+ assert.match(route,/SELECT id,auth_version,password_hash,must_change_password,display_name,created_at FROM internal_clinical_workers FOR UPDATE/);
+ assert.match(route,/const id=String\(x\.id\),isMaster=id===MASTER\(\)/);
+ assert.match(route,/liveAuthVersion=Number\(currentWorkerVersions\.get\(id\)\|\|0\)/);
+ assert.match(route,/authVersion=Math\.max\(Number\(x\.auth_version\)\|\|0,liveAuthVersion\)\+1/);
  assert.match(route,/passwordHash=isMaster\?currentMaster\.password_hash:x\.password_hash/);
  assert.match(route,/master_reauthentication_required:true/);
 });
@@ -242,4 +243,13 @@ test("restore validates effective attendance chronology and alternating state",(
  assert.match(source,/events\[i\]\.type!==\(i%2===0\?"CLOCK_IN":"CLOCK_OUT"\)/);
  assert.match(source,/Date\.parse\(events\[i\]\.at\)<Date\.parse\(events\[i-1\]\.at\)/);
  assert.match(source,/invalid_recovery_attendance_semantics/);
+});
+
+
+test("restore invalidates every worker session from both live and snapshot state",()=>{
+ const start=source.indexOf('path==="/api/internal-clinical/recovery/restore"');
+ const route=source.slice(start);
+ assert.match(route,/currentWorkerVersions=new Map/);
+ assert.match(route,/Math\.max\(Number\(x\.auth_version\)\|\|0,liveAuthVersion\)\+1/);
+ assert.match(route,/all_sessions_revoked:true/);
 });
