@@ -28,6 +28,16 @@ function cookiesFrom(response){
  const values=typeof response.headers.getSetCookie==="function"?response.headers.getSetCookie():[response.headers.get("set-cookie")].filter(Boolean);
  return values.map(value=>value.split(";")[0]).join("; ");
 }
+function canonical(value){
+ if(value===null||typeof value!=="object")return JSON.stringify(value);
+ if(Array.isArray(value))return "["+value.map(canonical).join(",")+"]";
+ return "{"+Object.keys(value).sort().map(k=>JSON.stringify(k)+":"+canonical(value[k])).join(",")+"}";
+}
+function resignSnapshot(snapshot,secret){
+ const payload={schema_version:snapshot.schema_version,episodes:snapshot.episodes,workers:snapshot.workers,audit:snapshot.audit,counters:snapshot.counters,workstations:snapshot.workstations,attendance:snapshot.attendance};
+ snapshot.snapshot_signature=crypto.createHmac("sha256",secret).update(canonical(payload)).digest("hex");
+ return snapshot;
+}
 async function applyMigrations(pool){
  const dirs=fs.readdirSync(migrationsDir).sort();
  for(const dir of dirs){
@@ -498,6 +508,16 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal((await responseJson(res)).detail,"invalid_recovery_snapshot_references");
  const afterDuplicate=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
  assert.equal(afterDuplicate,beforeTamper);
+
+ const invalidAttendance=structuredClone(snapshot);
+ const firstOriginal=invalidAttendance.attendance.find(x=>x.event_type==="CLOCK_IN");
+ firstOriginal.event_type="CLOCK_OUT";
+ resignSnapshot(invalidAttendance,secrets.GASI_RECOVERY_SIGNING_SECRET);
+ res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:invalidAttendance}),{});
+ assert.equal(res.status,422);
+ assert.equal((await responseJson(res)).detail,"invalid_recovery_attendance_semantics");
+ const afterInvalidAttendance=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
+ assert.equal(afterInvalidAttendance,beforeTamper);
 
  const noProvenance=structuredClone(snapshot);
  noProvenance.audit=[];
