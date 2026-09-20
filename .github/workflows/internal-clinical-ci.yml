@@ -47,7 +47,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install test dependencies
-        run: pip install fastapi starlette pydantic python-dotenv motor pytest pytest-asyncio httpx python-jose passlib bcrypt stripe
+        run: pip install -r backend/requirements.txt
       - name: Internal clinical and security tests
         env:
           PYTHONPATH: ${{ github.workspace }}
