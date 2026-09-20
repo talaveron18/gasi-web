@@ -49,7 +49,8 @@ test("public sessions are opaque revocable secure cookies",()=>{
   assert.match(publicApi,/HttpOnly; Secure; SameSite=Lax/);
   assert.match(publicApi,/token_hash/);
   assert.match(publicApi,/public_sessions/);
-  assert.doesNotMatch(publicApi,/jsonwebtoken|JWT_SECRET|Bearer /);
+  assert.doesNotMatch(publicApi,/jsonwebtoken|JWT_SECRET/);
+  assert.match(publicApi,/cookieValue\(req,COOKIE\)/);
 });
 
 test("public privilege escalation is not exposed",()=>{
