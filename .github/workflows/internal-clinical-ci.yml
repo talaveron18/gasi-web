@@ -47,11 +47,11 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install test dependencies
-        run: pip install fastapi starlette pydantic python-dotenv motor pytest pytest-asyncio httpx
+        run: pip install fastapi starlette pydantic python-dotenv motor pytest pytest-asyncio httpx python-jose passlib bcrypt stripe
       - name: Internal clinical and security tests
         env:
           PYTHONPATH: ${{ github.workspace }}
-        run: pytest -q backend/tests/test_internal_*.py --junitxml=backend/internal-clinical-junit.xml
+        run: pytest -q backend/tests/test_internal_*.py backend/tests/test_public_v1_security.py --junitxml=backend/internal-clinical-junit.xml
       - name: Preserve internal clinical diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
