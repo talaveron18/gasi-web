@@ -119,6 +119,33 @@ test("runtime: tenant boundary survives identical center ids across clients",{sk
   assert.equal(res.status,200);
   assert.deepEqual((await json(res)).map(x=>x.id),["EP-TA"]);
 
+  res=await handler(request("/api/internal-clinical/contingency/channels",{method:"POST",token:masterToken,body:{tenant_id:"TENANT-A",center:"HQ",channel_type:"PHONE",label:"Tenant A fallback",target:"+34910000011",active:true}}),{});
+  assert.equal(res.status,200);
+  res=await handler(request("/api/internal-clinical/contingency/channels",{method:"POST",token:masterToken,body:{tenant_id:"TENANT-B",center:"HQ",channel_type:"URL",label:"Tenant B fallback",target:"https://example.invalid/tenant-b",active:true}}),{});
+  assert.equal(res.status,200);
+
+  res=await handler(request("/api/internal-clinical/contingency",{token:tokenA}),{});
+  assert.equal(res.status,200);
+  const contingencyA=await json(res);
+  assert.deepEqual(contingencyA.map(x=>[x.tenant_id,x.center,x.channel_type]),[["TENANT-A","HQ","PHONE"]]);
+  assert.equal(contingencyA[0].target,"+34910000011");
+
+  res=await handler(request("/api/internal-clinical/contingency",{token:tokenB}),{});
+  assert.equal(res.status,200);
+  const contingencyB=await json(res);
+  assert.deepEqual(contingencyB.map(x=>[x.tenant_id,x.center,x.channel_type]),[["TENANT-B","HQ","URL"]]);
+
+  res=await handler(request("/api/internal-clinical/contingency",{token:adminTokenA}),{});
+  assert.equal(res.status,200);
+  assert.deepEqual((await json(res)).map(x=>x.tenant_id),["TENANT-A"]);
+
+  res=await handler(request("/api/internal-clinical/contingency/channels",{method:"POST",token:tokenA,body:{tenant_id:"TENANT-A",center:"HQ",channel_type:"REFERENCE",label:"Denied",target:"DENIED",active:true}}),{});
+  assert.equal(res.status,403);
+
+  res=await handler(request("/api/internal-clinical/contingency/channels",{method:"POST",token:masterToken,body:{tenant_id:"TENANT-A",center:"HQ-2",channel_type:"URL",label:"Unsafe URL",target:"http://insecure.invalid",active:true}}),{});
+  assert.equal(res.status,422);
+  assert.equal((await json(res)).detail,"invalid_contingency_target");
+
   res=await handler(request("/api/internal-clinical/episodes/EP-TB",{token:adminTokenA}),{});
   assert.equal(res.status,404);
 
@@ -161,12 +188,14 @@ test("runtime: tenant boundary survives identical center ids across clients",{sk
   res=await handler(request("/api/internal-clinical/recovery/snapshot",{token:masterToken}),{});
   assert.equal(res.status,200);
   const snapshot=await json(res);
-  assert.equal(snapshot.schema_version,3);
+  assert.equal(snapshot.schema_version,4);
+  assert.equal(snapshot.contingency.length,2);
+  assert.deepEqual(snapshot.contingency.map(x=>x.tenant_id).sort(),["TENANT-A","TENANT-B"]);
   const tampered=structuredClone(snapshot);
   const attendanceA=tampered.attendance.find(x=>x.worker_id==="NURSE-TA");
   assert.ok(attendanceA);
   attendanceA.tenant_id="TENANT-B";
-  const payload={schema_version:tampered.schema_version,episodes:tampered.episodes,workers:tampered.workers,audit:tampered.audit,counters:tampered.counters,workstations:tampered.workstations,attendance:tampered.attendance};
+  const payload={schema_version:tampered.schema_version,episodes:tampered.episodes,workers:tampered.workers,audit:tampered.audit,counters:tampered.counters,workstations:tampered.workstations,attendance:tampered.attendance,contingency:tampered.contingency};
   tampered.snapshot_signature=crypto.createHmac("sha256",secrets.GASI_RECOVERY_SIGNING_SECRET).update(canonical(payload)).digest("hex");
   res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:tampered}),{});
   assert.equal(res.status,422);
@@ -176,7 +205,7 @@ test("runtime: tenant boundary survives identical center ids across clients",{sk
   const reservedWorker=reservedSnapshot.workers.find(x=>x.id==="NURSE-TA");
   assert.ok(reservedWorker);
   reservedWorker.tenant_id="__MASTER__";
-  const reservedPayload={schema_version:reservedSnapshot.schema_version,episodes:reservedSnapshot.episodes,workers:reservedSnapshot.workers,audit:reservedSnapshot.audit,counters:reservedSnapshot.counters,workstations:reservedSnapshot.workstations,attendance:reservedSnapshot.attendance};
+  const reservedPayload={schema_version:reservedSnapshot.schema_version,episodes:reservedSnapshot.episodes,workers:reservedSnapshot.workers,audit:reservedSnapshot.audit,counters:reservedSnapshot.counters,workstations:reservedSnapshot.workstations,attendance:reservedSnapshot.attendance,contingency:reservedSnapshot.contingency};
   reservedSnapshot.snapshot_signature=crypto.createHmac("sha256",secrets.GASI_RECOVERY_SIGNING_SECRET).update(canonical(reservedPayload)).digest("hex");
   res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:reservedSnapshot}),{});
   assert.equal(res.status,422);
