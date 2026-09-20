@@ -24,6 +24,7 @@ function cookieFrom(response){
 }
 function request(pathname,{method="GET",cookie,body,raw,headers={}}={}){
   const h={"user-agent":"Mozilla/5.0 Chrome/153","x-nf-client-connection-ip":"10.30.0.10",...headers};
+  if(cookie)h.cookie=cookie;
   let requestBody;
   if(body instanceof FormData)requestBody=body;
   else if(raw!==undefined)requestBody=raw;
@@ -80,7 +81,9 @@ test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async
   assert.match(setCookie,/SameSite=Lax/);
   await pool.query("UPDATE public_users SET is_admin=TRUE WHERE lower(email)='admin@example.com'");
 
-  res=await handler(request("/api/auth/me",{cookie:adminCookie}),{});
+  const authMeRequest=request("/api/auth/me",{cookie:adminCookie});
+  assert.equal(authMeRequest.headers.get("cookie"),adminCookie);
+  res=await handler(authMeRequest,{});
   assert.equal(res.status,200);
   assert.equal((await payload(res)).is_admin,true);
 
