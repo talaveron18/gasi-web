@@ -14,7 +14,15 @@ async def get_db():
     return db
 
 def set_session_cookie(response: Response, token: str):
-    set_session_cookie(response, token)
+    response.set_cookie(
+        key="session_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=7*24*60*60,
+        path="/"
+    )
 
 @router.post("/register", response_model=TokenResponse)
 async def register(user: UserCreate, response: Response, db: AsyncIOMotorDatabase = Depends(get_db)):
