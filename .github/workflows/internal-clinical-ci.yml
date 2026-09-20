@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   frontend:
@@ -23,24 +23,8 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '24'
-      - name: Detect missing frontend lockfile
-        id: frontend-lock
-        run: |
-          if [ -f yarn.lock ]; then
-            echo "missing=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "missing=true" >> "$GITHUB_OUTPUT"
-          fi
       - name: Install dependencies
-        run: yarn install --non-interactive
-      - name: Commit generated frontend lockfile
-        if: steps.frontend-lock.outputs.missing == 'true'
-        run: |
-          git config user.name "gasi-ci"
-          git config user.email "gasi-ci@users.noreply.github.com"
-          git add yarn.lock
-          git commit -m "build: lock frontend dependency graph"
-          git push origin HEAD:${GITHUB_REF_NAME}
+        run: yarn install --non-interactive --frozen-lockfile
       - name: Build
         env:
           CI: 'true'
