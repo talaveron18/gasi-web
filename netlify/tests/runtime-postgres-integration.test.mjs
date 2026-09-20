@@ -329,7 +329,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
 
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/responses`,{method:"POST",token:nurseToken,body:{text:"Nurse must not author physician response"}}),{});
  assert.equal(res.status,403);
- assert.equal((await responseJson(res)).detail,"physician_only");
+ assert.equal((await responseJson(res)).detail,"response_role_required");
 
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/responses`,{method:"POST",token:physicianToken,body:{text:"Synthetic physician response"}}),{});
  assert.equal(res.status,200);
