@@ -559,9 +559,19 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  masterToken=(await responseJson(res)).token;
 
+ res=await handler(request("/api/internal-clinical/attendance",{token:nurseToken}),{});
+ assert.equal(res.status,401);
+ assert.equal((await responseJson(res)).detail,"session_expired_or_revoked");
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-A",password:nursePassword},ip:"10.10.0.11"}),{});
+ assert.equal(res.status,200);
+ const nurseAfterRestoreToken=(await responseJson(res)).token;
+ res=await handler(request("/api/internal-clinical/attendance",{token:nurseAfterRestoreToken}),{});
+ assert.equal(res.status,200);
+
  res=await handler(request("/api/internal-clinical/workers/NURSE-A/privileges/grant",{method:"POST",token:masterToken,body:{privilege:"worker_access_management"}}),{});
  assert.equal(res.status,200);
- res=await handler(request("/api/internal-clinical/attendance",{token:nurseToken}),{});
+ res=await handler(request("/api/internal-clinical/attendance",{token:nurseAfterRestoreToken}),{});
  assert.equal(res.status,401);
 
  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-A",password:nursePassword},ip:"10.10.0.11"}),{});
