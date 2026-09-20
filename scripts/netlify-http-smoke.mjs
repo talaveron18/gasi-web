@@ -16,7 +16,8 @@ const child=spawn("npx",[
 ],{
   cwd:process.cwd(),
   env:{...process.env,BROWSER:"none"},
-  stdio:["ignore","pipe","pipe"]
+  stdio:["ignore","pipe","pipe"],
+  detached:process.platform!=="win32"
 });
 
 let stdout="",stderr="";
@@ -67,10 +68,22 @@ try{
   };
   console.log(JSON.stringify(evidence));
 }finally{
-  child.kill("SIGTERM");
+  const killTree=signal=>{
+    try{
+      if(process.platform==="win32")child.kill(signal);
+      else process.kill(-child.pid,signal);
+    }catch{}
+  };
+  killTree("SIGTERM");
   await Promise.race([
     new Promise(resolve=>child.once("exit",resolve)),
-    sleep(3000)
+    sleep(2000)
   ]);
-  if(child.exitCode===null)child.kill("SIGKILL");
+  if(child.exitCode===null){
+    killTree("SIGKILL");
+    await Promise.race([
+      new Promise(resolve=>child.once("exit",resolve)),
+      sleep(1000)
+    ]);
+  }
 }
