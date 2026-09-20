@@ -6,6 +6,7 @@ import crypto from "node:crypto";
 const COOKIE="gasi_public_session";
 const SESSION_SECONDS=7*24*60*60;
 const MAX_PDF_BYTES=25*1024*1024;
+const MAX_JSON_BYTES=32*1024;
 const SECURITY_HEADERS={
   "content-type":"application/json; charset=utf-8",
   "cache-control":"no-store",
@@ -66,7 +67,11 @@ const required=(value:any,name:string,max:number)=>{
   return out;
 };
 async function bodyJson(req:Request){
-  try{return await req.json() as any;}catch{throw new ApiError(400,"invalid_json");}
+  const declared=Number(req.headers.get("content-length")||0);
+  if(Number.isFinite(declared)&&declared>MAX_JSON_BYTES)throw new ApiError(413,"request_too_large");
+  const raw=await req.text();
+  if(Buffer.byteLength(raw,"utf8")>MAX_JSON_BYTES)throw new ApiError(413,"request_too_large");
+  try{return JSON.parse(raw) as any;}catch{throw new ApiError(400,"invalid_json");}
 }
 function publicUser(row:any){
   return {
@@ -190,6 +195,62 @@ function buildCertificate({studentName,courseTitle,certificateId,completedAt}:{s
 function clientSource(req:Request){
   return (req.headers.get("x-nf-client-connection-ip")||req.headers.get("x-forwarded-for")||"unknown").split(",")[0].trim();
 }
+
+function enforceBrowserMutationOrigin(req:Request,path:string){
+  if(path==="/api/payments/webhook")return;
+  if(!["POST","PUT","PATCH","DELETE"].includes(req.method))return;
+  const expected=new URL(req.url).origin;
+  const origin=(req.headers.get("origin")||"").trim();
+  if(origin){
+    let observed="";
+    try{observed=new URL(origin).origin;}catch{throw new ApiError(403,"cross_site_request_rejected");}
+    if(observed!==expected)throw new ApiError(403,"cross_site_request_rejected");
+  }
+  const fetchSite=(req.headers.get("sec-fetch-site")||"").trim().toLowerCase();
+  if(fetchSite==="cross-site")throw new ApiError(403,"cross_site_request_rejected");
+  if(!origin){
+    const referer=(req.headers.get("referer")||"").trim();
+    if(referer){
+      let observed="";
+      try{observed=new URL(referer).origin;}catch{throw new ApiError(403,"cross_site_request_rejected");}
+      if(observed!==expected)throw new ApiError(403,"cross_site_request_rejected");
+    }
+  }
+}
+function registrationBuckets(req:Request,email:string){
+  const source=clientSource(req);
+  return [
+    {key:sha256(`register-ip:${source}`),limit:10},
+    {key:sha256(`register-email:${email}`),limit:3}
+  ];
+}
+async function consumeRegistrationAttempt(db:any,req:Request,email:string){
+  const buckets=registrationBuckets(req,email),client=await db.pool.connect();
+  try{
+    await client.query("BEGIN");
+    for(const b of [...buckets].sort((a,b)=>a.key.localeCompare(b.key)))await client.query("SELECT pg_advisory_xact_lock(hashtext($1))",[b.key]);
+    for(const b of buckets){
+      const q=await client.query("SELECT failures,window_started_at,blocked_until FROM public_login_throttle WHERE key_hash=$1",[b.key]);
+      const row=q.rows[0],started=row?Date.parse(row.window_started_at):NaN,blocked=row?.blocked_until?Date.parse(row.blocked_until):NaN;
+      if(Number.isFinite(blocked)&&blocked>Date.now())throw new ApiError(429,"too_many_registration_attempts");
+      if(row&&Number.isFinite(started)&&Date.now()-started<60*60_000&&Number(row.failures)>=b.limit)throw new ApiError(429,"too_many_registration_attempts");
+    }
+    for(const b of buckets){
+      const q=await client.query("SELECT failures,window_started_at FROM public_login_throttle WHERE key_hash=$1",[b.key]);
+      const row=q.rows[0],started=row?Date.parse(row.window_started_at):NaN;
+      if(!row||!Number.isFinite(started)||Date.now()-started>=60*60_000){
+        await client.query("INSERT INTO public_login_throttle(key_hash,failures,window_started_at,blocked_until,updated_at) VALUES($1,1,NOW(),NULL,NOW()) ON CONFLICT(key_hash) DO UPDATE SET failures=1,window_started_at=NOW(),blocked_until=NULL,updated_at=NOW()",[b.key]);
+      }else{
+        const attempts=Number(row.failures)+1,blocked=attempts>=b.limit?new Date(Date.now()+60*60_000):null;
+        await client.query("UPDATE public_login_throttle SET failures=$2,blocked_until=$3,updated_at=NOW() WHERE key_hash=$1",[b.key,attempts,blocked]);
+      }
+    }
+    await client.query("COMMIT");
+  }catch(e){
+    try{await client.query("ROLLBACK");}catch{}
+    throw e;
+  }finally{client.release();}
+}
 function loginBuckets(req:Request,email:string){
   const source=clientSource(req);
   return [
@@ -258,11 +319,13 @@ function stripeSignature(raw:string,header:string,secret:string){
 export default async (req:Request,_context:Context)=>{
   const url=new URL(req.url),path=url.pathname,db=database();
   try{
+    enforceBrowserMutationOrigin(req,path);
     if(req.method==="GET"&&path==="/api/health"){await queryRows(db,"SELECT 1");return json({ok:true,storage:"postgresql"});}
 
     if(req.method==="POST"&&path==="/api/auth/register"){
       const b=await bodyJson(req),name=required(b.name,"name",80),email=normalizeEmail(b.email),password=String(b.password||"");
       if(password.length<12||password.length>128)throw new ApiError(422,"invalid_password");
+      await consumeRegistrationAttempt(db,req,email);
       const client=await db.pool.connect();
       try{
         await client.query("BEGIN");await client.query("SELECT pg_advisory_xact_lock(hashtext($1))",[`public-email:${email}`]);
