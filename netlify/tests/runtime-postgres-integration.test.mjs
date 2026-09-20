@@ -1,3 +1,4 @@
+import "./runtime-postgres-tenant-isolation.test.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -12,6 +13,7 @@ const enabled=Boolean(connectionString);
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir=path.resolve(__dirname,"../database/migrations");
 const {Pool}=pg;
+const syntheticSecret=()=>crypto.randomBytes(32).toString("base64url");
 
 async function responseJson(response){
  const text=await response.text();
@@ -53,21 +55,21 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
 
  const secrets={
   NETLIFY_DB_URL:connectionString,
-  GASI_INTERNAL_SESSION_SECRET:"integration-session-secret-at-least-32-bytes-long",
-  GASI_RECOVERY_SIGNING_SECRET:"integration-recovery-signing-secret-at-least-32-bytes-long",
+  GASI_INTERNAL_SESSION_SECRET:syntheticSecret(),
+  GASI_RECOVERY_SIGNING_SECRET:syntheticSecret(),
   GASI_MASTER_ACTOR_ID:"GASI-MASTER-01",
-  GASI_MASTER_PASSWORD:"MasterIntegrationPassword!123",
+  GASI_MASTER_PASSWORD:syntheticSecret(),
   GASI_MASTER_DISPLAY_NAME:"Integration Master",
   GASI_INTERNAL_SESSION_TTL_MINUTES:"30"
  };
  globalThis.Netlify={env:{get:name=>secrets[name]||""}};
  const {default:handler}=await import("../functions/internal-clinical.mts");
 
- const nursePassword="NurseIntegrationPassword!123";
- const otherPassword="OtherIntegrationPassword!123";
- const physicianPassword="PhysicianIntegrationPassword!123";
- const psychologistPassword="PsychologistIntegrationPassword!123";
- const adminPassword="AdminIntegrationPassword!123";
+ const nursePassword=syntheticSecret();
+ const otherPassword=syntheticSecret();
+ const physicianPassword=syntheticSecret();
+ const psychologistPassword=syntheticSecret();
+ const adminPassword=syntheticSecret();
  const nurseHash=await bcrypt.hash(nursePassword,12);
  const otherHash=await bcrypt.hash(otherPassword,12);
  const physicianHash=await bcrypt.hash(physicianPassword,12);
@@ -85,8 +87,8 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  let masterToken=masterLogin.token;
  assert.ok(masterToken);
 
- const tempPassword="TemporaryWorkerPassword!123";
- const permanentPassword="PermanentWorkerPassword!456";
+ const tempPassword=syntheticSecret();
+ const permanentPassword=syntheticSecret();
  res=await handler(request("/api/internal-clinical/workers",{method:"POST",token:masterToken,body:{id:"TEMP-NURSE",display_name:"Temporary Nurse",role:"nurse",centers:["CENTER-A"],temporary_password:tempPassword}}),{});
  assert.equal(res.status,201);
  assert.equal((await responseJson(res)).must_change_password,true);
@@ -150,12 +152,12 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal((await responseJson(res)).detail,"password_change_required");
 
  for(let i=0;i<8;i++){
-  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"UNKNOWN-RATE-LIMIT",password:"wrong"},ip:"10.10.0.99"}),{});
+  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"UNKNOWN-RATE-LIMIT",password:syntheticSecret()},ip:"10.10.0.99"}),{});
   assert.equal(res.status,401);
  }
- res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"UNKNOWN-RATE-LIMIT",password:"wrong"},ip:"10.10.0.99"}),{});
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"UNKNOWN-RATE-LIMIT",password:syntheticSecret()},ip:"10.10.0.99"}),{});
  assert.equal(res.status,429);
- res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"UNKNOWN-RATE-LIMIT",password:"wrong"},ip:"10.10.0.100"}),{});
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"UNKNOWN-RATE-LIMIT",password:syntheticSecret()},ip:"10.10.0.100"}),{});
  assert.equal(res.status,401);
 
  res=await handler(request("/api/internal-clinical/workstations",{method:"POST",token:masterToken,body:{id:"WS-A",center:"CENTER-A",label:"Centro A fijo"}}),{});
@@ -521,7 +523,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/recovery/snapshot",{token:masterToken}),{});
  assert.equal(res.status,200);
  const snapshot=await responseJson(res);
- assert.equal(snapshot.schema_version,2);
+ assert.equal(snapshot.schema_version,3);
  assert.ok(snapshot.workstations.find(x=>x.id==="WS-A")?.claimed_at);
  assert.ok(snapshot.attendance.length>=5);
 
@@ -577,7 +579,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  const afterNoMaster=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
  assert.equal(afterNoMaster,beforeTamper);
 
- const currentMasterPassword="MasterCurrentPassword!456";
+ const currentMasterPassword=syntheticSecret();
  res=await handler(request("/api/internal-clinical/password",{method:"POST",token:masterToken,body:{current_password:secrets.GASI_MASTER_PASSWORD,new_password:currentMasterPassword}}),{});
  assert.equal(res.status,200);
  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:currentMasterPassword},ip:"10.10.0.30"}),{});
@@ -664,7 +666,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  await assert.rejects(()=>pool.query("DELETE FROM internal_clinical_audit WHERE seq=$1",[auditSeq]),/append-only/);
 
  const workingDbUrl=secrets.NETLIFY_DB_URL;
- secrets.NETLIFY_DB_URL="postgresql://postgres:postgres@127.0.0.1:1/gasi";
+ {const broken=new URL(workingDbUrl);broken.port="1";secrets.NETLIFY_DB_URL=broken.toString();}
  res=await handler(request("/api/internal-clinical/health"),{});
  assert.equal(res.status,500);
  assert.deepEqual(await responseJson(res),{detail:"internal_error"});
