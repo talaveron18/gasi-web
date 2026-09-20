@@ -36,12 +36,17 @@ function stripeHeader(raw,secret,timestamp=Math.floor(Date.now()/1000)){
 }
 
 test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async()=>{
-  const pool=new Pool({connectionString});
-  await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public");
-  await applyMigrations(pool);
+  const adminPool=new Pool({connectionString});
+  await adminPool.query("DROP SCHEMA IF EXISTS public_web_runtime CASCADE");
+  await adminPool.query("CREATE SCHEMA public_web_runtime");
+  const scoped=new URL(connectionString);
+  scoped.searchParams.set("options","-csearch_path=public_web_runtime");
+  const scopedConnectionString=scoped.toString();
+  const pool=new Pool({connectionString:scopedConnectionString});
+  await pool.query(fs.readFileSync(publicMigration,"utf8"));
 
   const secrets={
-    NETLIFY_DB_URL:connectionString,
+    NETLIFY_DB_URL:scopedConnectionString,
     STRIPE_SECRET_KEY:"sk_test_public_runtime",
     STRIPE_WEBHOOK_SECRET:"whsec_public_runtime"
   };
