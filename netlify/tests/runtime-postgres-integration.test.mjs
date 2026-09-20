@@ -36,7 +36,7 @@ function canonical(value){
  return "{"+Object.keys(value).sort().map(k=>JSON.stringify(k)+":"+canonical(value[k])).join(",")+"}";
 }
 function resignSnapshot(snapshot,secret){
- const payload={schema_version:snapshot.schema_version,episodes:snapshot.episodes,workers:snapshot.workers,audit:snapshot.audit,counters:snapshot.counters,workstations:snapshot.workstations,attendance:snapshot.attendance};
+ const payload={schema_version:snapshot.schema_version,episodes:snapshot.episodes,workers:snapshot.workers,audit:snapshot.audit,counters:snapshot.counters,workstations:snapshot.workstations,attendance:snapshot.attendance,contingency:snapshot.contingency};
  snapshot.snapshot_signature=crypto.createHmac("sha256",secret).update(canonical(payload)).digest("hex");
  return snapshot;
 }
@@ -183,6 +183,15 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-A",password:nursePassword},ip:"10.10.0.11"}),{});
  assert.equal(res.status,200);
  const nurseToken=(await responseJson(res)).token;
+
+ res=await handler(request("/api/internal-clinical/contingency/channels",{method:"POST",token:masterToken,body:{tenant_id:"GASI-LEGACY",center:"CENTER-A",channel_type:"PHONE",label:"Synthetic fallback physician",target:"+34910000001",active:true}}),{});
+ assert.equal(res.status,200);
+ res=await handler(request("/api/internal-clinical/contingency",{token:nurseToken}),{});
+ assert.equal(res.status,200);
+ const nurseContingency=await responseJson(res);
+ assert.equal(nurseContingency.length,1);
+ assert.equal(nurseContingency[0].center,"CENTER-A");
+ assert.equal(nurseContingency[0].target,"+34910000001");
 
  const expiredPayload=Buffer.from(JSON.stringify({sid:"expired-integration",sub:"NURSE-A",iat:1,exp:1,av:1})).toString("base64url");
  const expiredSig=crypto.createHmac("sha256",secrets.GASI_INTERNAL_SESSION_SECRET).update(expiredPayload).digest("base64url");
@@ -523,9 +532,12 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/recovery/snapshot",{token:masterToken}),{});
  assert.equal(res.status,200);
  const snapshot=await responseJson(res);
- assert.equal(snapshot.schema_version,3);
+ assert.equal(snapshot.schema_version,4);
  assert.ok(snapshot.workstations.find(x=>x.id==="WS-A")?.claimed_at);
  assert.ok(snapshot.attendance.length>=5);
+ assert.equal(snapshot.contingency.length,1);
+ assert.equal(snapshot.contingency[0].tenant_id,"GASI-LEGACY");
+ assert.equal(snapshot.contingency[0].center,"CENTER-A");
 
  const beforeTamper=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
 
@@ -587,6 +599,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  masterToken=(await responseJson(res)).token;
 
  await pool.query("UPDATE internal_center_workstations SET claimed_at=NULL WHERE id='WS-A'");
+ await pool.query("UPDATE internal_contingency_channels SET target='+34919999999' WHERE tenant_id='GASI-LEGACY' AND center='CENTER-A'");
  res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:snapshot}),{});
  assert.equal(res.status,200);
  const restorePayload=await responseJson(res);
@@ -594,6 +607,9 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  const restored=await pool.query("SELECT claimed_at,active FROM internal_center_workstations WHERE id='WS-A'");
  assert.ok(restored.rows[0].claimed_at);
  assert.equal(restored.rows[0].active,true);
+ const restoredContingency=(await pool.query("SELECT target,active FROM internal_contingency_channels WHERE tenant_id='GASI-LEGACY' AND center='CENTER-A'")).rows[0];
+ assert.equal(restoredContingency.target,"+34910000001");
+ assert.equal(restoredContingency.active,true);
 
  res=await handler(request("/api/internal-clinical/session",{token:masterToken}),{});
  assert.equal(res.status,401);
