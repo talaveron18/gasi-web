@@ -183,6 +183,13 @@ async function setValue(send,selector,value){
   await send("Runtime.evaluate",{expression});
 }
 
+function unnamedInteractive(nodes){
+  const interactive=new Set(["button","link","textbox","combobox","checkbox","radio","switch","menuitem","tab"]);
+  return nodes
+    .filter(n=>!n.ignored&&interactive.has(String(n.role?.value||""))&&!String(n.name?.value||"").trim())
+    .map(n=>String(n.role?.value||"unknown"));
+}
+
 const {server,origin}=await startServer();
 const debugPort=await freePort();
 const profileDir=fs.mkdtempSync(path.join(os.tmpdir(),"gasi-admin-e2e-"));
@@ -202,6 +209,7 @@ try{
   await send("Page.enable");
   await send("Runtime.enable");
   await send("DOM.enable");
+  await send("Accessibility.enable");
 
   state.isAdmin=false;
   await navigate(send,`${origin}/dashboard/admin/cursos`);
@@ -210,6 +218,8 @@ try{
 
   state.isAdmin=true;
   await navigate(send,`${origin}/dashboard/admin/cursos`,'[data-testid="admin-courses-page"]');
+  const adminAx=await send("Accessibility.getFullAXTree");
+  assert.deepEqual(unnamedInteractive(adminAx.nodes||[]),[],"Course administration has unnamed interactive controls");
   await click(send,'[data-testid="admin-new-course"]');
   await setValue(send,'[data-testid="admin-course-title"]',"Curso Admin E2E");
   await setValue(send,'[data-testid="admin-course-duration"]',"3 horas");
