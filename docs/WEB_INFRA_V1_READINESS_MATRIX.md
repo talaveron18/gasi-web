@@ -2,8 +2,8 @@
 
 **Fecha de evidencia:** 2026-09-20  
 **Rama:** `work/web-infra-v1-netlify-20260918`  
-**SHA verificado:** `e68165bbd4705bce8a5e5acb8a71a92e6b2bfb06`  
-**GitHub Actions:** Internal Clinical CI run **#760 / 35522224033**  
+**SHA verificado:** `e288818076292a27155daa1acf5b9e9e58458f4f`  
+**GitHub Actions:** Internal Clinical CI run **#765 / 35522603280**  
 **Resultado:** **PASS — 5/5 jobs** (`frontend`, `backend-clinical`, `netlify-clinical`, `netlify-build`, `netlify-runtime-integration`).  
 **Frontend:** 12 suites / 68 tests PASS + navegador Chrome real PASS.  
 **Runtime PostgreSQL 17:** 2 pruebas de integración PASS, 0 FAIL.
@@ -32,7 +32,8 @@ Esta matriz demuestra capacidades técnicas con datos sintéticos. No declara cu
 | Fallo de red de autenticación | PASS | Chrome/CDP E2E | Mensaje seguro; no filtra stack, URL ni error técnico |
 | Acceso público genérico | PASS | Chrome/CDP E2E | “Acceder” → Alumnado / Equipo GASI |
 | Accesibilidad de superficies probadas | PASS_CON_RESERVA | 68 tests + Chrome accessibility tree | Puerta pública, foco/teclado y componentes internos probados; no equivale a auditoría WCAG completa |
-| Build Netlify de producción | PASS | job `netlify-build` run #760 | Build reproducible de la rama |
+| Build Netlify de producción | PASS | job `netlify-build` run #765 | Build reproducible de la rama |
+| Grafo de dependencias frontend | PASS | `frontend/yarn.lock` + `yarn install --frozen-lockfile` en run #765 | Lockfile versionado; CI con `contents: read`; sin auto-commit |
 | Despliegue a producción | BLOQUEADO | Sin acción | Requiere autorización expresa; `main` y producción no se modifican desde esta rama |
 
 ## Negativos obligatorios
@@ -59,7 +60,7 @@ Esta matriz demuestra capacidades técnicas con datos sintéticos. No declara cu
 
 ## Evidencia del navegador
 
-Entrada observada en el run #760:
+Entrada observada en el run #765:
 
 - `public_entry = Acceder`
 - destino alumnado: `/formacion-sanitaria` + modal de login
