@@ -5,8 +5,10 @@ import fs from "node:fs";
 const actions=fs.readFileSync(new URL("../../frontend/src/components/InternalClinicalEpisodeActions.jsx",import.meta.url),"utf8");
 const focused=fs.readFileSync(new URL("../../frontend/src/pages/InternalClinicalFocusedEpisode.jsx",import.meta.url),"utf8");
 
-test("episode UI exposes physician response and clinical addendum through authoritative API",()=>{
- assert.match(actions,/session\.role==='physician'/);
+test("episode UI exposes discipline-owner response and clinical addendum through authoritative API",()=>{
+ assert.match(actions,/\['physician','psychologist','physiotherapist'\]\.includes\(session\.role\)/);
+ assert.match(actions,/Respuesta de Psicología/);
+ assert.match(actions,/Respuesta de Fisioterapia/);
  assert.match(actions,/api\.respond\(episode\.id,text\)/);
  assert.match(actions,/api\.addAddendum\(episode\.id,text\)/);
  assert.match(actions,/onUpdate\(updated\)/);
