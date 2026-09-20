@@ -66,14 +66,17 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  const nursePassword="NurseIntegrationPassword!123";
  const otherPassword="OtherIntegrationPassword!123";
  const physicianPassword="PhysicianIntegrationPassword!123";
+ const psychologistPassword="PsychologistIntegrationPassword!123";
  const adminPassword="AdminIntegrationPassword!123";
  const nurseHash=await bcrypt.hash(nursePassword,12);
  const otherHash=await bcrypt.hash(otherPassword,12);
  const physicianHash=await bcrypt.hash(physicianPassword,12);
+ const psychologistHash=await bcrypt.hash(psychologistPassword,12);
  const adminHash=await bcrypt.hash(adminPassword,12);
  await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'nurse',$2,$3::jsonb,TRUE,1,'[]'::jsonb,$4)",["NURSE-A","Nurse A",JSON.stringify(["CENTER-A"]),nurseHash]);
  await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'nurse',$2,$3::jsonb,TRUE,1,'[]'::jsonb,$4)",["NURSE-B","Nurse B",JSON.stringify(["CENTER-B"]),otherHash]);
  await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'physician',$2,$3::jsonb,TRUE,1,'[]'::jsonb,$4)",["PHYS-A","Physician A",JSON.stringify(["CENTER-A"]),physicianHash]);
+ await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'psychologist',$2,$3::jsonb,TRUE,1,'[]'::jsonb,$4)",["PSY-A","Psychologist A",JSON.stringify(["CENTER-A"]),psychologistHash]);
  await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'admin',$2,'[]'::jsonb,TRUE,1,'[]'::jsonb,$3)",["ADMIN-A","Admin A",adminHash]);
 
  let res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:secrets.GASI_MASTER_PASSWORD}}),{});
