@@ -25,6 +25,12 @@ jobs:
           node-version: '24'
       - name: Install dependencies
         run: yarn install --non-interactive
+      - name: Export resolved frontend lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-yarn-lock
+          path: frontend/yarn.lock
+          if-no-files-found: error
       - name: Build
         env:
           CI: 'true'
