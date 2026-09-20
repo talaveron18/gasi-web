@@ -69,7 +69,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  let res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:secrets.GASI_MASTER_PASSWORD}}),{});
  assert.equal(res.status,200);
  const masterLogin=await responseJson(res);
- const masterToken=masterLogin.token;
+ let masterToken=masterLogin.token;
  assert.ok(masterToken);
 
  const tempPassword="TemporaryWorkerPassword!123";
@@ -515,12 +515,29 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  const afterNoMaster=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
  assert.equal(afterNoMaster,beforeTamper);
 
+ const currentMasterPassword="MasterCurrentPassword!456";
+ res=await handler(request("/api/internal-clinical/password",{method:"POST",token:masterToken,body:{current_password:secrets.GASI_MASTER_PASSWORD,new_password:currentMasterPassword}}),{});
+ assert.equal(res.status,200);
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:currentMasterPassword},ip:"10.10.0.30"}),{});
+ assert.equal(res.status,200);
+ masterToken=(await responseJson(res)).token;
+
  await pool.query("UPDATE internal_center_workstations SET claimed_at=NULL WHERE id='WS-A'");
  res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:snapshot}),{});
  assert.equal(res.status,200);
+ const restorePayload=await responseJson(res);
+ assert.equal(restorePayload.master_reauthentication_required,true);
  const restored=await pool.query("SELECT claimed_at,active FROM internal_center_workstations WHERE id='WS-A'");
  assert.ok(restored.rows[0].claimed_at);
  assert.equal(restored.rows[0].active,true);
+
+ res=await handler(request("/api/internal-clinical/session",{token:masterToken}),{});
+ assert.equal(res.status,401);
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:secrets.GASI_MASTER_PASSWORD},ip:"10.10.0.31"}),{});
+ assert.equal(res.status,401);
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:currentMasterPassword},ip:"10.10.0.32"}),{});
+ assert.equal(res.status,200);
+ masterToken=(await responseJson(res)).token;
 
  res=await handler(request("/api/internal-clinical/workers/NURSE-A/privileges/grant",{method:"POST",token:masterToken,body:{privilege:"worker_access_management"}}),{});
  assert.equal(res.status,200);
