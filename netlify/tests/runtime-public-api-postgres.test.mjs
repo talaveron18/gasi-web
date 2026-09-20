@@ -9,15 +9,9 @@ import pg from "pg";
 const connectionString=process.env.GASI_INTEGRATION_DB_URL||"";
 const enabled=Boolean(connectionString);
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
-const migrationsDir=path.resolve(__dirname,"../database/migrations");
+const publicMigration=path.resolve(__dirname,"../database/migrations/20260920190000_public-web-v1/migration.sql");
 const {Pool}=pg;
 
-async function applyMigrations(pool){
-  for(const dir of fs.readdirSync(migrationsDir).sort()){
-    const file=path.join(migrationsDir,dir,"migration.sql");
-    if(fs.existsSync(file))await pool.query(fs.readFileSync(file,"utf8"));
-  }
-}
 async function payload(response){
   const text=await response.text();
   return text?JSON.parse(text):null;
