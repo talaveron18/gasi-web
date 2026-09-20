@@ -32,6 +32,10 @@ async function startStaticServer(){
       res.writeHead(200,{"content-type":"application/json","cache-control":"no-store"});
       res.end("[]");return;
     }
+    if(u.pathname.includes("/api/auth/")){
+      res.writeHead(401,{"content-type":"application/json","cache-control":"no-store"});
+      res.end(JSON.stringify({detail:"unauthenticated"}));return;
+    }
     if(u.pathname.startsWith("/api/internal-clinical/")){
       res.writeHead(401,{"content-type":"application/json","cache-control":"no-store"});
       res.end(JSON.stringify({detail:"missing_session"}));return;
