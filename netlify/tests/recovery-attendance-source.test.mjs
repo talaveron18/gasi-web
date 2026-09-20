@@ -221,3 +221,14 @@ test("recovery signing is independent from session signing",()=>{
  assert.match(source,/createHmac\("sha256",recoverySecret\(\)\)/);
  assert.match(source,/session_secret_not_configured.*recovery_signing_secret_not_configured.*503/);
 });
+
+
+test("restore preserves the live master credential and invalidates existing master sessions",()=>{
+ const start=source.indexOf('path==="/api/internal-clinical/recovery/restore"');
+ const route=source.slice(start);
+ assert.match(route,/SELECT password_hash,auth_version,must_change_password,display_name,created_at FROM internal_clinical_workers WHERE id=\$1 FOR UPDATE/);
+ assert.match(route,/const isMaster=String\(x\.id\)===MASTER\(\)/);
+ assert.match(route,/authVersion=isMaster\?Number\(currentMaster\.auth_version\)\+1:x\.auth_version/);
+ assert.match(route,/passwordHash=isMaster\?currentMaster\.password_hash:x\.password_hash/);
+ assert.match(route,/master_reauthentication_required:true/);
+});
