@@ -37,7 +37,7 @@ test("restore rejects broken attendance references before destructive work",()=>
  const connect=source.indexOf('const client=await db.pool.connect()',source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
  assert.ok(validation>=0&&connect>validation);
  assert.match(source,/workerIds\.has\(String\(x\.worker_id\)\)/);
- assert.match(source,/workstationCenters\.get\(String\(x\.workstation_id\)\)!==String\(x\.center\)/);
+ assert.match(source,/ws\.tenant_id!==String\(x\.tenant_id\)/);\n assert.match(source,/ws\.center!==String\(x\.center\)/);
  assert.match(source,/related_event_seq!=null&&\(!attendanceSeqs\.has\(Number\(x\.related_event_seq\)\)\|\|Number\(x\.related_event_seq\)>=Number\(x\.seq\)\)/);
 });
 
@@ -107,7 +107,7 @@ test("recovery export and successful restore are audited",()=>{
 test("restore rejects duplicate ids and sequence keys before destructive work",()=>{
  assert.match(source,/episodeIds\.size!==snapshot\.episodes\.length/);
  assert.match(source,/workerIds\.size!==snapshot\.workers\.length/);
- assert.match(source,/workstationCenters\.size!==snapshot\.workstations\.length/);
+ assert.match(source,/workstationScope\.size!==snapshot\.workstations\.length/);
  assert.match(source,/attendanceSeqs\.size!==snapshot\.attendance\.length/);
  assert.match(source,/auditSeqs\.size!==snapshot\.audit\.length/);
  assert.match(source,/counterNames\.size!==snapshot\.counters\.length/);
@@ -119,7 +119,7 @@ test("restore rejects duplicate ids and sequence keys before destructive work",(
 
 test("restore requires an active administrative master identity",()=>{
  assert.match(source,/masterSnapshot=snapshot\.workers\.find\(\(x:any\)=>String\(x\.id\)===MASTER\(\)\)/);
- assert.match(source,/!masterSnapshot\|\|masterSnapshot\.role!=="admin"\|\|masterSnapshot\.active!==true/);
+ assert.match(source,/!masterSnapshot\|\|masterSnapshot\.tenant_id!=="__MASTER__"\|\|masterSnapshot\.role!=="admin"\|\|masterSnapshot\.active!==true/);
  assert.match(source,/invalid_recovery_snapshot_master/);
  const validation=source.indexOf("invalid_recovery_snapshot_master");
  const connect=source.indexOf("const client=await db.pool.connect()",source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
