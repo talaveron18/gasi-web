@@ -138,6 +138,13 @@ function axHas(nodes,role,name){
   return nodes.some(n=>n.role?.value===role&&n.name?.value===name&&!n.ignored);
 }
 
+function unnamedInteractive(nodes){
+  const interactive=new Set(["button","link","textbox","combobox","checkbox","radio","switch","menuitem","tab"]);
+  return nodes
+    .filter(n=>!n.ignored&&interactive.has(String(n.role?.value||""))&&!String(n.name?.value||"").trim())
+    .map(n=>String(n.role?.value||"unknown"));
+}
+
 const {server,origin}=await startStaticServer();
 const debugPort=await freePort();
 const profileDir=fs.mkdtempSync(path.join(os.tmpdir(),"gasi-browser-e2e-"));
@@ -158,6 +165,8 @@ try{
 
   await navigate(send,`${origin}/acceso`,'[data-testid="access-portal"]');
   const landing=await value(send,"document.body.innerText");
+  assert.equal(await value(send,"document.documentElement.lang"),"es");
+  assert.equal(await value(send,"Boolean(document.querySelector('main'))"),true);
   assert.match(landing,/\bAcceder\b/);
   assert.match(landing,/Alumnado/);
   assert.match(landing,/Equipo GASI/);
@@ -169,6 +178,7 @@ try{
   const ax=await send("Accessibility.getFullAXTree");
   assert.ok(axHas(ax.nodes||[],"link","Entrar al aula"),"Student destination missing from browser accessibility tree");
   assert.ok(axHas(ax.nodes||[],"link","Entrar al área de equipo"),"Team destination missing from browser accessibility tree");
+  assert.deepEqual(unnamedInteractive(ax.nodes||[]),[],"Public access has unnamed interactive controls");
 
   await tabUntil(send,"access-student");
   const studentFocus=await value(send,"JSON.stringify({id:document.activeElement?.getAttribute('data-testid'),shadow:getComputedStyle(document.activeElement).boxShadow})");
@@ -185,6 +195,8 @@ try{
   assert.match(teamLogin,/Acceso al equipo GASI/);
   assert.match(teamLogin,/Identificador de acceso/);
   assert.doesNotMatch(teamLogin,/Acceso profesional/);
+  const teamAx=await send("Accessibility.getFullAXTree");
+  assert.deepEqual(unnamedInteractive(teamAx.nodes||[]),[],"Team login has unnamed interactive controls");
 
   await send("Runtime.evaluate",{expression:`(()=>{const set=(selector,v)=>{const el=document.querySelector(selector);const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}));};set('input[autocomplete="username"]','E2E-NETWORK');set('input[autocomplete="current-password"]','SyntheticCredential123!');})()`});
   await send("Network.emulateNetworkConditions",{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
@@ -204,6 +216,8 @@ try{
   assert.match(modal,/Iniciar Sesión/);
   assert.match(modal,/Email/);
   assert.match(modal,/Contraseña/);
+  const modalAx=await send("Accessibility.getFullAXTree");
+  assert.deepEqual(unnamedInteractive(modalAx.nodes||[]),[],"Student login modal has unnamed interactive controls");
 
   console.log(JSON.stringify({
     status:"PASS",
@@ -215,7 +229,10 @@ try{
       student_destination:"/formacion-sanitaria + login modal",
       team_destination:"/interno/acceso + team-specific login",
       network_failure:"safe role=alert without technical details",
-      accessibility_links:["Entrar al aula","Entrar al área de equipo"]
+      accessibility_links:["Entrar al aula","Entrar al área de equipo"],
+      unnamed_interactive_controls:0,
+      document_language:"es",
+      main_landmark:true
     }
   }));
   ws.close();
