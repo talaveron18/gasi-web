@@ -64,6 +64,16 @@ test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async
   assert.equal("token" in data,false);
   const adminCookie=cookieFrom(res);
   assert.match(adminCookie,/gasi_public_session=/);
+  const adminToken=decodeURIComponent(adminCookie.split("=",2)[1]||"");
+  assert.ok(adminToken.length>=32);
+  const adminTokenHash=crypto.createHash("sha256").update(adminToken).digest("hex");
+  const storedAdminSession=(await pool.query(
+    "SELECT token_hash,expires_at FROM public_sessions WHERE token_hash=$1",
+    [adminTokenHash]
+  )).rows[0];
+  assert.ok(storedAdminSession,"registered session must be persisted");
+  assert.equal(storedAdminSession.token_hash,adminTokenHash);
+  assert.ok(Date.parse(storedAdminSession.expires_at)>Date.now());
   const setCookie=res.headers.get("set-cookie")||"";
   assert.match(setCookie,/HttpOnly/);
   assert.match(setCookie,/Secure/);
