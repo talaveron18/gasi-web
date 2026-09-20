@@ -56,6 +56,29 @@ for(const rel of Object.values(manifest.files||{})){
 }
 
 const buildDir=path.join(root,"frontend/build");
+const buildFiles=walk(buildDir);
+const sourceMaps=buildFiles.filter(file=>file.endsWith(".map"));
+if(sourceMaps.length) throw new Error(`public_source_maps_present:${sourceMaps.map(file=>path.relative(buildDir,file)).join(",")}`);
+
+const forbiddenBuildPatterns=[
+  /GASI_INTERNAL_SESSION_SECRET/i,
+  /GASI_RECOVERY_SIGNING_SECRET/i,
+  /GASI_MASTER_PASSWORD_HASH/i,
+  /GASI_MASTER_PASSWORD/i,
+  /postgresql:\/\//i,
+  /BEGIN PRIVATE KEY/i,
+];
+let forbiddenHits=0;
+for(const file of buildFiles){
+  if(!/\.(?:js|css|html|json|txt)$/i.test(file))continue;
+  const body=fs.readFileSync(file,"utf8");
+  for(const pattern of forbiddenBuildPatterns){
+    if(pattern.test(body)){
+      forbiddenHits++;
+      throw new Error(`forbidden_backend_secret_marker_in_public_build:${path.relative(buildDir,file)}:${pattern}`);
+    }
+  }
+}
 const original=treeDigest(buildDir);
 const restoreRoot=fs.mkdtempSync(path.join(os.tmpdir(),"gasi-release-restore-"));
 const restoredDir=path.join(restoreRoot,"build");
@@ -76,6 +99,8 @@ try{
       netlify_production_build_present:true,
       asset_manifest_resolves:true,
       restored_artifact_digest_matches:true,
+      public_source_maps_absent:true,
+      backend_secret_markers_absent:true,
     },
     observed:{
       input_sha256:inputHashes,
@@ -83,6 +108,8 @@ try{
       restored_tree_sha256:restored.sha256,
       build_file_count:original.files.length,
       build_bytes:original.files.reduce((n,x)=>n+x.size,0),
+      source_map_count:sourceMaps.length,
+      forbidden_backend_secret_marker_hits:forbiddenHits,
     },
     result:"release artifact copied to isolated restore directory and re-hashed successfully",
     production_deploy:false,
