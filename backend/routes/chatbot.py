@@ -17,11 +17,8 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
 RECIPIENT_EMAIL = "coordinacion@gasisalud.com"
 
-# Log al cargar el módulo
-if RESEND_API_KEY:
-    print(f"✅ Resend configurado: {RESEND_API_KEY[:15]}...")
-else:
-    print("⚠️ RESEND_API_KEY no encontrada")
+# No registrar secretos ni fragmentos de credenciales.
+logger.info("Resend configurado: %s", bool(RESEND_API_KEY))
 
 async def get_db():
     from server import db
