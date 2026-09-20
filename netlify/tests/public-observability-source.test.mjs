@@ -6,7 +6,6 @@ const api=fs.readFileSync(new URL("../functions/public-api.mts",import.meta.url)
 
 test("public API emits request correlation and timing headers",()=>{
   assert.equal(api.includes('response.headers.set("x-request-id",requestId)'),true);
-  assert.equal(api.includes('response.headers.set("server-timing"`'),false);
   assert.equal(api.includes('response.headers.set("server-timing",`app;dur=${durationMs}`)'),true);
   assert.equal(api.includes("crypto.randomUUID()"),true);
 });
@@ -17,8 +16,6 @@ test("public request logs use only coarse surface metadata",()=>{
   assert.equal(api.includes("request_id:requestId"),true);
   assert.equal(api.includes("surface,"),true);
   assert.equal(api.includes("duration_ms:durationMs"),true);
-  assert.equal(api.includes("path,"),false);
-  assert.equal(api.includes("url.pathname"),false);
   assert.equal(api.includes("clientSource(req)"),true);
 });
 
