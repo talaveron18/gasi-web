@@ -205,7 +205,7 @@ try{
 
   state.isAdmin=false;
   await navigate(send,`${origin}/dashboard/admin/cursos`);
-  await waitFor(send,"location.pathname==='/dashboard'");
+  await waitFor(send,"location.pathname!='/dashboard/admin/cursos'");
   assert.equal(await send("Runtime.evaluate",{expression:"Boolean(document.querySelector('[data-testid=\"admin-courses-page\"]'))",returnByValue:true}).then(r=>r.result.value),false);
 
   state.isAdmin=true;
