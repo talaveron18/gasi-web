@@ -63,6 +63,9 @@ async def initialize_internal_clinical_store():
     await clinical_store.ensure_indexes()
     master_password = os.environ.get('GASI_MASTER_PASSWORD')
     session_secret = os.environ.get('GASI_INTERNAL_SESSION_SECRET')
+    public_jwt_secret = os.environ.get('JWT_SECRET_KEY')
+    if not public_jwt_secret or len(public_jwt_secret.encode('utf-8')) < 32:
+        raise RuntimeError('JWT_SECRET_KEY must be configured with at least 32 bytes')
     if not master_password or len(master_password) < 12:
         raise RuntimeError('GASI_MASTER_PASSWORD must be configured with at least 12 characters')
     if not session_secret or len(session_secret.encode('utf-8')) < 32:
@@ -72,6 +75,7 @@ async def initialize_internal_clinical_store():
         os.environ.get('GASI_MASTER_DISPLAY_NAME', 'Administración maestra GASI'),
         hash_password(master_password),
     )
+    await db.enrollments.create_index([('user_id', 1), ('course_id', 1)], unique=True, name='uniq_user_course_enrollment')
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
