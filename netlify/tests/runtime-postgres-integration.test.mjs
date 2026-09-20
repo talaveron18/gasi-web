@@ -84,6 +84,8 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
 
  let res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:secrets.GASI_MASTER_PASSWORD}}),{});
  assert.equal(res.status,200);
+ assert.match(res.headers.get("x-request-id")||"",/^[0-9a-f-]{36}$/i);
+ assert.match(res.headers.get("server-timing")||"",/^app;dur=\d+$/);
  const masterLogin=await responseJson(res);
  let masterToken=masterLogin.token;
  assert.ok(masterToken);
