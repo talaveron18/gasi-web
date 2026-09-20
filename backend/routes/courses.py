@@ -7,6 +7,7 @@ from course_material_storage import CourseMaterialStorageError, get_course_mater
 from course_certificate import build_course_certificate_pdf
 from typing import List
 import re
+import hashlib
 from datetime import datetime, timezone
 import uuid
 
@@ -215,32 +216,36 @@ async def complete_course_module(
     if not enrollment:
         raise HTTPException(status_code=403, detail="course_access_required")
 
-    completed = {str(value) for value in (enrollment.get("completed_module_ids") or []) if str(value) in set(module_ids)}
-    completed.add(module_id)
-    progress = round((len(completed) / len(module_ids)) * 100, 2) if module_ids else 0.0
-
-    completed_at = enrollment.get("completed_at")
-    certificate_id = enrollment.get("certificate_id")
-    if progress == 100.0:
-        if not completed_at:
-            completed_at = datetime.now(timezone.utc).isoformat()
-        if not certificate_id:
-            certificate_id = f"GASI-{uuid.uuid4().hex[:16].upper()}"
-
     await db.enrollments.update_one(
         {"user_id": current_user["user_id"], "course_id": course_id},
-        {"$set": {
-            "completed_module_ids": sorted(completed),
-            "progress": progress,
-            "completed_at": completed_at,
-            "certificate_id": certificate_id,
-        }}
+        {"$addToSet": {"completed_module_ids": module_id}}
     )
     updated = await db.enrollments.find_one(
         {"user_id": current_user["user_id"], "course_id": course_id},
         {"_id": 0}
     )
-    return enrollment_progress_payload(updated, course)
+    completed = {str(value) for value in (updated.get("completed_module_ids") or []) if str(value) in set(module_ids)}
+    progress = round((len(completed) / len(module_ids)) * 100, 2) if module_ids else 0.0
+
+    completion_update = {"$max": {"progress": progress}}
+    if progress == 100.0:
+        completed_at = updated.get("completed_at") or datetime.now(timezone.utc).isoformat()
+        enrollment_id = str(updated.get("enrollment_id") or f"{current_user['user_id']}:{course_id}")
+        certificate_id = "GASI-" + hashlib.sha256(enrollment_id.encode("utf-8")).hexdigest()[:16].upper()
+        completion_update["$set"] = {
+            "completed_at": completed_at,
+            "certificate_id": certificate_id,
+        }
+
+    await db.enrollments.update_one(
+        {"user_id": current_user["user_id"], "course_id": course_id},
+        completion_update
+    )
+    final_enrollment = await db.enrollments.find_one(
+        {"user_id": current_user["user_id"], "course_id": course_id},
+        {"_id": 0}
+    )
+    return enrollment_progress_payload(final_enrollment, course)
 
 
 @router.get("/{course_id}/certificate")
@@ -258,7 +263,8 @@ async def get_course_certificate(
     )
     if not enrollment:
         raise HTTPException(status_code=403, detail="course_access_required")
-    if float(enrollment.get("progress") or 0) < 100 or not enrollment.get("completed_at") or not enrollment.get("certificate_id"):
+    state = enrollment_progress_payload(enrollment, course)
+    if state["progress"] < 100 or not enrollment.get("completed_at") or not enrollment.get("certificate_id"):
         raise HTTPException(status_code=409, detail="course_not_completed")
 
     user = await db.users.find_one(
