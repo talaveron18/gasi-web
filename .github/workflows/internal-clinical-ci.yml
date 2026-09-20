@@ -98,6 +98,8 @@ jobs:
         env:
           CI: 'false'
         run: npx -y netlify-cli@27.8.0 build --offline
+      - name: Netlify HTTP header smoke
+        run: node scripts/netlify-http-smoke.mjs
       - name: Rehearse release artifact restore
         env:
           GITHUB_SHA: ${{ github.sha }}
