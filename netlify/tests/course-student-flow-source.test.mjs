@@ -30,3 +30,21 @@ test("revoked or forbidden material access clears course access state",()=>{
   assert.match(detail,/setHasCourseAccess\(false\)/);
   assert.match(detail,/setMaterials\(\[\]\)/);
 });
+
+
+test("student UI persists module progress and only exposes certificate at completion",()=>{
+  assert.match(detail,/courses\/\$\{courseId\}\/progress/);
+  assert.match(detail,/modules\/\$\{moduleId\}\/complete/);
+  assert.match(detail,/withCredentials:\s*true/);
+  assert.match(detail,/data-testid="course-progress"/);
+  assert.match(detail,/progressState\?\.progress === 100/);
+  assert.match(detail,/courses\/\$\{courseId\}\/certificate/);
+  assert.match(detail,/responseType:\s*'blob'/);
+  assert.match(detail,/Descargar certificado/);
+});
+
+test("certificate download is local blob based and never exposes a backend storage URL",()=>{
+  assert.match(detail,/URL\.createObjectURL/);
+  assert.match(detail,/link\.download = `certificado-/);
+  assert.doesNotMatch(detail,/certificate_url|presigned|object_key/);
+});
