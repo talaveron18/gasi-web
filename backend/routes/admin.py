@@ -53,6 +53,16 @@ async def admin_update_course(
     if not existing:
         raise HTTPException(status_code=404, detail="Course not found")
 
+    existing_module_ids = {str(module.get("module_id")) for module in (existing.get("modules") or [])}
+    requested_module_ids = {str(module.module_id) for module in course_data.modules}
+    if existing_module_ids != requested_module_ids:
+        enrollment = await db.enrollments.find_one(
+            {"course_id": course_id},
+            {"_id": 0, "enrollment_id": 1}
+        )
+        if enrollment:
+            raise HTTPException(status_code=409, detail="course_structure_locked")
+
     material_rows = await db.course_materials.find(
         {"course_id": course_id},
         {"_id": 0, "module_id": 1}
