@@ -49,6 +49,23 @@ describe('InternalClinicalEpisodeQueue', () => {
     expect(html).not.toContain('ESTADO_NO_RECONOCIDO');
   });
 
+  test('expone semántica y estado de selección accesibles en la cola real', () => {
+    const html = renderToStaticMarkup(
+      <InternalClinicalEpisodeQueue
+        episodes={[episode('CASE-SYN-OPEN', 'ABIERTO'), episode('CASE-SYN-CLOSED', 'CERRADO')]}
+        selectedId="CASE-SYN-OPEN"
+        onSelect={noop}
+      />,
+    );
+
+    expect(html).toContain('aria-label="Cola de episodios clínicos"');
+    expect(html).toContain('aria-label="Episodios pendientes"');
+    expect(html).toContain('aria-label="Histórico de episodios cerrados"');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('aria-label="Episodio CASE-SYN-OPEN, centro CENTRO-SINTETICO-01, prioridad N2, estado ABIERTO"');
+    expect(html).toContain('focus-visible:ring-2');
+  });
+
   test('presenta vacíos explícitos sin inventar episodios', () => {
     const html = renderToStaticMarkup(
       <InternalClinicalEpisodeQueue episodes={[]} selectedId={null} onSelect={noop} />,
