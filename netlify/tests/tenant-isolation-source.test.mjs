@@ -55,3 +55,14 @@ test('privileged narrative is gated and audited before full clinical data is loa
   assert.match(route,/SELECT id,center FROM internal_clinical_episodes/);
   assert.match(route,/center = ANY\(\$2::text\[\]\) LIMIT 1/);
 });
+
+
+test('episode collection is metadata-only and audited before narrative access',()=>{
+  const start=source.indexOf('if(req.method==="GET"&&path==="/api/internal-clinical/episodes")');
+  const end=source.indexOf('if(req.method==="POST"&&path==="/api/internal-clinical/episodes")',start);
+  const route=source.slice(start,end);
+  assert.match(route,/SELECT id,center,discipline,level,status,created_at FROM internal_clinical_episodes WHERE center = ANY\(\$1::text\[\]\) AND discipline=\$2 ORDER BY created_at DESC LIMIT 250/);
+  assert.doesNotMatch(route,/SELECT \* FROM internal_clinical_episodes/);
+  assert.match(route,/EPISODE_COLLECTION_VIEWED/);
+  assert.match(route,/metadata_only:true/);
+});
