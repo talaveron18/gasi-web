@@ -289,6 +289,28 @@ test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async
   assert.equal(enrollments.length,2);
   assert.ok(enrollments.some(x=>x.course.course_id===paidCourse.course_id&&x.enrollment.payment_status==="completed"));
 
+  const recoverySnapshot=await snapshotPublicData(pool);
+  const snapshotCounts=Object.fromEntries(Object.entries(recoverySnapshot).map(([key,rows])=>[key,rows.length]));
+  const expectedMaterial=Buffer.from(recoverySnapshot.materials[0].content);
+  await pool.query("TRUNCATE public_course_materials,public_enrollments,public_sessions,public_login_throttle,public_payment_events,public_courses,public_users CASCADE");
+  assert.equal((await pool.query("SELECT COUNT(*)::int n FROM public_users")).rows[0].n,0);
+  assert.equal((await pool.query("SELECT COUNT(*)::int n FROM public_courses")).rows[0].n,0);
+
+  await restorePublicData(pool,recoverySnapshot);
+  const restoredSnapshot=await snapshotPublicData(pool);
+  const restoredCounts=Object.fromEntries(Object.entries(restoredSnapshot).map(([key,rows])=>[key,rows.length]));
+  assert.deepEqual(restoredCounts,snapshotCounts);
+  assert.equal(Buffer.compare(Buffer.from(restoredSnapshot.materials[0].content),expectedMaterial),0);
+  assert.ok(restoredSnapshot.enrollments.some(row=>row.user_id===student.user_id&&row.course_id===paidCourse.course_id&&row.payment_status==="completed"));
+  assert.ok(restoredSnapshot.enrollments.some(row=>row.user_id===student.user_id&&row.course_id===freeCourse.course_id&&Number(row.progress)===100&&row.certificate_id===finished.certificate_id));
+  assert.ok(restoredSnapshot.payments.some(row=>row.event_id==="evt_runtime_paid"));
+
+  res=await handler(request("/api/auth/me",{cookie:adminCookie}),{});
+  assert.equal(res.status,200);
+  assert.equal((await payload(res)).is_admin,true);
+  res=await handler(request("/api/auth/me",{cookie:studentCookie}),{});
+  assert.equal(res.status,200);
+
   res=await handler(request(`/api/admin/users/${student.user_id}/make-admin`,{method:"POST",cookie:adminCookie,body:{}}),{});
   assert.equal(res.status,403);
   assert.equal((await payload(res)).detail,"admin_escalation_disabled");
