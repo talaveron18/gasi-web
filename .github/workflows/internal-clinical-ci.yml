@@ -36,6 +36,8 @@ jobs:
         run: yarn test --watchAll=false --passWithNoTests
       - name: Browser E2E access and accessibility
         run: node e2e/browser-access.mjs
+      - name: Browser E2E authenticated clinical flow
+        run: node e2e/browser-clinical.mjs
       - name: Browser E2E student course flow
         run: node e2e/browser-course-flow.mjs
       - name: Browser E2E course administration
