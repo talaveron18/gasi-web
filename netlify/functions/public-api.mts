@@ -27,6 +27,15 @@ function database(){
   if(!databaseCache.has(key))databaseCache.set(key,connectionString?getDatabase({connectionString}):getDatabase());
   return databaseCache.get(key);
 }
+
+async function queryRows(db:any,text:string,params:any[]=[]){
+  const client=await db.pool.connect();
+  try{
+    return (await client.query(text,params)).rows;
+  }finally{
+    client.release();
+  }
+}
 const json=(body:any,status=200,extra:Record<string,string>={})=>new Response(JSON.stringify(body),{status,headers:{...SECURITY_HEADERS,...extra}});
 const responseWithCookie=(body:any,status:number,cookies:string[])=>{
   const headers=new Headers(SECURITY_HEADERS);
@@ -224,7 +233,11 @@ async function createSession(client:any,userId:string){
 async function actor(req:Request,db:any,requiredAuth=true){
   const token=cookieValue(req,COOKIE);
   if(!token){if(requiredAuth)throw new ApiError(401,"missing_session");return null;}
-  const rows=await db.sql`SELECT u.* FROM public_sessions s JOIN public_users u ON u.id=s.user_id WHERE s.token_hash=${sha256(token)} AND s.expires_at>NOW() LIMIT 1`;
+  const rows=await queryRows(
+    db,
+    "SELECT u.* FROM public_sessions s JOIN public_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>NOW() LIMIT 1",
+    [sha256(token)]
+  );
   if(!rows[0]){if(requiredAuth)throw new ApiError(401,"session_expired_or_revoked");return null;}
   return rows[0];
 }
@@ -245,7 +258,7 @@ function stripeSignature(raw:string,header:string,secret:string){
 export default async (req:Request,_context:Context)=>{
   const url=new URL(req.url),path=url.pathname,db=database();
   try{
-    if(req.method==="GET"&&path==="/api/health"){await db.sql`SELECT 1`;return json({ok:true,storage:"postgresql"});}
+    if(req.method==="GET"&&path==="/api/health"){await queryRows(db,"SELECT 1");return json({ok:true,storage:"postgresql"});}
 
     if(req.method==="POST"&&path==="/api/auth/register"){
       const b=await bodyJson(req),name=required(b.name,"name",80),email=normalizeEmail(b.email),password=String(b.password||"");
@@ -300,11 +313,11 @@ export default async (req:Request,_context:Context)=>{
     }
 
     if(req.method==="GET"&&path==="/api/courses/"){
-      const rows=await db.sql`SELECT * FROM public_courses ORDER BY created_at DESC`;return json(rows.map(publicCourse));
+      const rows=await queryRows(db,"SELECT * FROM public_courses ORDER BY created_at DESC");return json(rows.map(publicCourse));
     }
     const courseMatch=path.match(/^\/api\/courses\/([^/]+)$/);
     if(req.method==="GET"&&courseMatch){
-      const rows=await db.sql`SELECT * FROM public_courses WHERE id=${decodeURIComponent(courseMatch[1])} LIMIT 1`;
+      const rows=await queryRows(db,"SELECT * FROM public_courses WHERE id=$1 LIMIT 1",[decodeURIComponent(courseMatch[1])]);
       if(!rows[0])throw new ApiError(404,"Course not found");return json(publicCourse(rows[0]));
     }
 
@@ -461,7 +474,7 @@ export default async (req:Request,_context:Context)=>{
 
     if(req.method==="GET"&&path==="/api/admin/users"){
       const user=await actor(req,db,true);if(!user.is_admin)throw new ApiError(403,"Admin access required");
-      const rows=await db.sql`SELECT id,email,name,picture,is_admin,created_at FROM public_users ORDER BY created_at DESC LIMIT 1000`;return json(rows.map(publicUser));
+      const rows=await queryRows(db,"SELECT id,email,name,picture,is_admin,created_at FROM public_users ORDER BY created_at DESC LIMIT 1000");return json(rows.map(publicUser));
     }
     if(req.method==="POST"&&/^\/api\/admin\/users\/[^/]+\/make-admin$/.test(path))throw new ApiError(403,"admin_escalation_disabled");
 
