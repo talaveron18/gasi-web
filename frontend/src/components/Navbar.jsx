@@ -145,6 +145,9 @@ const Navbar = () => {
           <button 
             className="lg:hidden text-[#0F172A]"
             onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
+            aria-expanded={isOpen}
+            aria-controls="mobile-navigation-menu"
             data-testid="mobile-menu-button"
           >
             {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -152,7 +155,7 @@ const Navbar = () => {
         </div>
 
         {isOpen && (
-          <div className="lg:hidden py-4 border-t" data-testid="mobile-menu">
+          <div id="mobile-navigation-menu" className="lg:hidden py-4 border-t" data-testid="mobile-menu">
             <div className="flex flex-col space-y-2">
               <Link to="/" onClick={() => setIsOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">Inicio</Button>
