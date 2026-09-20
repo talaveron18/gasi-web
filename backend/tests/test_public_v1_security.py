@@ -84,6 +84,16 @@ class FakeCollection:
             if self._matches(doc, query):
                 if "$set" in update:
                     doc.update(update["$set"])
+                if "$addToSet" in update:
+                    for key, value in update["$addToSet"].items():
+                        current = list(doc.get(key) or [])
+                        if value not in current:
+                            current.append(value)
+                        doc[key] = current
+                if "$max" in update:
+                    for key, value in update["$max"].items():
+                        if doc.get(key) is None or doc.get(key) < value:
+                            doc[key] = value
                 return FakeResult(matched_count=1)
         if upsert:
             new_doc = dict(query)
@@ -623,3 +633,131 @@ async def test_student_cannot_see_or_stream_deleting_material(monkeypatch):
         await courses.stream_course_material("COURSE-MATERIAL","MAT-DEL",{"user_id":"STUDENT-1"},db)
     assert exc.value.status_code==404
     assert exc.value.detail=="material_not_found"
+
+
+def progress_course():
+    return {
+        "course_id": "COURSE-PROGRESS",
+        "title": "Curso de progreso",
+        "description": "Curso sintético para completar",
+        "duration": "2 horas",
+        "type": "Online",
+        "price": 0.0,
+        "is_free": True,
+        "modules": [
+            {"module_id": "MOD-A", "title": "Módulo A", "order": 1, "description": "A"},
+            {"module_id": "MOD-B", "title": "Módulo B", "order": 2, "description": "B"},
+        ],
+    }
+
+
+def progress_enrollment():
+    return {
+        "enrollment_id": "ENR-PROGRESS-1",
+        "user_id": "STUDENT-1",
+        "course_id": "COURSE-PROGRESS",
+        "progress": 0.0,
+        "completed_module_ids": [],
+        "completed_at": None,
+        "certificate_id": None,
+        "enrolled_at": "2026-09-20T12:00:00+00:00",
+    }
+
+
+@pytest.mark.asyncio
+async def test_course_structure_locks_after_first_enrollment():
+    db=FakeDB(
+        courses_docs=[progress_course()],
+        users=[{"user_id":"ADMIN-1","is_admin":True}],
+        enrollments=[progress_enrollment()],
+    )
+    changed=CourseCreate(
+        title="Curso de progreso",
+        description="Curso sintético para completar",
+        duration="2 horas",
+        type="Online",
+        price=0,
+        is_free=True,
+        modules=[
+            {"module_id":"MOD-A","title":"Módulo A","order":1,"description":"A"},
+            {"module_id":"MOD-B","title":"Módulo B","order":2,"description":"B"},
+            {"module_id":"MOD-C","title":"Módulo C","order":3,"description":"C"},
+        ],
+    )
+    with pytest.raises(HTTPException) as exc:
+        await admin.admin_update_course("COURSE-PROGRESS",changed,{"user_id":"ADMIN-1"},db)
+    assert exc.value.status_code==409
+    assert exc.value.detail=="course_structure_locked"
+
+
+@pytest.mark.asyncio
+async def test_progress_requires_enrollment_and_valid_module():
+    db=FakeDB(
+        courses_docs=[progress_course()],
+        users=[{"user_id":"STUDENT-X","is_admin":False}],
+    )
+    with pytest.raises(HTTPException) as exc:
+        await courses.get_course_progress("COURSE-PROGRESS",{"user_id":"STUDENT-X"},db)
+    assert exc.value.status_code==403
+
+    db=FakeDB(
+        courses_docs=[progress_course()],
+        users=[{"user_id":"STUDENT-1","is_admin":False}],
+        enrollments=[progress_enrollment()],
+    )
+    with pytest.raises(HTTPException) as exc:
+        await courses.complete_course_module("COURSE-PROGRESS","MOD-NOPE",{"user_id":"STUDENT-1"},db)
+    assert exc.value.status_code==404
+    assert exc.value.detail=="module_not_found"
+
+
+@pytest.mark.asyncio
+async def test_module_completion_is_idempotent_and_finishes_at_one_hundred_percent():
+    db=FakeDB(
+        courses_docs=[progress_course()],
+        users=[{"user_id":"STUDENT-1","name":"Alumno Uno","is_admin":False}],
+        enrollments=[progress_enrollment()],
+    )
+
+    first=await courses.complete_course_module("COURSE-PROGRESS","MOD-A",{"user_id":"STUDENT-1"},db)
+    assert first["progress"]==50.0
+    assert first["completed_module_ids"]==["MOD-A"]
+    assert first["certificate_id"] is None
+
+    retry=await courses.complete_course_module("COURSE-PROGRESS","MOD-A",{"user_id":"STUDENT-1"},db)
+    assert retry["progress"]==50.0
+    assert retry["completed_module_ids"]==["MOD-A"]
+
+    finished=await courses.complete_course_module("COURSE-PROGRESS","MOD-B",{"user_id":"STUDENT-1"},db)
+    assert finished["progress"]==100.0
+    assert finished["completed_module_ids"]==["MOD-A","MOD-B"]
+    assert finished["completed_at"]
+    assert finished["certificate_id"].startswith("GASI-")
+    certificate_id=finished["certificate_id"]
+
+    final_retry=await courses.complete_course_module("COURSE-PROGRESS","MOD-B",{"user_id":"STUDENT-1"},db)
+    assert final_retry["progress"]==100.0
+    assert final_retry["certificate_id"]==certificate_id
+
+
+@pytest.mark.asyncio
+async def test_certificate_is_blocked_before_completion_and_pdf_after_completion():
+    db=FakeDB(
+        courses_docs=[progress_course()],
+        users=[{"user_id":"STUDENT-1","name":"Álvaro Pérez","is_admin":False}],
+        enrollments=[progress_enrollment()],
+    )
+    with pytest.raises(HTTPException) as exc:
+        await courses.get_course_certificate("COURSE-PROGRESS",{"user_id":"STUDENT-1"},db)
+    assert exc.value.status_code==409
+    assert exc.value.detail=="course_not_completed"
+
+    await courses.complete_course_module("COURSE-PROGRESS","MOD-A",{"user_id":"STUDENT-1"},db)
+    final=await courses.complete_course_module("COURSE-PROGRESS","MOD-B",{"user_id":"STUDENT-1"},db)
+    response=await courses.get_course_certificate("COURSE-PROGRESS",{"user_id":"STUDENT-1"},db)
+    assert response.status_code==200
+    assert response.media_type=="application/pdf"
+    assert response.body.startswith(b"%PDF-1.4")
+    assert final["certificate_id"].encode("ascii") in response.body
+    assert response.headers["cache-control"]=="private, no-store"
+    assert response.headers["content-disposition"].startswith("attachment;")
