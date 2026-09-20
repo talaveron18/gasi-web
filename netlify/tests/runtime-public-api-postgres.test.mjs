@@ -23,7 +23,7 @@ function cookieFrom(response){
   return values.map(v=>v.split(";")[0]).join("; ");
 }
 function request(pathname,{method="GET",cookie,body,raw,headers={}}={}){
-  const h={"user-agent":"Mozilla/5.0 Chrome/153","x-nf-client-connection-ip":"10.30.0.10",...headers};
+  const h={"user-agent":"Mozilla/5.0 Chrome/153","x-nf-client-connection-ip":"10.30.0.10","origin":"http://localhost","sec-fetch-site":"same-origin",...headers};
   if(cookie)h.cookie=cookie;
   let requestBody;
   if(body instanceof FormData)requestBody=body;
@@ -86,6 +86,24 @@ test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async
   res=await handler(authMeRequest,{});
   assert.equal(res.status,200);
   assert.equal((await payload(res)).is_admin,true);
+
+  res=await handler(request("/api/auth/logout",{method:"POST",cookie:adminCookie,body:{},headers:{"origin":"https://evil.example","sec-fetch-site":"cross-site"}}),{});
+  assert.equal(res.status,403);
+  assert.equal((await payload(res)).detail,"cross_site_request_rejected");
+  res=await handler(request("/api/auth/me",{cookie:adminCookie}),{});
+  assert.equal(res.status,200);
+
+  res=await handler(request("/api/auth/login",{method:"POST",body:{email:"admin@example.com",password:"x".repeat(40_000)}}),{});
+  assert.equal(res.status,413);
+  assert.equal((await payload(res)).detail,"request_too_large");
+
+  for(let attempt=0;attempt<2;attempt++){
+    res=await handler(request("/api/auth/register",{method:"POST",body:{name:"Admin Runtime",email:"admin@example.com",password:"SyntheticAdminPass123!"}}),{});
+    assert.equal(res.status,409);
+  }
+  res=await handler(request("/api/auth/register",{method:"POST",body:{name:"Admin Runtime",email:"admin@example.com",password:"SyntheticAdminPass123!"}}),{});
+  assert.equal(res.status,429);
+  assert.equal((await payload(res)).detail,"too_many_registration_attempts");
 
   const modules=[
     {module_id:"MOD-A",title:"Módulo A",order:1,description:"A"},
