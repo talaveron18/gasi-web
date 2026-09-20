@@ -308,6 +308,41 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(directReadAudit.rows[0].action,"EPISODE_VIEWED");
  assert.equal(directReadAudit.rows[0].metadata.metadata_only,false);
 
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/addenda`,{method:"POST",token:nurseToken,body:{text:"Original synthetic addendum"}}),{});
+ assert.equal(res.status,200);
+ const afterAddendum=await responseJson(res);
+ const addendum=afterAddendum.addenda.at(-1);
+ assert.ok(addendum?.id);
+ assert.equal(addendum.text,"Original synthetic addendum");
+ assert.deepEqual(addendum.corrections,[]);
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/addenda/${addendum.id}/correct`,{method:"POST",token:nurseToken,body:{replacement_text:"Synthetic correction one",reason:"Integration correction one"}}),{});
+ assert.equal(res.status,200);
+ const afterCorrectionOne=await responseJson(res);
+ const correctedOne=afterCorrectionOne.addenda.find(x=>x.id===addendum.id);
+ assert.equal(correctedOne.text,"Original synthetic addendum");
+ assert.equal(correctedOne.corrections.length,1);
+ assert.equal(correctedOne.corrections[0].previous_text,"Original synthetic addendum");
+ assert.equal(correctedOne.corrections[0].replacement_text,"Synthetic correction one");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/addenda/${addendum.id}/correct`,{method:"POST",token:nurseToken,body:{replacement_text:"Synthetic correction two",reason:"Integration correction two"}}),{});
+ assert.equal(res.status,200);
+ const afterCorrectionTwo=await responseJson(res);
+ const correctedTwo=afterCorrectionTwo.addenda.find(x=>x.id===addendum.id);
+ assert.equal(correctedTwo.text,"Original synthetic addendum");
+ assert.equal(correctedTwo.corrections.length,2);
+ assert.equal(correctedTwo.corrections[1].previous_text,"Synthetic correction one");
+ assert.equal(correctedTwo.corrections[1].replacement_text,"Synthetic correction two");
+
+ res=await handler(request(`/api/internal-clinical/episodes/${episode.id}`,{token:nurseToken}),{});
+ assert.equal(res.status,200);
+ const persistedCorrection=(await responseJson(res)).addenda.find(x=>x.id===addendum.id);
+ assert.equal(persistedCorrection.text,"Original synthetic addendum");
+ assert.equal(persistedCorrection.corrections.at(-1).replacement_text,"Synthetic correction two");
+ const correctionAudit=await pool.query("SELECT metadata FROM internal_clinical_audit WHERE action='CLINICAL_ENTRY_CORRECTED' AND episode_id=$1 ORDER BY seq DESC LIMIT 1",[episode.id]);
+ assert.equal(correctionAudit.rows[0].metadata.reason_recorded,true);
+ assert.equal(JSON.stringify(correctionAudit.rows[0].metadata).includes("Synthetic correction two"),false);
+
  res=await handler(request("/api/internal-clinical/episodes",{token:physicianToken}),{});
  assert.equal(res.status,200);
  assert.ok((await responseJson(res)).some(x=>x.id===episode.id));
