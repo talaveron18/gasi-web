@@ -241,4 +241,6 @@ test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async
   assert.equal(sessionRows,0);
 
   await pool.end();
+  await adminPool.query("DROP SCHEMA IF EXISTS public_web_runtime CASCADE");
+  await adminPool.end();
 });
