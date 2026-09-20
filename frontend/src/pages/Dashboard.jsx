@@ -5,8 +5,7 @@ import { GraduationCap, BookOpen, Clock, ArrowRight, Settings } from 'lucide-rea
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import axios from 'axios';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { PUBLIC_API_BASE as API } from '@/lib/publicApi';
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
