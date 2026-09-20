@@ -1,0 +1,33 @@
+name: Repair runtime regression file
+on:
+  push:
+    branches: [work/web-infra-v1-netlify-20260918]
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore verified runtime suite and harden DB failure assertions
+        run: |
+          git show 108a478658953c2afc28024a18e9d43badc07a0b:netlify/tests/runtime-postgres-integration.test.mjs > netlify/tests/runtime-postgres-integration.test.mjs
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('netlify/tests/runtime-postgres-integration.test.mjs')
+          s=p.read_text()
+          old=''' res=await handler(request("/api/internal-clinical/health"),{});\n assert.equal(res.status,500);\n assert.deepEqual(await responseJson(res),{detail:"internal_error"});\n secrets.NETLIFY_DB_URL=workingDbUrl;'''
+          new=''' res=await handler(request("/api/internal-clinical/health"),{});\n assert.equal(res.status,500);\n assert.deepEqual(await responseJson(res),{detail:"internal_error"});\n assert.match(res.headers.get("x-request-id")||"",/^[0-9a-f-]{36}$/i);\n assert.match(res.headers.get("server-timing")||"",/^app;dur=\\d+$/);\n assert.equal(res.headers.get("content-type"),"application/json");\n secrets.NETLIFY_DB_URL=workingDbUrl;'''
+          if old not in s:
+              raise SystemExit('expected failure-boundary block not found')
+          p.write_text(s.replace(old,new))
+          PY
+          rm .github/workflows/repair-runtime-test.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add netlify/tests/runtime-postgres-integration.test.mjs .github/workflows/repair-runtime-test.yml
+          git commit -m "test: harden clinical database failure boundary"
+          git push
