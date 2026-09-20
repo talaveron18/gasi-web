@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
-      - name: Restore runtime suite and workflow
+      - name: Restore runtime suite and harden DB failure boundary
         run: |
           git show 108a478658953c2afc28024a18e9d43badc07a0b:netlify/tests/runtime-postgres-integration.test.mjs > netlify/tests/runtime-postgres-integration.test.mjs
           python - <<'PY'
@@ -24,9 +24,8 @@ jobs:
           if old not in s: raise SystemExit('failure-boundary block missing')
           p.write_text(s.replace(old,new))
           PY
-          git show 108a478658953c2afc28024a18e9d43badc07a0b:.github/workflows/internal-clinical-ci.yml > .github/workflows/internal-clinical-ci.yml
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add netlify/tests/runtime-postgres-integration.test.mjs .github/workflows/internal-clinical-ci.yml
+          git add netlify/tests/runtime-postgres-integration.test.mjs
           git commit -m 'test: restore and harden clinical runtime suite'
           git push
