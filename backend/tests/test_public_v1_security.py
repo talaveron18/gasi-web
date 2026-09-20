@@ -19,8 +19,10 @@ from course_material_storage import CourseMaterialStorageError, StoredObject, ge
 
 
 class FakeResult:
-    def __init__(self, upserted_id=None):
+    def __init__(self, upserted_id=None, matched_count=0, deleted_count=0):
         self.upserted_id = upserted_id
+        self.matched_count = matched_count
+        self.deleted_count = deleted_count
 
 
 class FakeCursor:
@@ -82,13 +84,20 @@ class FakeCollection:
             if self._matches(doc, query):
                 if "$set" in update:
                     doc.update(update["$set"])
-                return FakeResult()
+                return FakeResult(matched_count=1)
         if upsert:
             new_doc = dict(query)
             new_doc.update(update.get("$setOnInsert", {}))
             self.docs.append(new_doc)
-            return FakeResult(upserted_id=len(self.docs))
-        return FakeResult()
+            return FakeResult(upserted_id=len(self.docs), matched_count=0)
+        return FakeResult(matched_count=0)
+
+    async def delete_one(self, query):
+        for index, doc in enumerate(self.docs):
+            if self._matches(doc, query):
+                self.docs.pop(index)
+                return FakeResult(deleted_count=1)
+        return FakeResult(deleted_count=0)
 
 
 class FakeDB:
@@ -477,3 +486,140 @@ async def test_admin_upload_fails_closed_without_private_storage(monkeypatch):
     assert exc.value.status_code==503
     assert exc.value.detail=="course_material_storage_not_configured"
     assert db.course_materials.docs==[]
+
+
+@pytest.mark.asyncio
+async def test_course_update_cannot_remove_module_with_material():
+    db=FakeDB(
+        courses_docs=[course_with_module()],
+        users=[{"user_id":"ADMIN-1","is_admin":True}],
+        materials=[{
+            "material_id":"MAT-1","course_id":"COURSE-MATERIAL","module_id":"MOD-1",
+            "object_key":"courses/COURSE-MATERIAL/MOD-1/MAT-1.pdf",
+            "filename":"tema.pdf","content_type":"application/pdf","size":12,"status":"ACTIVE",
+        }],
+    )
+    update=CourseCreate(
+        title="Curso con material",
+        description="Solo para pruebas",
+        duration="2 horas",
+        type="Online",
+        price=0.0,
+        is_free=True,
+        modules=[],
+    )
+    with pytest.raises(HTTPException) as exc:
+        await admin.admin_update_course("COURSE-MATERIAL",update,{"user_id":"ADMIN-1"},db)
+    assert exc.value.status_code==409
+    assert exc.value.detail["code"]=="module_has_materials"
+    assert exc.value.detail["module_ids"]==["MOD-1"]
+
+
+@pytest.mark.asyncio
+async def test_course_delete_is_blocked_by_enrollment_or_material():
+    db=FakeDB(
+        courses_docs=[course_with_module()],
+        users=[{"user_id":"ADMIN-1","is_admin":True}],
+        enrollments=[{"enrollment_id":"ENR-1","user_id":"STUDENT-1","course_id":"COURSE-MATERIAL"}],
+    )
+    with pytest.raises(HTTPException) as exc:
+        await admin.admin_delete_course("COURSE-MATERIAL",{"user_id":"ADMIN-1"},db)
+    assert exc.value.status_code==409
+    assert exc.value.detail=="course_has_enrollments"
+    assert len(db.courses.docs)==1
+
+    db=FakeDB(
+        courses_docs=[course_with_module()],
+        users=[{"user_id":"ADMIN-1","is_admin":True}],
+        materials=[{
+            "material_id":"MAT-1","course_id":"COURSE-MATERIAL","module_id":"MOD-1",
+            "object_key":"courses/COURSE-MATERIAL/MOD-1/MAT-1.pdf",
+            "filename":"tema.pdf","content_type":"application/pdf","size":12,"status":"ACTIVE",
+        }],
+    )
+    with pytest.raises(HTTPException) as exc:
+        await admin.admin_delete_course("COURSE-MATERIAL",{"user_id":"ADMIN-1"},db)
+    assert exc.value.status_code==409
+    assert exc.value.detail=="course_has_materials"
+    assert len(db.courses.docs)==1
+
+
+@pytest.mark.asyncio
+async def test_empty_course_can_be_deleted_without_orphans():
+    db=FakeDB(
+        courses_docs=[course_with_module()],
+        users=[{"user_id":"ADMIN-1","is_admin":True}],
+    )
+    result=await admin.admin_delete_course("COURSE-MATERIAL",{"user_id":"ADMIN-1"},db)
+    assert result["message"]=="Course deleted successfully"
+    assert db.courses.docs==[]
+
+
+@pytest.mark.asyncio
+async def test_material_delete_storage_failure_restores_visible_state(monkeypatch):
+    material={
+        "material_id":"MAT-1","course_id":"COURSE-MATERIAL","module_id":"MOD-1",
+        "object_key":"courses/COURSE-MATERIAL/MOD-1/MAT-1.pdf",
+        "filename":"tema.pdf","content_type":"application/pdf","size":12,"status":"ACTIVE",
+    }
+    db=FakeDB(
+        courses_docs=[course_with_module()],
+        users=[{"user_id":"ADMIN-1","is_admin":True}],
+        materials=[material],
+    )
+
+    class Storage:
+        def delete(self,object_key):
+            raise RuntimeError("synthetic-storage-failure")
+
+    monkeypatch.setattr(admin,"get_course_material_storage",lambda:Storage())
+    with pytest.raises(HTTPException) as exc:
+        await admin.admin_delete_course_material("COURSE-MATERIAL","MAT-1",{"user_id":"ADMIN-1"},db)
+    assert exc.value.status_code==502
+    assert db.course_materials.docs[0]["status"]=="ACTIVE"
+
+
+@pytest.mark.asyncio
+async def test_material_delete_hides_deleting_state_and_removes_metadata(monkeypatch):
+    material={
+        "material_id":"MAT-1","course_id":"COURSE-MATERIAL","module_id":"MOD-1",
+        "object_key":"courses/COURSE-MATERIAL/MOD-1/MAT-1.pdf",
+        "filename":"tema.pdf","content_type":"application/pdf","size":12,"status":"ACTIVE",
+    }
+    db=FakeDB(
+        courses_docs=[course_with_module()],
+        users=[{"user_id":"ADMIN-1","is_admin":True},{"user_id":"STUDENT-1","is_admin":False}],
+        enrollments=[{"enrollment_id":"ENR-1","user_id":"STUDENT-1","course_id":"COURSE-MATERIAL"}],
+        materials=[material],
+    )
+    deleted=[]
+    class Storage:
+        def delete(self,object_key):
+            deleted.append(object_key)
+    monkeypatch.setattr(admin,"get_course_material_storage",lambda:Storage())
+
+    result=await admin.admin_delete_course_material("COURSE-MATERIAL","MAT-1",{"user_id":"ADMIN-1"},db)
+    assert result["message"]=="Material deleted successfully"
+    assert deleted==["courses/COURSE-MATERIAL/MOD-1/MAT-1.pdf"]
+    assert db.course_materials.docs==[]
+
+
+@pytest.mark.asyncio
+async def test_student_cannot_see_or_stream_deleting_material(monkeypatch):
+    material={
+        "material_id":"MAT-DEL","course_id":"COURSE-MATERIAL","module_id":"MOD-1",
+        "object_key":"courses/COURSE-MATERIAL/MOD-1/MAT-DEL.pdf",
+        "filename":"tema.pdf","content_type":"application/pdf","size":12,"status":"DELETING",
+    }
+    db=FakeDB(
+        courses_docs=[course_with_module()],
+        users=[{"user_id":"STUDENT-1","is_admin":False}],
+        enrollments=[{"enrollment_id":"ENR-1","user_id":"STUDENT-1","course_id":"COURSE-MATERIAL"}],
+        materials=[material],
+    )
+    assert await courses.list_course_materials("COURSE-MATERIAL",{"user_id":"STUDENT-1"},db)==[]
+    monkeypatch.setattr(courses,"get_course_material_storage",lambda: (_ for _ in ()).throw(AssertionError("must not reach storage")))
+    with pytest.raises(HTTPException) as exc:
+        await courses.stream_course_material("COURSE-MATERIAL","MAT-DEL",{"user_id":"STUDENT-1"},db)
+    assert exc.value.status_code==404
+    assert exc.value.detail=="material_not_found"
