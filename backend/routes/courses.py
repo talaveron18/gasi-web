@@ -12,6 +12,15 @@ async def get_db():
     from server import db
     return db
 
+async def require_admin(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    user = await db.users.find_one({"user_id": current_user["user_id"]}, {"_id": 0, "is_admin": 1})
+    if not user or not user.get("is_admin", False):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
 @router.get("/", response_model=List[Course])
 async def get_courses(db: AsyncIOMotorDatabase = Depends(get_db)):
     courses = await db.courses.find({}, {"_id": 0}).to_list(100)
@@ -22,20 +31,10 @@ async def get_courses(db: AsyncIOMotorDatabase = Depends(get_db)):
     
     return courses
 
-@router.get("/{course_id}", response_model=Course)
-async def get_course(course_id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
-    course = await db.courses.find_one({"course_id": course_id}, {"_id": 0})
-    if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
-    
-    if isinstance(course.get("created_at"), str):
-        course["created_at"] = datetime.fromisoformat(course["created_at"])
-    
-    return course
-
 @router.post("/", response_model=Course)
 async def create_course(
     course_data: CourseCreate,
+    current_user: dict = Depends(require_admin),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     course_id = f"course_{uuid.uuid4().hex[:12]}"
@@ -80,6 +79,17 @@ async def get_my_enrollments(
     
     return result
 
+@router.get("/{course_id}", response_model=Course)
+async def get_course(course_id: str, db: AsyncIOMotorDatabase = Depends(get_db)):
+    course = await db.courses.find_one({"course_id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    if isinstance(course.get("created_at"), str):
+        course["created_at"] = datetime.fromisoformat(course["created_at"])
+    
+    return course
+
 @router.post("/enroll", response_model=Enrollment)
 async def enroll_course(
     enrollment_data: EnrollmentCreate,
@@ -92,6 +102,8 @@ async def enroll_course(
     )
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
+    if not course.get("is_free", True):
+        raise HTTPException(status_code=402, detail="payment_required")
     
     existing = await db.enrollments.find_one({
         "user_id": current_user["user_id"],
