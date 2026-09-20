@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { GraduationCap, BookOpen, Clock, ArrowRight } from 'lucide-react';
+import { GraduationCap, BookOpen, Clock, ArrowRight, Settings } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import axios from 'axios';
@@ -58,6 +58,13 @@ const Dashboard = () => {
             Bienvenido, {user.name}
           </h1>
           <p className="text-lg opacity-90">Tu panel de formación sanitaria</p>
+          {user.is_admin && (
+            <Link to="/dashboard/admin/cursos" className="inline-flex mt-5">
+              <Button variant="secondary" data-testid="admin-courses-link">
+                <Settings className="w-4 h-4 mr-2" aria-hidden="true" /> Administrar aula
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
