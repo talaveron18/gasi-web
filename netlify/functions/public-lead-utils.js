@@ -15,7 +15,7 @@ const response=(statusCode,message)=>({
   body:JSON.stringify({message})
 });
 
-const text=(value,max)=>String(value??"").trim().slice(0,max);
+const text=(value,max)=>String(value??"").replace(/[\u0000-\u001F\u007F]/g," ").replace(/\s+/g," ").trim().slice(0,max);
 
 const escapeHtml=value=>String(value??"")
   .replaceAll("&","&amp;")
