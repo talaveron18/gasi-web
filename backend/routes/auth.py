@@ -13,8 +13,11 @@ async def get_db():
     from server import db
     return db
 
+def set_session_cookie(response: Response, token: str):
+    set_session_cookie(response, token)
+
 @router.post("/register", response_model=TokenResponse)
-async def register(user: UserCreate, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def register(user: UserCreate, response: Response, db: AsyncIOMotorDatabase = Depends(get_db)):
     existing = await db.users.find_one({"email": user.email}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -50,6 +53,7 @@ async def register(user: UserCreate, db: AsyncIOMotorDatabase = Depends(get_db))
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.user_sessions.insert_one(session_doc)
+    set_session_cookie(response, token)
     
     return TokenResponse(token=token, user=user_response)
 
@@ -105,8 +109,9 @@ async def create_session_from_oauth(
     response: Response,
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
-    """REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH"""
-    oauth_backend_url = os.environ.get("OAUTH_BACKEND_URL", "https://demobackend.emergentagent.com")
+    oauth_backend_url = os.environ.get("OAUTH_BACKEND_URL", "").strip()
+    if not oauth_backend_url or not oauth_backend_url.startswith("https://"):
+        raise HTTPException(status_code=503, detail="oauth_not_configured")
     async with httpx.AsyncClient() as client:
         resp = await client.get(
             f"{oauth_backend_url}/auth/v1/env/oauth/session-data",
@@ -142,17 +147,8 @@ async def create_session_from_oauth(
         }
         await db.users.insert_one(user_doc)
     
-    token = oauth_data["session_token"]
-    
-    response.set_cookie(
-        key="session_token",
-        value=token,
-        httponly=True,
-        secure=True,
-        samesite="none",
-        max_age=7*24*60*60,
-        path="/"
-    )
+    token = create_access_token({"user_id": user_id, "email": oauth_data["email"]})
+    set_session_cookie(response, token)
     
     session_doc = {
         "user_id": user_id,
