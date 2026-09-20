@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { GraduationCap, Clock, BookOpen, ArrowLeft, CheckCircle, Users, Calendar, Award } from 'lucide-react';
+import { GraduationCap, Clock, BookOpen, ArrowLeft, CheckCircle, Users, Calendar, Award, FileText } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -13,6 +14,11 @@ const CursoDetalle = () => {
   const { courseId } = useParams();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [materials, setMaterials] = useState([]);
+  const [hasCourseAccess, setHasCourseAccess] = useState(false);
+  const [loadingAction, setLoadingAction] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const [selectedMaterialUrl, setSelectedMaterialUrl] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -33,27 +39,118 @@ const CursoDetalle = () => {
     fetchCourse();
   }, [fetchCourse]);
 
+  const fetchMaterials = useCallback(async () => {
+    if (!user) {
+      setMaterials([]);
+      setHasCourseAccess(false);
+      return;
+    }
+    try {
+      const response = await axios.get(`${API}/courses/${courseId}/materials`, {
+        withCredentials: true
+      });
+      setMaterials(response.data);
+      setHasCourseAccess(true);
+    } catch (error) {
+      if (error.response?.status === 403 || error.response?.status === 401) {
+        setMaterials([]);
+        setHasCourseAccess(false);
+        return;
+      }
+      toast.error('No se pudieron cargar los materiales del curso');
+    }
+  }, [courseId, user]);
+
+  useEffect(() => {
+    fetchMaterials();
+  }, [fetchMaterials]);
+
+  useEffect(() => {
+    return () => {
+      if (selectedMaterialUrl) URL.revokeObjectURL(selectedMaterialUrl);
+    };
+  }, [selectedMaterialUrl]);
+
+  const closeMaterial = () => {
+    if (selectedMaterialUrl) URL.revokeObjectURL(selectedMaterialUrl);
+    setSelectedMaterialUrl('');
+    setSelectedMaterial(null);
+  };
+
+  const openMaterial = async (material) => {
+    try {
+      setLoadingAction(true);
+      const response = await axios.get(
+        `${API}/courses/${courseId}/materials/${material.material_id}/content`,
+        { withCredentials: true, responseType: 'blob' }
+      );
+      if (selectedMaterialUrl) URL.revokeObjectURL(selectedMaterialUrl);
+      const blobUrl = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      setSelectedMaterial(material);
+      setSelectedMaterialUrl(blobUrl);
+    } catch (error) {
+      if (error.response?.status === 403 || error.response?.status === 401) {
+        setHasCourseAccess(false);
+        setMaterials([]);
+        toast.error('Tu sesión ya no permite acceder a este material');
+      } else {
+        toast.error('No se pudo abrir el material');
+      }
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
   const handleEnroll = async () => {
     if (!user) {
       toast.error('Debes iniciar sesión para inscribirte');
+      navigate('/formacion-sanitaria');
       return;
     }
-    
+    if (hasCourseAccess) {
+      document.getElementById('materiales-del-curso')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+
+    setLoadingAction(true);
     try {
-      await axios.post(`${API}/courses/enroll`, { course_id: courseId }, {
-        withCredentials: true
-      });
-      toast.success('¡Te has inscrito correctamente!');
-      navigate('/dashboard');
+      if (course.is_free) {
+        await axios.post(`${API}/courses/enroll`, { course_id: courseId }, {
+          withCredentials: true
+        });
+        toast.success('¡Te has inscrito correctamente!');
+        await fetchMaterials();
+      } else {
+        const response = await axios.post(`${API}/payments/create-checkout`, null, {
+          withCredentials: true,
+          params: { course_id: courseId }
+        });
+        if (!response.data?.checkout_url) throw new Error('missing_checkout_url');
+        window.location.assign(response.data.checkout_url);
+      }
     } catch (error) {
       if (error.response?.data?.detail === 'Already enrolled') {
+        await fetchMaterials();
         toast.info('Ya estás inscrito en este curso');
-        navigate('/dashboard');
+      } else if (error.response?.data?.detail === 'payment_service_unavailable') {
+        toast.error('El pago no está disponible temporalmente');
+      } else if (error.response?.data?.detail === 'payment_required') {
+        toast.error('Este curso requiere completar el pago');
       } else {
-        toast.error('Error al inscribirse');
+        toast.error(course.is_free ? 'Error al inscribirse' : 'No se pudo iniciar el pago');
       }
+    } finally {
+      setLoadingAction(false);
     }
   };
+
+  const enrollmentLabel = !user
+    ? 'Iniciar Sesión para Inscribirme'
+    : hasCourseAccess
+      ? 'Abrir materiales'
+      : course?.is_free
+        ? 'Inscribirme gratis'
+        : `Comprar por ${course?.price}€`;
 
   if (loading) {
     return (
@@ -98,8 +195,8 @@ const CursoDetalle = () => {
                   <div className="text-center mb-6">
                     {course.is_free ? <div className="text-3xl font-bold text-green-600">Gratis</div> : <div><span className="text-4xl font-bold text-[#005EB8]">{course.price}€</span><span className="text-gray-500 ml-2">/ curso</span></div>}
                   </div>
-                  <Button className="w-full bg-[#005EB8] hover:bg-[#004a92] text-white py-6 text-lg" onClick={handleEnroll} data-testid="enroll-button">
-                    {user ? 'Inscribirme Ahora' : 'Iniciar Sesión para Inscribirme'}
+                  <Button className="w-full bg-[#005EB8] hover:bg-[#004a92] text-white py-6 text-lg" onClick={handleEnroll} disabled={loadingAction} data-testid="enroll-button">
+                    {loadingAction ? 'Procesando…' : enrollmentLabel}
                   </Button>
                   <div className="mt-6 space-y-3 text-sm text-gray-600">
                     <div className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" /><span>Certificado de finalización</span></div>
@@ -149,16 +246,77 @@ const CursoDetalle = () => {
         </div>
       </section>
 
+      {user && hasCourseAccess && (
+        <section id="materiales-del-curso" className="py-12 bg-[#F8FAFC]" data-testid="course-materials">
+          <div className="max-w-4xl mx-auto px-6">
+            <div className="flex items-center gap-3 mb-6">
+              <FileText className="w-6 h-6 text-[#005EB8]" aria-hidden="true" />
+              <div>
+                <h2 className="text-2xl font-bold text-[#0F172A]">Materiales del curso</h2>
+                <p className="text-sm text-gray-600">Acceso disponible únicamente con tu sesión y matrícula activas.</p>
+              </div>
+            </div>
+            {materials.length > 0 ? (
+              <div className="space-y-3">
+                {materials.map((material) => (
+                  <Card key={material.material_id}>
+                    <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[#0F172A] truncate">{material.filename}</p>
+                        <p className="text-sm text-gray-500">PDF · {Math.max(1, Math.ceil((material.size || 0) / 1024))} KB</p>
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => openMaterial(material)}
+                        disabled={loadingAction}
+                        data-testid={`open-material-${material.material_id}`}
+                      >
+                        Abrir material
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-6 text-gray-600">
+                  Tu matrícula está activa. Todavía no hay materiales publicados para este curso.
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </section>
+      )}
+
       <section className="py-16 bg-[#F8FAFC]">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-2xl font-bold text-[#0F172A] mb-4">¿Listo para empezar?</h2>
           <p className="text-gray-600 mb-8">Inscríbete ahora y mejora las capacidades de respuesta ante emergencias de tu equipo</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-[#005EB8] hover:bg-[#004a92] text-white" onClick={handleEnroll}>Inscribirme en este curso</Button>
+            <Button size="lg" className="bg-[#005EB8] hover:bg-[#004a92] text-white" onClick={handleEnroll} disabled={loadingAction}>{loadingAction ? 'Procesando…' : enrollmentLabel}</Button>
             <Link to="/contacto"><Button size="lg" variant="outline">Solicitar información</Button></Link>
           </div>
         </div>
       </section>
+      <Dialog open={Boolean(selectedMaterialUrl)} onOpenChange={(open) => { if (!open) closeMaterial(); }}>
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{selectedMaterial?.filename || 'Material del curso'}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 rounded-lg overflow-hidden border bg-gray-100">
+            {selectedMaterialUrl && (
+              <iframe
+                src={`${selectedMaterialUrl}#toolbar=0&navpanes=0`}
+                title={selectedMaterial?.filename || 'Material del curso'}
+                className="w-full h-full"
+              />
+            )}
+          </div>
+          <p className="text-xs text-gray-500">
+            El acceso se concede con tu sesión activa. La web no publica un enlace directo al archivo.
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
