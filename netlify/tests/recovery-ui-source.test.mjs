@@ -14,15 +14,23 @@ test("recovery console is authenticated and master-gated",()=>{
  assert.match(clinical,/isMaster&&<Link to="\/interno\/recuperacion"/);
 });
 
-test("recovery export downloads the server-signed snapshot without persisting it in browser storage",()=>{
+test("recovery export encrypts the signed snapshot before any file is written",()=>{
  assert.match(page,/\/api\/internal-clinical\/recovery\/snapshot/);
- assert.match(page,/new Blob\(\[JSON\.stringify\(data,null,2\)\]/);
- assert.match(page,/snapshot_signature/);
+ assert.match(page,/AES-GCM/);
+ assert.match(page,/PBKDF2/);
+ assert.match(page,/PBKDF2_ITERATIONS=310000/);
+ assert.match(page,/crypto\.subtle\.encrypt/);
+ assert.match(page,/const encrypted=await encryptSnapshot\(data,exportPass\)/);
+ assert.match(page,/new Blob\(\[JSON\.stringify\(encrypted\)\]/);
+ assert.doesNotMatch(page,/new Blob\(\[JSON\.stringify\(data/);
  assert.doesNotMatch(page,/localStorage|sessionStorage|indexedDB/);
 });
 
-test("destructive restore requires signed V2 file and explicit typed confirmation",()=>{
+test("destructive restore decrypts only in memory then still requires signed V2 content and typed confirmation",()=>{
  assert.match(page,/const CONFIRM='RESTAURAR'/);
+ assert.match(page,/const FILE_FORMAT='gasi-recovery-encrypted-v1'/);
+ assert.match(page,/crypto\.subtle\.decrypt/);
+ assert.match(page,/const parsed=await decryptSnapshot\(envelope,restorePass\)/);
  assert.match(page,/schema_version!==2/);
  assert.match(page,/snapshot_signature/);
  assert.match(page,/confirm!==CONFIRM/);
