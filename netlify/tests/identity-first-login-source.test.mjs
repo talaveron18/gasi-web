@@ -11,7 +11,7 @@ const workers=fs.readFileSync(new URL("../../frontend/src/pages/InternalWorkers.
 
 test("new workers are marked for mandatory password change",()=>{
  assert.match(migration,/must_change_password BOOLEAN NOT NULL DEFAULT FALSE/);
- assert.match(api,/password_hash,must_change_password\\) VALUES\\(\\$1,\\$2,\\$3,\\$4,\\$5::jsonb,TRUE,1,'\\[\\]'::jsonb,\\$6,TRUE\\)/);
+ assert.match(api,/password_hash,must_change_password\) VALUES\(\$1,\$2,\$3,\$4,\$5::jsonb,TRUE,1,'\[\]'::jsonb,\$6,TRUE\)/);
  assert.match(api,/must_change_password:true/);
 });
 
