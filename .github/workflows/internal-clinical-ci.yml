@@ -33,6 +33,8 @@ jobs:
         env:
           CI: 'true'
         run: yarn test --watchAll=false --passWithNoTests
+      - name: Browser E2E access and accessibility
+        run: node e2e/browser-access.mjs
 
   backend-clinical:
     runs-on: ubuntu-latest
