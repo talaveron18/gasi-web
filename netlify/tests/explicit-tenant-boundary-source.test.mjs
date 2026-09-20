@@ -50,3 +50,24 @@ test("audit events retain actor tenant scope without clinical narrative",()=>{
  assert.match(api,/auditMetadata\(\{\.\.\.metadata,actor_tenant_id:String\(w\.tenant_id\|\|""\)\}\)/);
  assert.match(api,/FORBIDDEN_AUDIT_KEYS=new Set\(\["patient_ref","patientref","summary","text","replacement_text","previous_text"/);
 });
+
+
+test("master tenant is reserved from customer and operational scopes",()=>{
+ assert.match(api,/const MASTER_TENANT="__MASTER__"/);
+ assert.match(api,/tenantId===MASTER_TENANT&&id!==MASTER\(\).*reserved_tenant_id/);
+ assert.match(api,/tenantId===MASTER_TENANT.*reserved_tenant_id/);
+ assert.match(api,/String\(x\.id\)!==MASTER\(\)&&String\(x\.tenant_id\)===MASTER_TENANT/);
+ assert.match(api,/String\(x\.tenant_id\)===MASTER_TENANT/);
+});
+
+test("existing master identities are normalized to the reserved tenant on bootstrap",()=>{
+ assert.match(api,/SELECT id,tenant_id FROM internal_clinical_workers WHERE id=/);
+ assert.match(api,/UPDATE internal_clinical_workers SET tenant_id=\$\{MASTER_TENANT\} WHERE id=\$\{id\}/);
+});
+
+test("database blocks reserved master tenant from operational collections",()=>{
+ const reserved=fs.readFileSync(new URL("../database/migrations/20260920153000_reserved-master-tenant/migration.sql",import.meta.url),"utf8");
+ assert.match(reserved,/internal_clinical_episodes_tenant_shape[\s\S]*tenant_id <> '__MASTER__'/);
+ assert.match(reserved,/internal_center_workstations_tenant_shape[\s\S]*tenant_id <> '__MASTER__'/);
+ assert.match(reserved,/internal_attendance_events_tenant_shape[\s\S]*tenant_id <> '__MASTER__'/);
+});
