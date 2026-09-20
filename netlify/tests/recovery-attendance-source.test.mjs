@@ -2,10 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 const source=fs.readFileSync(new URL("../functions/internal-clinical.mts",import.meta.url),"utf8");
-test("recovery v2 snapshots attendance and workstation state",()=>{
- assert.match(source,/schema_version:2,episodes,workers,audit:auditRows,counters,workstations,attendance/);
- assert.match(source,/SELECT id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash FROM internal_center_workstations/);
- assert.match(source,/SELECT seq,worker_id,center,workstation_id,event_type,occurred_at,related_event_seq,reason,actor_id,metadata FROM internal_attendance_events/);
+test("recovery v3 snapshots tenant attendance and workstation state",()=>{
+ assert.match(source,/schema_version:3,episodes,workers,audit:auditRows,counters,workstations,attendance/);
+ assert.match(source,/SELECT id,tenant_id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash FROM internal_center_workstations/);
+ assert.match(source,/SELECT seq,worker_id,tenant_id,center,workstation_id,event_type,occurred_at,related_event_seq,reason,actor_id,metadata FROM internal_attendance_events/);
 });
 test("restore clears FK dependents first and restores immutable attendance",()=>{
  const a=source.indexOf('TRUNCATE TABLE internal_attendance_events RESTART IDENTITY'), w=source.indexOf('DELETE FROM internal_clinical_workers');
@@ -15,7 +15,7 @@ test("restore clears FK dependents first and restores immutable attendance",()=>
  assert.match(source,/pg_get_serial_sequence\('internal_attendance_events','seq'\)/);
 });
 
-test("restore validates every v2 collection before opening the restore transaction",()=>{
+test("restore validates every v3 tenant collection before opening the restore transaction",()=>{
  const validation=source.indexOf('snapshot.workstations.some');
  const restore=source.indexOf('path==="/api/internal-clinical/recovery/restore"');
  const connect=source.indexOf('const client=await db.pool.connect()',restore);
@@ -59,8 +59,8 @@ test("restore sorts attendance by sequence before inserting self-references",()=
 
 
 test("recovery preserves workstation browser binding state",()=>{
- assert.match(source,/SELECT id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash FROM internal_center_workstations/);
- assert.match(source,/INSERT INTO internal_center_workstations\(id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash\)/);
+ assert.match(source,/SELECT id,tenant_id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash FROM internal_center_workstations/);
+ assert.match(source,/INSERT INTO internal_center_workstations\(id,tenant_id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash\)/);
  assert.match(source,/x\.claimed_at/);
 });
 
@@ -157,8 +157,8 @@ test("restore validates attendance and audit referential semantics",()=>{
 
 
 test("recovery preserves workstation network binding",()=>{
- assert.match(source,/SELECT id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash FROM internal_center_workstations/);
- assert.match(source,/INSERT INTO internal_center_workstations\(id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash\)/);
+ assert.match(source,/SELECT id,tenant_id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash FROM internal_center_workstations/);
+ assert.match(source,/INSERT INTO internal_center_workstations\(id,tenant_id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash\)/);
  assert.match(source,/x\.network_fingerprint_hash/);
  assert.match(source,/x\.claimed_at!=null&&!\/\^\[a-f0-9\]\{64\}\$\/\.test\(String\(x\.network_fingerprint_hash\|\|""\)\)/);
 });
@@ -177,9 +177,9 @@ test("snapshot is generated from one repeatable-read transaction",()=>{
 
 test("restore rejects duplicate center assignments before mutation",()=>{
  assert.match(source,/new Set\(x\.centers\.map\(\(center:any\)=>String\(center\)\)\)\.size!==x\.centers\.length/);
- assert.match(source,/workstationCenterSet=new Set\(snapshot\.workstations\.map/);
- assert.match(source,/workstationCenterSet\.size!==snapshot\.workstations\.length/);
- const validation=source.indexOf("workstationCenterSet.size!==snapshot.workstations.length");
+ assert.match(source,/workstationTenantCenterSet=new Set\(snapshot\.workstations\.map/);
+ assert.match(source,/workstationTenantCenterSet\.size!==snapshot\.workstations\.length/);
+ const validation=source.indexOf("workstationTenantCenterSet.size!==snapshot.workstations.length");
  const connect=source.indexOf("const client=await db.pool.connect()",source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
  assert.ok(validation>=0&&connect>validation);
 });
@@ -226,7 +226,7 @@ test("recovery signing is independent from session signing",()=>{
 test("restore preserves the live master credential and invalidates existing master sessions",()=>{
  const start=source.indexOf('path==="/api/internal-clinical/recovery/restore"');
  const route=source.slice(start);
- assert.match(route,/SELECT id,auth_version,password_hash,must_change_password,display_name,created_at FROM internal_clinical_workers FOR UPDATE/);
+ assert.match(route,/SELECT id,tenant_id,auth_version,password_hash,must_change_password,display_name,created_at FROM internal_clinical_workers FOR UPDATE/);
  assert.match(route,/const id=String\(x\.id\),isMaster=id===MASTER\(\)/);
  assert.match(route,/liveAuthVersion=Number\(currentWorkerVersions\.get\(id\)\|\|0\)/);
  assert.match(route,/authVersion=Math\.max\(Number\(x\.auth_version\)\|\|0,liveAuthVersion\)\+1/);
@@ -252,4 +252,22 @@ test("restore invalidates every worker session from both live and snapshot state
  assert.match(route,/currentWorkerVersions=new Map/);
  assert.match(route,/Math\.max\(Number\(x\.auth_version\)\|\|0,liveAuthVersion\)\+1/);
  assert.match(route,/all_sessions_revoked:true/);
+});
+
+
+test("recovery v3 rejects cross-tenant references before destructive mutation",()=>{
+ assert.match(source,/workerTenants=new Map/);
+ assert.match(source,/workstationScope=new Map/);
+ assert.match(source,/workerTenants\.get\(String\(x\.worker_id\)\)!==String\(x\.tenant_id\)/);
+ assert.match(source,/ws\.tenant_id!==String\(x\.tenant_id\)/);
+ assert.match(source,/String\(related\.tenant_id\)!==String\(x\.tenant_id\)/);
+ assert.match(source,/badEpisodeReference/);
+ assert.match(source,/masterSnapshot\.tenant_id!=="__MASTER__"/);
+});
+
+test("recovery v3 restores tenant ids on every operational collection",()=>{
+ assert.match(source,/INSERT INTO internal_clinical_episodes\(id,tenant_id,center/);
+ assert.match(source,/INSERT INTO internal_clinical_workers\(id,tenant_id,role/);
+ assert.match(source,/INSERT INTO internal_center_workstations\(id,tenant_id,center/);
+ assert.match(source,/INSERT INTO internal_attendance_events\(seq,worker_id,tenant_id,center/);
 });
