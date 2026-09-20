@@ -44,3 +44,9 @@ test("legacy tenant inference fails closed when scope is ambiguous",()=>{
  assert.match(api,/q\.rows\.length===1\?String\(q\.rows\[0\]\.tenant_id\|\|""\):""/);
  assert.match(api,/tenant_id_required/);
 });
+
+
+test("audit events retain actor tenant scope without clinical narrative",()=>{
+ assert.match(api,/auditMetadata\(\{\.\.\.metadata,actor_tenant_id:String\(w\.tenant_id\|\|""\)\}\)/);
+ assert.match(api,/FORBIDDEN_AUDIT_KEYS=new Set\(\["patient_ref","patientref","summary","text","replacement_text","previous_text"/);
+});
