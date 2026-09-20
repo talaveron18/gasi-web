@@ -38,6 +38,8 @@ jobs:
         run: node e2e/browser-access.mjs
       - name: Browser E2E student course flow
         run: node e2e/browser-course-flow.mjs
+      - name: Browser E2E course administration
+        run: node e2e/browser-course-admin.mjs
 
   backend-clinical:
     runs-on: ubuntu-latest
