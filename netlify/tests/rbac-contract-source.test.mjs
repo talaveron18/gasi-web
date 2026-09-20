@@ -83,29 +83,30 @@ test("delegated worker-management UI hides administrative identity controls",()=
 });
 
 
-test("delegated worker management is center-scoped at query and mutation time",()=>{
+test("delegated worker management is tenant and center scoped at query and mutation time",()=>{
+ assert.match(api,/const managementTenant=\(w:any\)=>w\.id===MASTER\(\)\?null:/);
  assert.match(api,/const managementCenters=\(w:any\)=>w\.id===MASTER\(\)\?null:/);
- assert.match(api,/const canManageWorkerCenters=/);
- assert.match(api,/WHERE role<>'admin' AND centers <@ \$1::jsonb ORDER BY display_name,id/);
- assert.match(api,/worker_center_management_denied/);
+ assert.match(api,/const canManageWorkerScope=/);
+ assert.match(api,/WHERE tenant_id=\$1 AND role<>'admin' AND centers <@ \$2::jsonb ORDER BY display_name,id/);
+ assert.match(api,/worker_scope_management_denied/);
+ assert.match(api,/worker_tenant_management_denied/);
  const create=api.slice(api.indexOf('if(req.method==="POST"&&path==="/api/internal-clinical/workers")'),api.indexOf("const access=path.match"));
- assert.match(create,/!canManageWorkerCenters\(w,centers\)/);
- const access=api.slice(api.indexOf("const access=path.match"),api.indexOf("const passwordReset=path.match"));
- assert.match(access,/WHERE id=\$1 AND role<>'admin' AND centers <@ \$2::jsonb FOR UPDATE/);
- assert.match(access,/worker_not_visible/);
- const reset=api.slice(api.indexOf("const passwordReset=path.match"),api.indexOf("const privilege=path.match"));
- assert.match(reset,/WHERE id=\$1 AND role<>'admin' AND centers <@ \$2::jsonb FOR UPDATE/);
- assert.match(reset,/worker_not_visible/);
+ assert.match(create,/!canManageWorkerScope\(w,tenantId,centers\)/);
+ assert.match(api,/managedWorkerForUpdate/);
+ assert.match(api,/WHERE id=\$1 AND tenant_id=\$2 AND role<>'admin' AND centers <@ \$3::jsonb FOR UPDATE/);
 });
 
 
-test("delegated direct-id worker mutations stay invisible across centers",()=>{
+test("delegated direct-id worker mutations use the tenant-scoped helper",()=>{
+ const helperStart=api.indexOf("async function managedWorkerForUpdate");
+ const helperEnd=api.indexOf("const DELEGABLE_PRIVILEGES",helperStart);
+ const helper=api.slice(helperStart,helperEnd);
+ assert.match(helper,/tenant_id=\$2/);
+ assert.match(helper,/centers <@ \$3::jsonb FOR UPDATE/);
  const access=api.slice(api.indexOf("const access=path.match"),api.indexOf("const passwordReset=path.match"));
- const accessSelect=access.indexOf("WHERE id=$1 AND role<>'admin' AND centers <@ $2::jsonb FOR UPDATE");
- const accessTarget=access.indexOf("const target=q.rows[0]");
- assert.ok(accessSelect>=0&&accessTarget>accessSelect);
+ assert.match(access,/const target=await managedWorkerForUpdate\(client,w,id\)/);
+ assert.match(access,/worker_not_visible/);
  const reset=api.slice(api.indexOf("const passwordReset=path.match"),api.indexOf("const privilege=path.match"));
- const resetSelect=reset.indexOf("WHERE id=$1 AND role<>'admin' AND centers <@ $2::jsonb FOR UPDATE");
- const resetTarget=reset.indexOf("const target=q.rows[0]");
- assert.ok(resetSelect>=0&&resetTarget>resetSelect);
+ assert.match(reset,/const target=await managedWorkerForUpdate\(client,w,id\)/);
+ assert.match(reset,/worker_not_visible/);
 });
