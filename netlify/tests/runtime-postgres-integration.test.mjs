@@ -675,6 +675,18 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,401);
  assert.equal((await responseJson(res)).detail,"session_expired_or_revoked");
 
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-A",password:nursePassword},ip:"10.10.0.41"}),{});
+ assert.equal(res.status,401);
+ assert.equal((await responseJson(res)).detail,"invalid_credentials");
+
+ res=await handler(request("/api/internal-clinical/workers/NURSE-A/access",{method:"POST",token:masterToken,body:{state:"ACTIVE"}}),{});
+ assert.equal(res.status,200);
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"NURSE-A",password:nursePassword},ip:"10.10.0.42"}),{});
+ assert.equal(res.status,200);
+ const reactivatedNurseToken=(await responseJson(res)).token;
+ res=await handler(request("/api/internal-clinical/session",{token:reactivatedNurseToken}),{});
+ assert.equal(res.status,200);
+
  await assert.rejects(()=>pool.query("UPDATE internal_attendance_events SET center='CENTER-X' WHERE seq=$1",[firstClockIn.seq]),/append-only/);
  await assert.rejects(()=>pool.query("DELETE FROM internal_attendance_events WHERE seq=$1",[firstClockIn.seq]),/append-only/);
  const auditSeq=(await pool.query("SELECT seq FROM internal_clinical_audit ORDER BY seq LIMIT 1")).rows[0].seq;
