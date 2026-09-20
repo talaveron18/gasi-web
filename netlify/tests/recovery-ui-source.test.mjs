@@ -37,3 +37,13 @@ test("destructive restore decrypts only in memory then still requires signed V2 
  assert.match(page,/\/api\/internal-clinical\/recovery\/restore/);
  assert.match(page,/Restaurar estado completo/);
 });
+
+
+test("restore forces controlled master reauthentication",()=>{
+ assert.match(page,/master_reauthentication_required===true/);
+ assert.match(page,/await signOut\(\)/);
+ assert.match(page,/navigate\('\/interno\/acceso',\{replace:true,state:\{recoveryMessage:success\}\}\)/);
+ const access=fs.readFileSync(new URL("../../frontend/src/pages/InternalAccess.jsx",import.meta.url),"utf8");
+ assert.match(access,/useLocation/);
+ assert.match(access,/location\.state\?\.recoveryMessage/);
+});
