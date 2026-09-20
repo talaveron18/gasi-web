@@ -13,7 +13,8 @@ test("attendance requires authenticated professional and claimed active workstat
  assert.match(source,/verifyPassword\(deviceSecret,ws\.credential_hash\)/);
 });
 test("workstation center must belong to worker",()=>{
- assert.match(source,/String\(w\.tenant_id\|\|""\)!==String\(ws\.tenant_id\|\|""\).*workstation_tenant_denied/);\n assert.match(source,/!Array\.isArray\(w\.centers\)\|\|!w\.centers\.includes\(ws\.center\)/);
+ assert.match(source,/String\(w\.tenant_id\|\|""\)!==String\(ws\.tenant_id\|\|""\).*workstation_tenant_denied/);
+ assert.match(source,/!Array\.isArray\(w\.centers\)\|\|!w\.centers\.includes\(ws\.center\)/);
  assert.match(source,/workstation_center_denied/);
 });
 test("open shift state is deterministic",()=>{
@@ -24,7 +25,7 @@ test("open shift state is deterministic",()=>{
  assert.match(source,/eventType==="CLOCK_OUT"&&lastEffectiveType!=="CLOCK_IN"/);
 });
 test("attendance timestamp is database generated and event is audited",()=>{
- assert.match(source,/INSERT INTO internal_attendance_events\\(worker_id,tenant_id,center,workstation_id,event_type,actor_id\\)/);
+ assert.match(source,/INSERT INTO internal_attendance_events\(worker_id,tenant_id,center,workstation_id,event_type,actor_id\)/);
  const attendanceRoute=source.slice(source.indexOf("const attendance=path.match"),source.indexOf('if(req.method==="GET"&&path==="/api/internal-clinical/workers"'));
  assert.ok(!attendanceRoute.includes("occurred_at) VALUES"),"attendance insert must use database timestamp");
  assert.match(source,/ATTENDANCE_CLOCKED_IN/);
