@@ -78,6 +78,9 @@ async def initialize_internal_clinical_store():
     await db.users.create_index('email', unique=True, name='uniq_public_user_email')
     await db.user_sessions.create_index('session_token', unique=True, name='uniq_public_session_token')
     await db.enrollments.create_index([('user_id', 1), ('course_id', 1)], unique=True, name='uniq_user_course_enrollment')
+    await db.course_materials.create_index('material_id', unique=True, name='uniq_course_material_id')
+    await db.course_materials.create_index('object_key', unique=True, name='uniq_course_material_object_key')
+    await db.course_materials.create_index([('course_id', 1), ('module_id', 1)], name='idx_course_material_module')
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
