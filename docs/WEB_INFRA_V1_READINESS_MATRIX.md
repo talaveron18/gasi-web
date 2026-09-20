@@ -2,11 +2,11 @@
 
 **Fecha de evidencia:** 2026-09-20  
 **Rama:** `work/web-infra-v1-netlify-20260918`  
-**SHA verificado:** `90afc0e64eba02e1201030ac784ce49de14d82dc`  
-**GitHub Actions:** Internal Clinical CI run **#773 / 35523003537**  
+**SHA verificado:** `39f1e9eec65c103ece932466435947a08c0b31a5`  
+**GitHub Actions:** Internal Clinical CI run **#781 / 35523893149**  
 **Resultado:** **PASS — 5/5 jobs** (`frontend`, `backend-clinical`, `netlify-clinical`, `netlify-build`, `netlify-runtime-integration`).  
 **Frontend:** 12 suites / 68 tests PASS + navegador Chrome real PASS.  
-**Runtime PostgreSQL 17:** 2 pruebas de integración PASS, 0 FAIL.\n**Release rehearsal:** PASS sin despliegue; `build_tree_sha256` = `restored_tree_sha256` = `591d378ed992976e0f8eb53b679768e0b2c996c24ea7499ebe0ac40fbbb31aa2`.
+**Runtime PostgreSQL 17:** 2 pruebas de integración PASS, 0 FAIL.\n**Release rehearsal:** PASS sin despliegue; `build_tree_sha256` = `restored_tree_sha256` = `8ec94bec390a1ab933220b13ad532581e6b579576cf5258a3c168a269cdcc131`; 5 ficheros / 789.397 bytes; source maps públicos = 0; marcadores de secretos/backend = 0.n despliegue; `build_tree_sha256` = `restored_tree_sha256` = `591d378ed992976e0f8eb53b679768e0b2c996c24ea7499ebe0ac40fbbb31aa2`.
 
 Esta matriz demuestra capacidades técnicas con datos sintéticos. No declara cumplimiento jurídico ni habilita por sí sola uso clínico real. Cualquier gate jurídico, de autorización, privacidad, RC o configuración real sigue siendo competencia de la línea correspondiente y puede bloquear la activación aunque la capacidad técnica sea PASS.
 
@@ -32,8 +32,8 @@ Esta matriz demuestra capacidades técnicas con datos sintéticos. No declara cu
 | Fallo de red de autenticación | PASS | Chrome/CDP E2E | Mensaje seguro; no filtra stack, URL ni error técnico |
 | Acceso público genérico | PASS | Chrome/CDP E2E | “Acceder” → Alumnado / Equipo GASI |
 | Accesibilidad de superficies probadas | PASS_CON_RESERVA | 68 tests + Chrome accessibility tree | Puerta pública, foco/teclado y componentes internos probados; no equivale a auditoría WCAG completa |
-| Build Netlify de producción | PASS | job `netlify-build` run #773 | Build reproducible de la rama |
-| Grafo de dependencias frontend | PASS | `frontend/yarn.lock` + `yarn install --frozen-lockfile` en run #773 | Lockfile versionado; CI con `contents: read`; sin auto-commit |\n| GitHub Actions fijadas | PASS | workflow usa SHAs verificados para checkout/setup-node/setup-python/upload-artifact | Evita deriva de tags mutables en CI |\n| Headers estáticos Netlify | PASS | `static-site-security-source.test.mjs` + run #773 | `nosniff`, `no-referrer`, `DENY`, permissions policy, HSTS y caché de assets fingerprinted |\n| Rehearsal de release/restore | PASS | artifact `web-infra-release-rehearsal-90afc0e...` id `10609242456` | 7 ficheros / 3.967.702 bytes; copia restaurada re-hasheada con digest idéntico; `production_deploy=false` |
+| Build Netlify de producción | PASS | job `netlify-build` run #781 | Build reproducible de la rama |
+| Grafo de dependencias frontend | PASS | `frontend/yarn.lock` + `yarn install --frozen-lockfile` en run #781 | Lockfile versionado; CI con `contents: read`; sin auto-commit |\n| GitHub Actions fijadas | PASS | workflow usa SHAs verificados para checkout/setup-node/setup-python/upload-artifact | Evita deriva de tags mutables en CI |\n| Headers estáticos Netlify | PASS | `static-site-security-source.test.mjs` + HTTP smoke real `GET /acceso` en run #781 | 200; `nosniff`; `no-referrer`; `DENY`; permissions policy; shell revalidable (`public, max-age=0`, no `immutable`) |n #773 | `nosniff`, `no-referrer`, `DENY`, permissions policy, HSTS y caché de assets fingerprinted |\n| Rehearsal de release/restore | PASS | artifact `web-infra-release-rehearsal-39f1e9e...` id `10609153856` | build/restored SHA-256 `8ec94bec390a1ab933220b13ad532581e6b579576cf5258a3c168a269cdcc131`; 5 ficheros / 789.397 bytes; source maps = 0; marcadores backend/secretos = 0; `production_deploy=false` |nfra-release-rehearsal-90afc0e...` id `10609242456` | 7 ficheros / 3.967.702 bytes; copia restaurada re-hasheada con digest idéntico; `production_deploy=false` |
 | Despliegue a producción | BLOQUEADO | Sin acción | Requiere autorización expresa; `main` y producción no se modifican desde esta rama |
 
 ## Negativos obligatorios
@@ -58,9 +58,22 @@ Esta matriz demuestra capacidades técnicas con datos sintéticos. No declara cu
 | Canal alternativo no configurado | PASS fail-closed | UI bloquea continuidad y no inventa destino |
 | URL insegura como canal alternativo | PASS | `http://` rechazado 422; URL admite solo HTTPS |
 
+## Evidencia HTTP Netlify
+
+Run #781, `GET /acceso` servido por Netlify Dev sobre el build de producción:
+
+- status HTTP: `200`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: no-referrer`
+- `X-Frame-Options: DENY`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- `Cache-Control: public, max-age=0` observado en Netlify Dev; shell inmediatamente obsoleto/revalidable y no `immutable`
+- source maps públicos: `0`
+- marcadores de secretos/backend en bundle: `0`
+
 ## Evidencia del navegador
 
-Entrada observada en el run #773:
+Entrada observada en el run #781:
 
 - `public_entry = Acceder`
 - destino alumnado: `/formacion-sanitaria` + modal de login
