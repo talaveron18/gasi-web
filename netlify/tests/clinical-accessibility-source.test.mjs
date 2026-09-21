@@ -25,7 +25,7 @@ test("clinical actions expose visible focus live state and explicit closure conf
 });
 
 test("new episode workflow exposes busy state, keyboard focus and live creation status",()=>{
- assert.match(newEpisode,/aria-busy=\{state === 'SAVING'\}/);
+ assert.match(newEpisode,/aria-busy=\{state\s*===\s*'SAVING'\}/);
  assert.match(newEpisode,/aria-describedby="clinical-level-help"/);
  assert.match(newEpisode,/aria-live="polite"/);
  assert.match(newEpisode,/focus-visible:ring-2/);
