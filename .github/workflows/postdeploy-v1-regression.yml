@@ -79,10 +79,7 @@ jobs:
           request malformed_json 400 -X POST             -H 'Origin: https://gasi-clinical.netlify.app'             -H 'Content-Type: application/json'             --data '{'             "$SITE/api/auth/register"
           grep -q '"detail":"invalid_json"' /tmp/malformed_json.body
 
-          python3 - <<'PY'
-from pathlib import Path
-Path('/tmp/oversized.json').write_text('"' + ('a' * 33000) + '"')
-PY
+          python3 -c "from pathlib import Path; Path('/tmp/oversized.json').write_text(chr(34) + ('a' * 33000) + chr(34))"
           request oversized 413 -X POST \
             -H 'Origin: https://gasi-clinical.netlify.app' \
             -H 'Content-Type: application/json' \
