@@ -1,0 +1,113 @@
+name: Deploy isolated public API V1
+
+on:
+  push:
+    branches:
+      - 'ops/public-api-release-20260921'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout validated source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: bcace653f3ecb0b1c474429d728e55784e7738d2
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+
+      - name: Prepare isolated public API profile
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "bcace653f3ecb0b1c474429d728e55784e7738d2"
+          find netlify/functions -maxdepth 1 -type f ! -name 'public-api.mts' -delete
+          find netlify/database/migrations -mindepth 1 -maxdepth 1 -type d ! -name '20260920190000_public-web-v1' -exec rm -rf {} +
+          rm -rf frontend backend docs scripts
+          mkdir -p public-api-static
+          printf '<!doctype html><html lang="es"><meta charset="utf-8"><title>GASI API</title><body>GASI Public API</body></html>' > public-api-static/index.html
+          cat > netlify.toml <<'EOF'
+          [build]
+            base = "/"
+            command = "npm ci"
+            publish = "public-api-static"
+
+          [build.environment]
+            NODE_VERSION = "24"
+
+          [functions]
+            directory = "netlify/functions"
+
+          [[headers]]
+            for = "/*"
+            [headers.values]
+              Cache-Control = "no-store"
+              X-Content-Type-Options = "nosniff"
+              Referrer-Policy = "no-referrer"
+              X-Frame-Options = "DENY"
+              Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+          EOF
+          test -f netlify/functions/public-api.mts
+          test ! -f netlify/functions/internal-clinical.mts
+          test "$(find netlify/database/migrations -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "1"
+
+      - name: Create ephemeral relay key
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:8192 -out /tmp/public-api-private.pem >/dev/null 2>&1
+          openssl pkey -in /tmp/public-api-private.pem -pubout -out /tmp/public-api-public.pem
+          PUB="$(base64 -w0 /tmp/public-api-public.pem)"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_PUBLIC_API_KEY_${GITHUB_RUN_ID}:${PUB}" >/dev/null
+
+      - name: Await encrypted deploy capability and deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PAYLOAD=""
+          for i in $(seq 1 180); do
+            PAYLOAD="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/30/comments" --jq '.[].body' | sed -n "s/^NETLIFY_PUBLIC_API_CIPHERTEXT_${GITHUB_RUN_ID}://p" | tail -n 1)"
+            if [ -n "${PAYLOAD}" ]; then break; fi
+            sleep 5
+          done
+          test -n "${PAYLOAD}" || { echo "Encrypted deploy capability was not received." >&2; exit 1; }
+          printf '%s' "${PAYLOAD}" | base64 -d > /tmp/public-api-cipher.bin
+          PROXY_PATH="$(openssl pkeyutl -decrypt -inkey /tmp/public-api-private.pem -in /tmp/public-api-cipher.bin -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256)"
+          case "${PROXY_PATH}" in
+            https://netlify-mcp.netlify.app/proxy/*) ;;
+            *) echo "Rejected unexpected deploy endpoint." >&2; exit 1 ;;
+          esac
+          npx -y @netlify/mcp@latest --site-id 2b1000fa-decb-490b-8c79-94e42d68d039 --proxy-path "${PROXY_PATH}"
+          unset PROXY_PATH
+          rm -f /tmp/public-api-private.pem /tmp/public-api-public.pem /tmp/public-api-cipher.bin
+
+      - name: Live public API smoke
+        run: |
+          set -euo pipefail
+          SITE="https://gasi-public-api-v1.netlify.app"
+          status="$(curl -sS -o /tmp/health.json -D /tmp/health.headers -w '%{http_code}' "${SITE}/api/health")"
+          test "${status}" = "200"
+          grep -q '"ok":true' /tmp/health.json
+          grep -q '"storage":"postgresql"' /tmp/health.json
+          grep -iq '^x-request-id:' /tmp/health.headers
+          status="$(curl -sS -o /tmp/me.json -w '%{http_code}' "${SITE}/api/auth/me")"
+          test "${status}" = "401"
+          status="$(curl -sS -o /tmp/cross.json -w '%{http_code}' -X POST -H 'Origin: https://attacker.invalid' -H 'Sec-Fetch-Site: cross-site' -H 'Content-Type: application/json' --data '{}' "${SITE}/api/auth/register")"
+          test "${status}" = "403"
+          grep -q '"detail":"cross_site_request_rejected"' /tmp/cross.json
+
+      - name: Mark relay done
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_PUBLIC_API_DONE_${GITHUB_RUN_ID}:${{ job.status }}" >/dev/null
