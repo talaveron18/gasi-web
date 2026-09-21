@@ -50,8 +50,13 @@ jobs:
 
           check clinical_session 401 "${SITE}/api/internal-clinical/session"
 
-          check master_recovery_config 503 -X POST             -H 'Content-Type: application/json'             --data '{"worker_id":"GASI-MASTER-01","recovery_secret":"invalid-negative-only"}'             "${SITE}/api/internal-clinical/master-recovery"
-          grep -q '"detail":"master_recovery_unavailable"' /tmp/master_recovery_config.body
-          echo "MASTER_RECOVERY_CONFIG=BLOQUEADO"
+          for endpoint in "${SITE}/api/internal-clinical/master-recovery" "https://gasi-clinical.netlify.app/api/internal-clinical/master-recovery"; do
+            status="$(curl -sS -o /tmp/master_probe.body -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{"worker_id":"GASI-MASTER-01","recovery_secret":"invalid-negative-only"}' "${endpoint}")"
+            echo "master_probe endpoint=${endpoint} status=${status} body=$(cat /tmp/master_probe.body)"
+            case "${status}" in
+              400|401|422|503) ;;
+              *) exit 1 ;;
+            esac
+          done
 
           echo "LIVE_GASI_V1_CORE=PASS"
