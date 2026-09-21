@@ -58,6 +58,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
   NETLIFY_DB_URL:connectionString,
   GASI_INTERNAL_SESSION_SECRET:syntheticSecret(),
   GASI_RECOVERY_SIGNING_SECRET:syntheticSecret(),
+  GASI_MASTER_RECOVERY_SECRET:syntheticSecret(),
   GASI_MASTER_ACTOR_ID:"GASI-MASTER-01",
   GASI_MASTER_PASSWORD:syntheticSecret(),
   GASI_MASTER_DISPLAY_NAME:"Integration Master",
@@ -88,6 +89,31 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.match(res.headers.get("server-timing")||"",/^app;dur=\d+$/);
  const masterLogin=await responseJson(res);
  let masterToken=masterLogin.token;
+ assert.ok(masterToken);
+
+ const recoveredMasterPassword=syntheticSecret();
+ res=await handler(request("/api/internal-clinical/master-recovery",{method:"POST",body:{worker_id:"GASI-MASTER-01",recovery_secret:"wrong-recovery-secret",new_password:recoveredMasterPassword},ip:"10.10.0.31"}),{});
+ assert.equal(res.status,401);
+ assert.equal((await responseJson(res)).detail,"invalid_recovery_credentials");
+
+ res=await handler(request("/api/internal-clinical/master-recovery",{method:"POST",body:{worker_id:"GASI-MASTER-01",recovery_secret:secrets.GASI_MASTER_RECOVERY_SECRET,new_password:secrets.GASI_MASTER_PASSWORD},ip:"10.10.0.32"}),{});
+ assert.equal(res.status,409);
+ assert.equal((await responseJson(res)).detail,"password_reuse_not_allowed");
+
+ res=await handler(request("/api/internal-clinical/master-recovery",{method:"POST",body:{worker_id:"GASI-MASTER-01",recovery_secret:secrets.GASI_MASTER_RECOVERY_SECRET,new_password:recoveredMasterPassword},ip:"10.10.0.32"}),{});
+ assert.equal(res.status,200);
+ assert.equal((await responseJson(res)).session_revoked,true);
+
+ res=await handler(request("/api/internal-clinical/session",{token:masterToken}),{});
+ assert.equal(res.status,401);
+ assert.equal((await responseJson(res)).detail,"session_expired_or_revoked");
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:secrets.GASI_MASTER_PASSWORD},ip:"10.10.0.33"}),{});
+ assert.equal(res.status,401);
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:recoveredMasterPassword},ip:"10.10.0.34"}),{});
+ assert.equal(res.status,200);
+ masterToken=(await responseJson(res)).token;
  assert.ok(masterToken);
 
  const tempPassword=syntheticSecret();
