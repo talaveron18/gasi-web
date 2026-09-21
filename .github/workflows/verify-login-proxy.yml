@@ -1,0 +1,26 @@
+name: Verify login proxy
+
+on:
+  push:
+    branches:
+      - 'ops/clinical-env-refresh-20260921'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: contains(github.event.head_commit.message, '[verify-login-proxy]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Compare login direct and public proxy
+        run: |
+          set -euo pipefail
+          payload='{"worker_id":"NONEXISTENT-PROXY-CHECK","password":"invalid-negative-only"}'
+          ds="$(curl -sS -o /tmp/db -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data "$payload" https://gasi-clinical.netlify.app/api/internal-clinical/login)"
+          ps="$(curl -sS -o /tmp/pb -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data "$payload" https://gasisalud.com/api/internal-clinical/login)"
+          echo "DIRECT_LOGIN=$ds body=$(cat /tmp/db)"
+          echo "PUBLIC_LOGIN=$ps body=$(cat /tmp/pb)"
+          test "$ds" = "401"
+          test "$ps" = "401"
