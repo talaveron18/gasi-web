@@ -1,9 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { PUBLIC_API_BASE as API } from '@/lib/publicApi';
 import { useAuth } from '@/contexts/AuthContext';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const AuthCallback = () => {
   const navigate = useNavigate();

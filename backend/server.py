@@ -1,77 +1,61 @@
-from fastapi import FastAPI, APIRouter
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+"""Legacy Python harness for internal policy/compatibility tests only.
+
+Production GASI Web V1 is deployed from Netlify:
+- public web API: netlify/functions/public-api.mts
+- internal clinical API: netlify/functions/internal-clinical.mts
+
+This FastAPI/Mongo harness is deliberately opt-in so it cannot be mistaken
+for a production entrypoint.
+"""
+
 import os
-import logging
 from pathlib import Path
 
+from dotenv import load_dotenv
+from fastapi import APIRouter, FastAPI
+from motor.motor_asyncio import AsyncIOMotorClient
+
+if os.environ.get("GASI_ENABLE_LEGACY_INTERNAL_HARNESS") != "1":
+    raise RuntimeError(
+        "backend/server.py is a legacy internal test harness; "
+        "set GASI_ENABLE_LEGACY_INTERNAL_HARNESS=1 only for controlled local compatibility tests"
+    )
+
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(ROOT_DIR / ".env")
 
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ["DB_NAME"]]
 
-app = FastAPI()
-
-api_router = APIRouter(prefix="/api")
-
-from routes import auth, courses, chatbot, contact, payments, admin, internal_prototype, internal_access_prototype
-from internal_clinical_store import InternalClinicalStore
 from auth import hash_password
+from internal_clinical_store import InternalClinicalStore
+from routes import internal_access_prototype, internal_prototype
 
+app = FastAPI(title="GASI legacy internal harness")
+api_router = APIRouter(prefix="/api")
 clinical_store = InternalClinicalStore(db)
 
-@api_router.get("/")
-async def root():
-    return {"message": "GASI API Server"}
-
-api_router.include_router(auth.router)
-api_router.include_router(courses.router)
-api_router.include_router(chatbot.router)
-api_router.include_router(contact.router)
-api_router.include_router(payments.router)
-api_router.include_router(admin.router)
 api_router.include_router(internal_prototype.router)
 api_router.include_router(internal_access_prototype.router)
-
 app.include_router(api_router)
 
-cors_origins = [origin.strip() for origin in os.environ.get('CORS_ORIGINS', '').split(',') if origin.strip()]
-if not cors_origins:
-    raise RuntimeError('CORS_ORIGINS must explicitly list trusted frontend origins')
-if '*' in cors_origins:
-    raise RuntimeError('CORS_ORIGINS wildcard is not permitted')
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=False,
-    allow_origins=cors_origins,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
-)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
 async def initialize_internal_clinical_store():
     await clinical_store.ensure_indexes()
-    master_password = os.environ.get('GASI_MASTER_PASSWORD')
-    session_secret = os.environ.get('GASI_INTERNAL_SESSION_SECRET')
+    master_password = os.environ.get("GASI_MASTER_PASSWORD")
+    session_secret = os.environ.get("GASI_INTERNAL_SESSION_SECRET")
     if not master_password or len(master_password) < 12:
-        raise RuntimeError('GASI_MASTER_PASSWORD must be configured with at least 12 characters')
-    if not session_secret or len(session_secret.encode('utf-8')) < 32:
-        raise RuntimeError('GASI_INTERNAL_SESSION_SECRET must be configured with at least 32 bytes')
+        raise RuntimeError("GASI_MASTER_PASSWORD must be configured with at least 12 characters")
+    if not session_secret or len(session_secret.encode("utf-8")) < 32:
+        raise RuntimeError("GASI_INTERNAL_SESSION_SECRET must be configured with at least 32 bytes")
     await clinical_store.seed_master(
-        os.environ.get('GASI_MASTER_ACTOR_ID', 'GASI-MASTER-01'),
-        os.environ.get('GASI_MASTER_DISPLAY_NAME', 'Administración maestra GASI'),
+        os.environ.get("GASI_MASTER_ACTOR_ID", "GASI-MASTER-01"),
+        os.environ.get("GASI_MASTER_DISPLAY_NAME", "Administración maestra GASI"),
         hash_password(master_password),
     )
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

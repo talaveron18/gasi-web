@@ -1,9 +1,8 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { PUBLIC_API_BASE as API } from '@/lib/publicApi';
 
 const AuthContext = createContext(null);
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -50,6 +49,8 @@ export const AuthProvider = ({ children }) => {
         name,
         email,
         password
+      }, {
+        withCredentials: true
       });
       setUser(response.data.user);
       return { success: true };
