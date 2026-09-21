@@ -18,12 +18,12 @@ jobs:
       - name: Checkout validated release
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 5be07df155073f6f41d3e30807065a31f1105c62
+          ref: 318ded77cfe85ee94e58410dd0d0029975f43d61
 
       - name: Verify validated SHA
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "5be07df155073f6f41d3e30807065a31f1105c62"
+          test "$(git rev-parse HEAD)" = "318ded77cfe85ee94e58410dd0d0029975f43d61"
 
       - name: Create ephemeral relay key
         env:
