@@ -1,0 +1,1 @@
+Refresh the validated clinical production release so current Netlify environment variables are loaded.
