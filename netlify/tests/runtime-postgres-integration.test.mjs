@@ -291,11 +291,50 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  const psychologistToken=(await responseJson(res)).token;
 
- res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient_ref:"SYNTH-PAT-01",center:"CENTER-A",summary:"Synthetic nursing escalation",level:2}}),{});
+ res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient:{given_name:"Javier",family_name:"Suárez",second_family_name:"Talaverón",birth_date:"1988-04-12",dni:"12345678Z",employee_number:"EMP-001"},center:"CENTER-A",summary:"Synthetic nursing escalation",level:2}}),{});
  assert.equal(res.status,201);
  const episode=await responseJson(res);
  assert.equal(episode.status,"ABIERTO");
  assert.equal(episode.discipline,"nursing");
+ assert.match(episode.patient_id,/^GASI-PT-\d{8}$/);
+ assert.match(episode.patient_ref,/^GASI-HC-\d{8}$/);
+ assert.equal(episode.patient.medical_record_number,episode.patient_ref);
+ assert.equal(episode.patient.dni,"12345678Z");
+
+ res=await handler(request("/api/internal-clinical/patients/search?q=suarez%20javi",{token:nurseToken}),{});
+ assert.equal(res.status,200);
+ const fuzzyPatients=await responseJson(res);
+ assert.equal(fuzzyPatients[0].id,episode.patient_id);
+ assert.equal(fuzzyPatients[0].medical_record_number,episode.patient_ref);
+ assert.ok(fuzzyPatients[0].match_score>.5);
+
+ res=await handler(request("/api/internal-clinical/patients/search?q=12345678Z",{token:nurseToken}),{});
+ assert.equal(res.status,200);
+ assert.equal((await responseJson(res))[0].id,episode.patient_id);
+
+ res=await handler(request("/api/internal-clinical/patients/search?q=12345678Z",{token:otherToken}),{});
+ assert.equal(res.status,200);
+ assert.deepEqual(await responseJson(res),[]);
+
+ res=await handler(request("/api/internal-clinical/patients/search?q=Javier",{token:adminToken}),{});
+ assert.equal(res.status,403);
+ assert.equal((await responseJson(res)).detail,"clinical_role_required");
+
+ res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient:{given_name:"Javi",family_name:"Suarez",age_years:38,dni:"12.345.678-Z"},center:"CENTER-A",summary:"Duplicate strong identifier must fail",level:2}}),{});
+ assert.equal(res.status,409);
+ const duplicateByDni=await responseJson(res);
+ assert.equal(duplicateByDni.detail,"patient_identifier_conflict");
+ assert.equal(duplicateByDni.candidate.id,episode.patient_id);
+
+ res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient_id:episode.patient_id,center:"CENTER-A",summary:"Second episode same stable history",level:2}}),{});
+ assert.equal(res.status,201);
+ const samePatientEpisode=await responseJson(res);
+ assert.equal(samePatientEpisode.patient_id,episode.patient_id);
+ assert.equal(samePatientEpisode.patient_ref,episode.patient_ref);
+
+ const patientSearchAudit=await pool.query("SELECT metadata FROM internal_clinical_audit WHERE action='PATIENT_SEARCHED' ORDER BY seq DESC LIMIT 1");
+ assert.ok(patientSearchAudit.rows[0]);
+ assert.equal(JSON.stringify(patientSearchAudit.rows[0].metadata).includes("12345678"),false);
 
  res=await handler(request(`/api/internal-clinical/episodes/${episode.id}/level`,{method:"POST",token:nurseToken,body:{level:3}}),{});
  assert.equal(res.status,200);
@@ -349,7 +388,8 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  const nurseFullEpisode=await responseJson(res);
  assert.equal(nurseFullEpisode.summary,"Synthetic nursing escalation");
- assert.equal(nurseFullEpisode.patient_ref,"SYNTH-PAT-01");
+ assert.equal(nurseFullEpisode.patient_ref,episode.patient_ref);
+ assert.equal(nurseFullEpisode.patient_id,episode.patient_id);
  const directReadAudit=await pool.query("SELECT action,metadata FROM internal_clinical_audit WHERE action='EPISODE_VIEWED' AND episode_id=$1 ORDER BY seq DESC LIMIT 1",[episode.id]);
  assert.equal(directReadAudit.rows[0].action,"EPISODE_VIEWED");
  assert.equal(directReadAudit.rows[0].metadata.metadata_only,false);
@@ -461,7 +501,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  assert.equal((await responseJson(res)).status,"CERRADO");
 
- res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:psychologistToken,body:{patient_ref:"SYNTH-PSY-01",center:"CENTER-A",summary:"Synthetic psychology consultation",level:2}}),{});
+ res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:psychologistToken,body:{patient:{given_name:"Paula",family_name:"Gómez",age_years:36,employee_number:"EMP-PSY-01"},center:"CENTER-A",summary:"Synthetic psychology consultation",level:2}}),{});
  assert.equal(res.status,201);
  const psychologyEpisode=await responseJson(res);
  assert.equal(psychologyEpisode.discipline,"psychology");
@@ -480,7 +520,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  assert.equal((await responseJson(res)).status,"CERRADO");
 
- res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient_ref:"SYNTH-PAT-ACK",center:"CENTER-A",summary:"Synthetic acknowledgement flow",level:3}}),{});
+ res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient:{given_name:"Ana",family_name:"Pérez",age_years:42,employee_number:"EMP-ACK-01"},center:"CENTER-A",summary:"Synthetic acknowledgement flow",level:3}}),{});
  assert.equal(res.status,201);
  const ackEpisode=await responseJson(res);
  res=await handler(request(`/api/internal-clinical/episodes/${ackEpisode.id}/responses`,{method:"POST",token:physicianToken,body:{text:"Synthetic response requiring acknowledgement"}}),{});
@@ -514,7 +554,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  assert.equal((await responseJson(res)).status,"CERRADO");
 
- res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient_ref:"SYNTH-PAT-CONT",center:"CENTER-A",summary:"Synthetic delivery contingency",level:3}}),{});
+ res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient:{given_name:"Carlos",family_name:"López",age_years:51,employee_number:"EMP-CONT-01"},center:"CENTER-A",summary:"Synthetic delivery contingency",level:3}}),{});
  assert.equal(res.status,201);
  const contingencyEpisode=await responseJson(res);
 
