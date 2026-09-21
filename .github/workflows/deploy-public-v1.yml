@@ -1,0 +1,152 @@
+name: Deploy public WEB_INFRA V1
+
+on:
+  push:
+    branches:
+      - 'ops/public-release-20260920'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  deploy-public:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact release
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: a397bdd689f3b2b92910041b1c35ffe68580ca0b
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+
+      - name: Verify exact release tree
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "a397bdd689f3b2b92910041b1c35ffe68580ca0b"
+          test "$(git rev-parse HEAD^{tree})" = "d7b3ed177ff41f55e710359e0a0cb104005c3e0e"
+
+      - name: Prepare isolated public deployment profile
+        run: |
+          set -euo pipefail
+          rm -f netlify/functions/internal-clinical.mts
+          find netlify/database/migrations -mindepth 1 -maxdepth 1 -type d ! -name '20260920190000_public-web-v1' -exec rm -rf {} +
+          test -f netlify/functions/public-api.mts
+          test ! -f netlify/functions/internal-clinical.mts
+          test -f netlify/database/migrations/20260920190000_public-web-v1/migration.sql
+          test "$(find netlify/database/migrations -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = "1"
+          cat > netlify.toml <<'EOF'
+          [build]
+            base = "/"
+            command = "yarn --cwd frontend install --non-interactive --frozen-lockfile && yarn --cwd frontend build"
+            publish = "frontend/build"
+
+          [build.environment]
+            NODE_VERSION = "24"
+            GENERATE_SOURCEMAP = "false"
+
+          [functions]
+            directory = "netlify/functions"
+
+          [[redirects]]
+            from = "/api/internal-clinical/*"
+            to = "https://gasi-clinical.netlify.app/api/internal-clinical/:splat"
+            status = 200
+            force = true
+
+          [[redirects]]
+            from = "/*"
+            to = "/index.html"
+            status = 200
+
+          [[headers]]
+            for = "/*"
+            [headers.values]
+              Cache-Control = "no-cache"
+              X-Content-Type-Options = "nosniff"
+              Referrer-Policy = "no-referrer"
+              X-Frame-Options = "DENY"
+              Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+              Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+              Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; manifest-src 'self'; worker-src 'self' blob:; upgrade-insecure-requests"
+
+          [[headers]]
+            for = "/static/*"
+            [headers.values]
+              Cache-Control = "public, max-age=31536000, immutable"
+          EOF
+
+      - name: Create ephemeral relay key
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:8192 -out /tmp/netlify-public-private.pem >/dev/null 2>&1
+          openssl pkey -in /tmp/netlify-public-private.pem -pubout -out /tmp/netlify-public-public.pem
+          PUB="$(base64 -w0 /tmp/netlify-public-public.pem)"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_PUBLIC_V1_PUBLIC_KEY_${GITHUB_RUN_ID}:${PUB}" >/dev/null
+
+      - name: Await encrypted deploy capability and deploy public release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PAYLOAD=""
+          for i in $(seq 1 180); do
+            PAYLOAD="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/30/comments" --jq '.[].body' | sed -n "s/^NETLIFY_PUBLIC_V1_CIPHERTEXT_${GITHUB_RUN_ID}://p" | tail -n 1)"
+            if [ -n "${PAYLOAD}" ]; then break; fi
+            sleep 5
+          done
+          if [ -z "${PAYLOAD}" ]; then
+            echo "Encrypted deploy capability was not received." >&2
+            exit 1
+          fi
+          printf '%s' "${PAYLOAD}" | base64 -d > /tmp/netlify-public-cipher.bin
+          PROXY_PATH="$(openssl pkeyutl -decrypt -inkey /tmp/netlify-public-private.pem -in /tmp/netlify-public-cipher.bin -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256)"
+          case "${PROXY_PATH}" in
+            https://netlify-mcp.netlify.app/proxy/*) ;;
+            *) echo "Rejected unexpected deploy endpoint." >&2; exit 1 ;;
+          esac
+          npx -y @netlify/mcp@latest --site-id 1bcad18d-bdaf-4d23-a119-ff8cdeb3e03b --proxy-path "${PROXY_PATH}"
+          unset PROXY_PATH
+          rm -f /tmp/netlify-public-private.pem /tmp/netlify-public-public.pem /tmp/netlify-public-cipher.bin
+
+      - name: Post-deploy public smoke
+        run: |
+          set -euo pipefail
+          SITE="https://gasisalud.com"
+          status="$(curl -sS -o /tmp/access.html -D /tmp/access.headers -w '%{http_code}' "${SITE}/acceso")"
+          test "${status}" = "200"
+          grep -iq '^x-content-type-options: nosniff' /tmp/access.headers
+          grep -iq '^x-frame-options: DENY' /tmp/access.headers
+          grep -iq '^referrer-policy: no-referrer' /tmp/access.headers
+
+          status="$(curl -sS -o /tmp/public-health.json -D /tmp/public-health.headers -w '%{http_code}' "${SITE}/api/health")"
+          test "${status}" = "200"
+          grep -q '"ok":true' /tmp/public-health.json
+          grep -iq '^x-request-id:' /tmp/public-health.headers
+
+          status="$(curl -sS -o /tmp/clinical-health.json -D /tmp/clinical-health.headers -w '%{http_code}' "${SITE}/api/internal-clinical/health")"
+          test "${status}" = "200"
+          grep -q '"ok":true' /tmp/clinical-health.json
+          grep -q '"storage":"netlify-database"' /tmp/clinical-health.json
+          grep -iq '^x-request-id:' /tmp/clinical-health.headers
+
+          status="$(curl -sS -o /tmp/no-session.json -w '%{http_code}' "${SITE}/api/internal-clinical/session")"
+          test "${status}" = "401"
+          grep -Eq '"detail":"(missing_session|session_expired_or_revoked)"' /tmp/no-session.json
+
+          status="$(curl -sS -o /tmp/cross-origin.json -w '%{http_code}' -X POST -H 'Origin: https://attacker.invalid' -H 'Sec-Fetch-Site: cross-site' -H 'Content-Type: application/json' --data '{}' "${SITE}/api/auth/register")"
+          test "${status}" = "403"
+          grep -q '"detail":"cross_site_request_rejected"' /tmp/cross-origin.json
+
+      - name: Mark public relay done
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_PUBLIC_V1_DONE_${GITHUB_RUN_ID}:${{ job.status }}" >/dev/null
