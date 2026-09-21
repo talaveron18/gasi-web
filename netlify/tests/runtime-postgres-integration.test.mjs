@@ -83,35 +83,52 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'psychologist',$2,$3::jsonb,TRUE,1,'[]'::jsonb,$4)",["PSY-A","Psychologist A",JSON.stringify(["CENTER-A"]),psychologistHash]);
  await pool.query("INSERT INTO internal_clinical_workers(id,role,display_name,centers,active,auth_version,delegated_privileges,password_hash) VALUES($1,'admin',$2,'[]'::jsonb,TRUE,1,'[]'::jsonb,$3)",["ADMIN-A","Admin A",adminHash]);
 
- let res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:secrets.GASI_MASTER_PASSWORD}}),{});
- assert.equal(res.status,200);
+ const initialRecoveredMasterPassword=syntheticSecret();
+ let res=await handler(request("/api/internal-clinical/master-recovery",{method:"POST",body:{worker_id:"GASI-MASTER-01",recovery_secret:"wrong-recovery-secret",new_password:initialRecoveredMasterPassword},ip:"10.10.0.31"}),{});
+ assert.equal(res.status,401);
  assert.match(res.headers.get("x-request-id")||"",/^[0-9a-f-]{36}$/i);
  assert.match(res.headers.get("server-timing")||"",/^app;dur=\d+$/);
- const masterLogin=await responseJson(res);
- let masterToken=masterLogin.token;
+ assert.equal((await responseJson(res)).detail,"invalid_recovery_credentials");
+ assert.equal((await pool.query("SELECT COUNT(*)::int AS n FROM internal_clinical_workers WHERE id='GASI-MASTER-01'")).rows[0].n,0);
+
+ res=await handler(request("/api/internal-clinical/master-recovery",{method:"POST",body:{worker_id:"GASI-MASTER-01",recovery_secret:secrets.GASI_MASTER_RECOVERY_SECRET,new_password:initialRecoveredMasterPassword},ip:"10.10.0.32"}),{});
+ assert.equal(res.status,200);
+ const initialRecovery=await responseJson(res);
+ assert.equal(initialRecovery.account_created,true);
+ assert.equal(initialRecovery.session_revoked,true);
+ const createdMaster=(await pool.query("SELECT id,tenant_id,role,active,must_change_password FROM internal_clinical_workers WHERE id='GASI-MASTER-01'")).rows[0];
+ assert.equal(createdMaster.tenant_id,"__GASI_MASTER__");
+ assert.equal(createdMaster.role,"admin");
+ assert.equal(createdMaster.active,true);
+ assert.equal(createdMaster.must_change_password,false);
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:secrets.GASI_MASTER_PASSWORD},ip:"10.10.0.33"}),{});
+ assert.equal(res.status,401);
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:initialRecoveredMasterPassword},ip:"10.10.0.34"}),{});
+ assert.equal(res.status,200);
+ let masterToken=(await responseJson(res)).token;
  assert.ok(masterToken);
 
- const recoveredMasterPassword=syntheticSecret();
- res=await handler(request("/api/internal-clinical/master-recovery",{method:"POST",body:{worker_id:"GASI-MASTER-01",recovery_secret:"wrong-recovery-secret",new_password:recoveredMasterPassword},ip:"10.10.0.31"}),{});
- assert.equal(res.status,401);
- assert.equal((await responseJson(res)).detail,"invalid_recovery_credentials");
-
- res=await handler(request("/api/internal-clinical/master-recovery",{method:"POST",body:{worker_id:"GASI-MASTER-01",recovery_secret:secrets.GASI_MASTER_RECOVERY_SECRET,new_password:secrets.GASI_MASTER_PASSWORD},ip:"10.10.0.32"}),{});
+ res=await handler(request("/api/internal-clinical/master-recovery",{method:"POST",body:{worker_id:"GASI-MASTER-01",recovery_secret:secrets.GASI_MASTER_RECOVERY_SECRET,new_password:initialRecoveredMasterPassword},ip:"10.10.0.35"}),{});
  assert.equal(res.status,409);
  assert.equal((await responseJson(res)).detail,"password_reuse_not_allowed");
 
- res=await handler(request("/api/internal-clinical/master-recovery",{method:"POST",body:{worker_id:"GASI-MASTER-01",recovery_secret:secrets.GASI_MASTER_RECOVERY_SECRET,new_password:recoveredMasterPassword},ip:"10.10.0.32"}),{});
+ const recoveredMasterPassword=syntheticSecret();
+ res=await handler(request("/api/internal-clinical/master-recovery",{method:"POST",body:{worker_id:"GASI-MASTER-01",recovery_secret:secrets.GASI_MASTER_RECOVERY_SECRET,new_password:recoveredMasterPassword},ip:"10.10.0.35"}),{});
  assert.equal(res.status,200);
- assert.equal((await responseJson(res)).session_revoked,true);
+ const secondRecovery=await responseJson(res);
+ assert.equal(secondRecovery.account_created,false);
+ assert.equal(secondRecovery.session_revoked,true);
 
  res=await handler(request("/api/internal-clinical/session",{token:masterToken}),{});
  assert.equal(res.status,401);
  assert.equal((await responseJson(res)).detail,"session_expired_or_revoked");
 
- res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:secrets.GASI_MASTER_PASSWORD},ip:"10.10.0.33"}),{});
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:initialRecoveredMasterPassword},ip:"10.10.0.36"}),{});
  assert.equal(res.status,401);
 
- res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:recoveredMasterPassword},ip:"10.10.0.34"}),{});
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:recoveredMasterPassword},ip:"10.10.0.37"}),{});
  assert.equal(res.status,200);
  masterToken=(await responseJson(res)).token;
  assert.ok(masterToken);
