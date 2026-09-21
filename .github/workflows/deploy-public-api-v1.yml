@@ -66,7 +66,7 @@ jobs:
           openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:8192 -out /tmp/public-api-private.pem >/dev/null 2>&1
           openssl pkey -in /tmp/public-api-private.pem -pubout -out /tmp/public-api-public.pem
           PUB="$(base64 -w0 /tmp/public-api-public.pem)"
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_PUBLIC_API_KEY_${GITHUB_RUN_ID}:${PUB}" >/dev/null
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_PUBLIC_API_KEY_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}:${PUB}" >/dev/null
 
       - name: Await encrypted deploy capability and deploy
         env:
@@ -75,7 +75,7 @@ jobs:
           set -euo pipefail
           PAYLOAD=""
           for i in $(seq 1 180); do
-            PAYLOAD="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/30/comments" --jq '.[].body' | sed -n "s/^NETLIFY_PUBLIC_API_CIPHERTEXT_${GITHUB_RUN_ID}://p" | tail -n 1)"
+            PAYLOAD="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/30/comments" --jq '.[].body' | sed -n "s/^NETLIFY_PUBLIC_API_CIPHERTEXT_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}://p" | tail -n 1)"
             if [ -n "${PAYLOAD}" ]; then break; fi
             sleep 5
           done
@@ -110,4 +110,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_PUBLIC_API_DONE_${GITHUB_RUN_ID}:${{ job.status }}" >/dev/null
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_PUBLIC_API_DONE_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}:${{ job.status }}" >/dev/null
