@@ -80,7 +80,8 @@ test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async
   const secrets={
     NETLIFY_DB_URL:scopedConnectionString,
     STRIPE_SECRET_KEY:"sk_test_public_runtime",
-    STRIPE_WEBHOOK_SECRET:"whsec_public_runtime"
+    STRIPE_WEBHOOK_SECRET:"whsec_public_runtime",
+    GASI_PUBLIC_ORIGINS:"https://gasisalud.com,https://www.gasisalud.com"
   };
   globalThis.Netlify={env:{get:name=>secrets[name]||""}};
   const {default:handler}=await import("../functions/public-api.mts?public-runtime");
@@ -91,7 +92,19 @@ test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async
     if(args[0]==="public_api_request")requestLogs.push(args);
     else originalConsoleInfo(...args);
   };
-  let res=await handler(request("/api/health"),{});
+  let res=await handler(request("/api/auth/login",{method:"POST",raw:"{",headers:{"content-type":"application/json","origin":"https://gasisalud.com","sec-fetch-site":"same-origin"}}),{});
+  assert.equal(res.status,400);
+  assert.equal((await payload(res)).detail,"invalid_json");
+
+  res=await handler(request("/api/auth/login",{method:"POST",raw:"{",headers:{"content-type":"application/json","origin":"https://www.gasisalud.com","sec-fetch-site":"same-origin"}}),{});
+  assert.equal(res.status,400);
+  assert.equal((await payload(res)).detail,"invalid_json");
+
+  res=await handler(request("/api/auth/login",{method:"POST",raw:"{",headers:{"content-type":"application/json","origin":"https://evil.example","sec-fetch-site":"same-origin"}}),{});
+  assert.equal(res.status,403);
+  assert.equal((await payload(res)).detail,"cross_site_request_rejected");
+
+  res=await handler(request("/api/health"),{});
   assert.equal(res.status,200);
   assert.deepEqual(await payload(res),{ok:true,storage:"postgresql"});
   assert.match(res.headers.get("x-request-id")||"",/^[0-9a-f-]{36}$/i);
