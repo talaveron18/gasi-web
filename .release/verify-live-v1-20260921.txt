@@ -1,0 +1,1 @@
+Verify the currently live GASI V1 public deployment without redeploying it.
