@@ -114,7 +114,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,409);
  assert.equal((await responseJson(res)).detail,"password_reuse_not_allowed");
 
- const recoveredMasterPassword=syntheticSecret();
+ let recoveredMasterPassword=syntheticSecret();
  res=await handler(request("/api/internal-clinical/master-recovery",{method:"POST",body:{worker_id:"GASI-MASTER-01",recovery_secret:secrets.GASI_MASTER_RECOVERY_SECRET,new_password:recoveredMasterPassword},ip:"10.10.0.35"}),{});
  assert.equal(res.status,200);
  const secondRecovery=await responseJson(res);
@@ -132,6 +132,26 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  masterToken=(await responseJson(res)).token;
  assert.ok(masterToken);
+
+ const throttledMasterIp="10.10.0.38";
+ for(let i=0;i<8;i++){
+  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:syntheticSecret()},ip:throttledMasterIp}),{});
+  assert.equal(res.status,401);
+ }
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:recoveredMasterPassword},ip:throttledMasterIp}),{});
+ assert.equal(res.status,429);
+ assert.equal((await responseJson(res)).detail,"too_many_login_attempts");
+
+ const postThrottleRecoveredPassword=syntheticSecret();
+ res=await handler(request("/api/internal-clinical/master-recovery",{method:"POST",body:{worker_id:"GASI-MASTER-01",recovery_secret:secrets.GASI_MASTER_RECOVERY_SECRET,new_password:postThrottleRecoveredPassword},ip:throttledMasterIp}),{});
+ assert.equal(res.status,200);
+ assert.equal((await responseJson(res)).session_revoked,true);
+
+ res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:postThrottleRecoveredPassword},ip:throttledMasterIp}),{});
+ assert.equal(res.status,200);
+ masterToken=(await responseJson(res)).token;
+ assert.ok(masterToken);
+ recoveredMasterPassword=postThrottleRecoveredPassword;
 
  const tempPassword=syntheticSecret();
  const permanentPassword=syntheticSecret();
