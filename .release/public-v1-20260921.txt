@@ -1,0 +1,1 @@
+Deploy validated public frontend release 71e3edfa63f08dce76c07d05d5718aa0976a9949 to gasisalud.com.
