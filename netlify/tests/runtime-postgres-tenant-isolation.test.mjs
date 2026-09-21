@@ -149,13 +149,35 @@ test("runtime: tenant boundary survives identical center ids across clients",{sk
   res=await handler(request("/api/internal-clinical/episodes/EP-TB",{token:adminTokenA}),{});
   assert.equal(res.status,404);
 
-  res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:tokenA,body:{patient_ref:"PAT-A2",center:"HQ",summary:"new tenant A case",level:2}}),{});
+  res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:tokenA,body:{patient:{given_name:"Alex",family_name:"Shared",age_years:35,employee_number:"EMP-SHARED-001"},center:"HQ",summary:"new tenant A case",level:2}}),{});
   assert.equal(res.status,201);
   const created=await json(res);
   assert.equal(created.tenant_id,"TENANT-A");
-  const stored=(await pool.query("SELECT tenant_id,center FROM internal_clinical_episodes WHERE id=$1",[created.id])).rows[0];
+  assert.ok(created.patient_id);
+  const stored=(await pool.query("SELECT tenant_id,center,patient_id FROM internal_clinical_episodes WHERE id=$1",[created.id])).rows[0];
   assert.equal(stored.tenant_id,"TENANT-A");
   assert.equal(stored.center,"HQ");
+  assert.equal(stored.patient_id,created.patient_id);
+
+  res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:tokenB,body:{patient:{given_name:"Alex",family_name:"Shared",age_years:35,employee_number:"EMP-SHARED-001"},center:"HQ",summary:"same identifier allowed in tenant B",level:2}}),{});
+  assert.equal(res.status,201);
+  const createdB=await json(res);
+  assert.equal(createdB.tenant_id,"TENANT-B");
+  assert.notEqual(createdB.patient_id,created.patient_id);
+
+  res=await handler(request("/api/internal-clinical/patients/search?q=EMP-SHARED-001",{token:tokenA}),{});
+  assert.equal(res.status,200);
+  const searchA=await json(res);
+  assert.deepEqual(searchA.map(x=>x.id),[created.patient_id]);
+
+  res=await handler(request("/api/internal-clinical/patients/search?q=EMP-SHARED-001",{token:tokenB}),{});
+  assert.equal(res.status,200);
+  const searchB=await json(res);
+  assert.deepEqual(searchB.map(x=>x.id),[createdB.patient_id]);
+
+  res=await handler(request("/api/internal-clinical/patients/search?q=EMP-SHARED-001",{token:adminTokenA}),{});
+  assert.equal(res.status,403);
+  assert.equal((await json(res)).detail,"clinical_role_required");
 
   // Delegated exceptional read stays inside the worker tenant even when center ids collide.
   res=await handler(request("/api/internal-clinical/workers/NURSE-TB/privileges/grant",{method:"POST",token:masterToken,body:{privilege:"clinical_privileged_read"}}),{});
