@@ -23,7 +23,7 @@ export async function createAuthoritativeClinicalEpisode({ api, session, patient
     const episode = await api.createEpisode({ patientId: cleanPatientId || null, patient: cleanPatientId ? null : patient, center: cleanCenter, level: parsedLevel, summary: cleanSummary });
     return { ok: true, episode };
   } catch (error) {
-    return { ok: false, errorCode: error?.code || 'operation_failed', candidate: error?.candidate || null };
+    return { ok: false, errorCode: error?.code || 'operation_failed', candidate: error?.data?.candidate || null };
   }
 }
 
