@@ -2,19 +2,29 @@ const EPISODE_CREATORS = ['nurse', 'psychologist', 'physiotherapist'];
 const ADDENDUM_ROLES = ['nurse', 'physician', 'psychologist', 'physiotherapist'];
 const CLOSING_ROLES = ['nurse', 'physician', 'psychologist', 'physiotherapist'];
 
-export async function createAuthoritativeClinicalEpisode({ api, session, patientRef, center, level, summary }) {
+export async function createAuthoritativeClinicalEpisode({ api, session, patientId = null, patient = null, center, level, summary }) {
   if (!session || !EPISODE_CREATORS.includes(session.role)) return { ok: false, errorCode: 'role_not_allowed' };
-  const cleanPatientRef = String(patientRef || '').trim();
+  const cleanPatientId = String(patientId || '').trim();
   const cleanCenter = String(center || '').trim();
   const cleanSummary = String(summary || '').trim();
   const parsedLevel = Number(level);
-  if (!cleanPatientRef || !cleanCenter || !cleanSummary || ![1, 2, 3].includes(parsedLevel)) return { ok: false, errorCode: 'invalid_input' };
+  if (!cleanCenter || !cleanSummary || ![1, 2, 3].includes(parsedLevel)) return { ok: false, errorCode: 'invalid_input' };
+  if (!cleanPatientId) {
+    const givenName = String(patient?.given_name || '').trim();
+    const familyName = String(patient?.family_name || '').trim();
+    const birthDate = String(patient?.birth_date || '').trim();
+    const ageRaw = patient?.age_years;
+    const ageYears = ageRaw === '' || ageRaw == null ? null : Number(ageRaw);
+    if (!givenName || !familyName || (!birthDate && !Number.isInteger(ageYears))) return { ok: false, errorCode: 'patient_identity_required' };
+  }
   const assignedCenters = Array.isArray(session.centers) ? session.centers : [];
   if (!assignedCenters.includes(cleanCenter)) return { ok: false, errorCode: 'center_not_assigned' };
   try {
-    const episode = await api.createEpisode({ patientRef: cleanPatientRef, center: cleanCenter, level: parsedLevel, summary: cleanSummary });
+    const episode = await api.createEpisode({ patientId: cleanPatientId || null, patient: cleanPatientId ? null : patient, center: cleanCenter, level: parsedLevel, summary: cleanSummary });
     return { ok: true, episode };
-  } catch (error) { return { ok: false, errorCode: error?.code || 'operation_failed' }; }
+  } catch (error) {
+    return { ok: false, errorCode: error?.code || 'operation_failed', candidate: error?.candidate || null };
+  }
 }
 
 // Compatibilidad temporal con pruebas/consumidores anteriores.
