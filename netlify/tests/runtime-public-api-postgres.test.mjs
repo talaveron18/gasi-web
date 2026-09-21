@@ -103,6 +103,7 @@ test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async
   res=await handler(request("/api/auth/login",{method:"POST",raw:"{",headers:{"content-type":"application/json","origin":"https://evil.example","sec-fetch-site":"same-origin"}}),{});
   assert.equal(res.status,403);
   assert.equal((await payload(res)).detail,"cross_site_request_rejected");
+  requestLogs.length=0;
 
   res=await handler(request("/api/health"),{});
   assert.equal(res.status,200);
