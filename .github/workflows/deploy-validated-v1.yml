@@ -1,0 +1,99 @@
+name: Deploy validated WEB_INFRA V1
+
+on:
+  push:
+    branches:
+      - 'ops/release-source-20260920'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact release
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: a397bdd689f3b2b92910041b1c35ffe68580ca0b
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+
+      - name: Verify release tree
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "a397bdd689f3b2b92910041b1c35ffe68580ca0b"
+          test "$(git rev-parse HEAD^{tree})" = "d7b3ed177ff41f55e710359e0a0cb104005c3e0e"
+
+      - name: Create ephemeral relay key
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:8192 -out /tmp/netlify-relay-private.pem >/dev/null 2>&1
+          openssl pkey -in /tmp/netlify-relay-private.pem -pubout -out /tmp/netlify-relay-public.pem
+          PUB="$(base64 -w0 /tmp/netlify-relay-public.pem)"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_V1_PUBLIC_KEY_${GITHUB_RUN_ID}:${PUB}" >/dev/null
+
+      - name: Await encrypted deploy capability and deploy exact release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PAYLOAD=""
+          for i in $(seq 1 180); do
+            PAYLOAD="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/30/comments" --jq '.[].body' | sed -n "s/^NETLIFY_V1_CIPHERTEXT_${GITHUB_RUN_ID}://p" | tail -n 1)"
+            if [ -n "${PAYLOAD}" ]; then break; fi
+            sleep 5
+          done
+          if [ -z "${PAYLOAD}" ]; then
+            echo "Encrypted deploy capability was not received." >&2
+            exit 1
+          fi
+          printf '%s' "${PAYLOAD}" | base64 -d > /tmp/netlify-relay-cipher.bin
+          PROXY_PATH="$(openssl pkeyutl -decrypt -inkey /tmp/netlify-relay-private.pem -in /tmp/netlify-relay-cipher.bin -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256)"
+          case "${PROXY_PATH}" in
+            https://netlify-mcp.netlify.app/proxy/*) ;;
+            *) echo "Rejected unexpected deploy endpoint." >&2; exit 1 ;;
+          esac
+          npx -y @netlify/mcp@latest --site-id f3dd9c19-a3b9-40ab-8e90-f555b05429d3 --proxy-path "${PROXY_PATH}"
+          unset PROXY_PATH
+          rm -f /tmp/netlify-relay-private.pem /tmp/netlify-relay-public.pem /tmp/netlify-relay-cipher.bin
+
+      - name: Post-deploy smoke
+        run: |
+          set -euo pipefail
+          SITE="https://gasi-clinical.netlify.app"
+
+          status="$(curl -sS -o /tmp/access.html -D /tmp/access.headers -w '%{http_code}' "${SITE}/acceso")"
+          test "${status}" = "200"
+          grep -iq '^x-content-type-options: nosniff' /tmp/access.headers
+          grep -iq '^x-frame-options: DENY' /tmp/access.headers
+          grep -iq '^referrer-policy: no-referrer' /tmp/access.headers
+
+          status="$(curl -sS -o /tmp/clinical-health.json -D /tmp/clinical-health.headers -w '%{http_code}' "${SITE}/api/internal-clinical/health")"
+          test "${status}" = "200"
+          grep -q '"ok":true' /tmp/clinical-health.json
+          grep -iq '^x-request-id:' /tmp/clinical-health.headers
+          grep -iq '^server-timing:' /tmp/clinical-health.headers
+
+          status="$(curl -sS -o /tmp/clinical-session.json -w '%{http_code}' "${SITE}/api/internal-clinical/session")"
+          test "${status}" = "401"
+          grep -Eq '"detail":"(missing_session|session_expired_or_revoked)"' /tmp/clinical-session.json
+
+          status="$(curl -sS -o /tmp/public-health.json -D /tmp/public-health.headers -w '%{http_code}' "${SITE}/api/health")"
+          test "${status}" = "200"
+          grep -q '"ok":true' /tmp/public-health.json
+          grep -iq '^x-request-id:' /tmp/public-health.headers
+
+      - name: Mark relay done
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_V1_DONE_${GITHUB_RUN_ID}:${{ job.status }}" >/dev/null
