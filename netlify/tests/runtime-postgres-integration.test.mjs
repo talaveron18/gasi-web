@@ -656,7 +656,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(afterNoMaster,beforeTamper);
 
  const currentMasterPassword=syntheticSecret();
- res=await handler(request("/api/internal-clinical/password",{method:"POST",token:masterToken,body:{current_password:secrets.GASI_MASTER_PASSWORD,new_password:currentMasterPassword}}),{});
+ res=await handler(request("/api/internal-clinical/password",{method:"POST",token:masterToken,body:{current_password:recoveredMasterPassword,new_password:currentMasterPassword}}),{});
  assert.equal(res.status,200);
  res=await handler(request("/api/internal-clinical/login",{method:"POST",body:{worker_id:"GASI-MASTER-01",password:currentMasterPassword},ip:"10.10.0.30"}),{});
  assert.equal(res.status,200);
