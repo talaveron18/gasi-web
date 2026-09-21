@@ -50,6 +50,15 @@ jobs:
 
           check clinical_session 401 "${SITE}/api/internal-clinical/session"
 
+          for endpoint in "${SITE}/api/internal-clinical/login" "https://gasi-clinical.netlify.app/api/internal-clinical/login"; do
+            status="$(curl -sS -o /tmp/internal_login.body -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{"worker_id":"NONEXISTENT-NEGATIVE","password":"invalid-negative-only"}' "${endpoint}")"
+            echo "internal_login_probe endpoint=${endpoint} status=${status} body=$(cat /tmp/internal_login.body)"
+            case "${status}" in
+              400|401|500|503) ;;
+              *) exit 1 ;;
+            esac
+          done
+
           for endpoint in "${SITE}/api/internal-clinical/master-recovery" "https://gasi-clinical.netlify.app/api/internal-clinical/master-recovery"; do
             status="$(curl -sS -o /tmp/master_probe.body -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{"worker_id":"GASI-MASTER-01","recovery_secret":"invalid-negative-only"}' "${endpoint}")"
             echo "master_probe endpoint=${endpoint} status=${status} body=$(cat /tmp/master_probe.body)"
