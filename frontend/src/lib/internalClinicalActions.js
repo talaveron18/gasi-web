@@ -2,7 +2,7 @@ const EPISODE_CREATORS = ['nurse', 'psychologist', 'physiotherapist'];
 const ADDENDUM_ROLES = ['nurse', 'physician', 'psychologist', 'physiotherapist'];
 const CLOSING_ROLES = ['nurse', 'physician', 'psychologist', 'physiotherapist'];
 
-export async function createAuthoritativeClinicalEpisode({ api, session, patientId = null, patient = null, center, level, summary }) {
+export async function createAuthoritativeClinicalEpisode({ api, session, patientId = null, patient = null, confirmDistinctFromPatientId = null, center, level, summary }) {
   if (!session || !EPISODE_CREATORS.includes(session.role)) return { ok: false, errorCode: 'role_not_allowed' };
   const cleanPatientId = String(patientId || '').trim();
   const cleanCenter = String(center || '').trim();
@@ -20,7 +20,7 @@ export async function createAuthoritativeClinicalEpisode({ api, session, patient
   const assignedCenters = Array.isArray(session.centers) ? session.centers : [];
   if (!assignedCenters.includes(cleanCenter)) return { ok: false, errorCode: 'center_not_assigned' };
   try {
-    const episode = await api.createEpisode({ patientId: cleanPatientId || null, patient: cleanPatientId ? null : patient, center: cleanCenter, level: parsedLevel, summary: cleanSummary });
+    const episode = await api.createEpisode({ patientId: cleanPatientId || null, patient: cleanPatientId ? null : patient, confirmDistinctFromPatientId: cleanPatientId ? null : String(confirmDistinctFromPatientId || '').trim() || null, center: cleanCenter, level: parsedLevel, summary: cleanSummary });
     return { ok: true, episode };
   } catch (error) {
     return { ok: false, errorCode: error?.code || 'operation_failed', candidate: error?.data?.candidate || null };
