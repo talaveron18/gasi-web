@@ -1,4 +1,5 @@
 name: Deploy public WEB_INFRA V1
+# clean retry after local Netlify production build passed
 
 on:
   push:
