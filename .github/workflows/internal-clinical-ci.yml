@@ -5,6 +5,7 @@ on:
     branches:
       - 'automation/web-internal-clinical-*'
       - 'work/web-infra-v1-*'
+      - 'work/web-infra-v2-*'
   workflow_dispatch:
 
 permissions:
