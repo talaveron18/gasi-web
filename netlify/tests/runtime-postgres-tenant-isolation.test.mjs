@@ -210,14 +210,14 @@ test("runtime: tenant boundary survives identical center ids across clients",{sk
   res=await handler(request("/api/internal-clinical/recovery/snapshot",{token:masterToken}),{});
   assert.equal(res.status,200);
   const snapshot=await json(res);
-  assert.equal(snapshot.schema_version,4);
+  assert.equal(snapshot.schema_version,5);
   assert.equal(snapshot.contingency.length,2);
   assert.deepEqual(snapshot.contingency.map(x=>x.tenant_id).sort(),["TENANT-A","TENANT-B"]);
   const tampered=structuredClone(snapshot);
   const attendanceA=tampered.attendance.find(x=>x.worker_id==="NURSE-TA");
   assert.ok(attendanceA);
   attendanceA.tenant_id="TENANT-B";
-  const payload={schema_version:tampered.schema_version,episodes:tampered.episodes,workers:tampered.workers,audit:tampered.audit,counters:tampered.counters,workstations:tampered.workstations,attendance:tampered.attendance,contingency:tampered.contingency};
+  const payload={schema_version:tampered.schema_version,patients:tampered.patients,episodes:tampered.episodes,workers:tampered.workers,audit:tampered.audit,counters:tampered.counters,workstations:tampered.workstations,attendance:tampered.attendance,contingency:tampered.contingency};
   tampered.snapshot_signature=crypto.createHmac("sha256",secrets.GASI_RECOVERY_SIGNING_SECRET).update(canonical(payload)).digest("hex");
   res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:tampered}),{});
   assert.equal(res.status,422);
@@ -227,7 +227,7 @@ test("runtime: tenant boundary survives identical center ids across clients",{sk
   const reservedWorker=reservedSnapshot.workers.find(x=>x.id==="NURSE-TA");
   assert.ok(reservedWorker);
   reservedWorker.tenant_id="__MASTER__";
-  const reservedPayload={schema_version:reservedSnapshot.schema_version,episodes:reservedSnapshot.episodes,workers:reservedSnapshot.workers,audit:reservedSnapshot.audit,counters:reservedSnapshot.counters,workstations:reservedSnapshot.workstations,attendance:reservedSnapshot.attendance,contingency:reservedSnapshot.contingency};
+  const reservedPayload={schema_version:reservedSnapshot.schema_version,patients:reservedSnapshot.patients,episodes:reservedSnapshot.episodes,workers:reservedSnapshot.workers,audit:reservedSnapshot.audit,counters:reservedSnapshot.counters,workstations:reservedSnapshot.workstations,attendance:reservedSnapshot.attendance,contingency:reservedSnapshot.contingency};
   reservedSnapshot.snapshot_signature=crypto.createHmac("sha256",secrets.GASI_RECOVERY_SIGNING_SECRET).update(canonical(reservedPayload)).digest("hex");
   res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:reservedSnapshot}),{});
   assert.equal(res.status,422);
