@@ -1,0 +1,31 @@
+name: Package validated release source
+
+on:
+  push:
+    branches:
+      - 'ops/release-source-20260920'
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ops branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 2
+      - name: Package exact release parent
+        run: |
+          test "$(git rev-parse HEAD^)" = "a397bdd689f3b2b92910041b1c35ffe68580ca0b"
+          git archive --format=tar.gz --output=gasi-web-release.tar.gz HEAD^
+          sha256sum gasi-web-release.tar.gz > gasi-web-release.tar.gz.sha256
+      - name: Upload source archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gasi-web-release-a397bdd
+          path: |
+            gasi-web-release.tar.gz
+            gasi-web-release.tar.gz.sha256
+          if-no-files-found: error
