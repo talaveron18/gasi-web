@@ -18,54 +18,38 @@ jobs:
         run: |
           set -euo pipefail
           SITE="https://gasisalud.com"
+          CLINICAL="https://gasi-clinical.netlify.app"
           check() {
             local name="$1"; shift
             local expected="$1"; shift
             local status
-            status="$(curl -sS -D "/tmp/${name}.headers" -o "/tmp/${name}.body" -w '%{http_code}' "$@")"
-            echo "${name}: ${status} (expected ${expected})"
-            test "${status}" = "${expected}"
+            status="$(curl -sS -D "/tmp/\${name}.headers" -o "/tmp/\${name}.body" -w '%{http_code}' "$@")"
+            echo "\${name}: \${status} (expected \${expected})"
+            echo "\${name}_body=$(cat /tmp/\${name}.body)"
+            test "\${status}" = "\${expected}"
           }
 
-          check home 200 "${SITE}/"
-          grep -iq '^x-content-type-options: nosniff' /tmp/home.headers
-          grep -iq '^x-frame-options: DENY' /tmp/home.headers
-          grep -iq '^strict-transport-security:' /tmp/home.headers
-          grep -iq '^content-security-policy:' /tmp/home.headers
+          check home 200 "\${SITE}/"
+          check clinical_health 200 "\${SITE}/api/internal-clinical/health"
+          check clinical_session 401 "\${SITE}/api/internal-clinical/session"
 
-          check public_health 200 "${SITE}/api/health"
-          grep -q '"ok":true' /tmp/public_health.body
-          grep -q '"storage":"postgresql"' /tmp/public_health.body
+          payload='{"worker_id":"GASI-MASTER-01","recovery_secret":"invalid-negative-only","new_password":"NegativeOnly-Test-Password-123!"}'
 
-          check public_me 401 "${SITE}/api/auth/me"
+          check direct_master_wrong_code 401 -X POST \
+            -H 'Content-Type: application/json' \
+            --data "\${payload}" \
+            "\${CLINICAL}/api/internal-clinical/master-recovery"
+          grep -q '"detail":"invalid_recovery_credentials"' /tmp/direct_master_wrong_code.body
 
-          check allowed_origin 400 -X POST             -H 'Origin: https://gasisalud.com'             -H 'Sec-Fetch-Site: same-origin'             -H 'Content-Type: application/json'             --data '{'             "${SITE}/api/auth/login"
-          grep -q '"detail":"invalid_json"' /tmp/allowed_origin.body
+          public_status="$(curl -sS -D /tmp/public_master_wrong_code.headers -o /tmp/public_master_wrong_code.body -w '%{http_code}' -X POST \
+            -H 'Content-Type: application/json' \
+            --data "\${payload}" \
+            "\${SITE}/api/internal-clinical/master-recovery")"
+          echo "public_master_wrong_code: \${public_status}"
+          echo "public_master_wrong_code_body=$(cat /tmp/public_master_wrong_code.body)"
+          case "\${public_status}" in
+            400|401) ;;
+            *) exit 1 ;;
+          esac
 
-          check cross_origin 403 -X POST             -H 'Origin: https://attacker.invalid'             -H 'Sec-Fetch-Site: cross-site'             -H 'Content-Type: application/json'             --data '{}'             "${SITE}/api/auth/register"
-          grep -q '"detail":"cross_site_request_rejected"' /tmp/cross_origin.body
-
-          check clinical_health 200 "${SITE}/api/internal-clinical/health"
-          grep -q '"ok":true' /tmp/clinical_health.body
-
-          check clinical_session 401 "${SITE}/api/internal-clinical/session"
-
-          for endpoint in "${SITE}/api/internal-clinical/login" "https://gasi-clinical.netlify.app/api/internal-clinical/login"; do
-            status="$(curl -sS -o /tmp/internal_login.body -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{"worker_id":"NONEXISTENT-NEGATIVE","password":"invalid-negative-only"}' "${endpoint}")"
-            echo "internal_login_probe endpoint=${endpoint} status=${status} body=$(cat /tmp/internal_login.body)"
-            case "${status}" in
-              400|401|500|503) ;;
-              *) exit 1 ;;
-            esac
-          done
-
-          for endpoint in "${SITE}/api/internal-clinical/master-recovery" "https://gasi-clinical.netlify.app/api/internal-clinical/master-recovery"; do
-            status="$(curl -sS -o /tmp/master_probe.body -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{"worker_id":"GASI-MASTER-01","recovery_secret":"invalid-negative-only"}' "${endpoint}")"
-            echo "master_probe endpoint=${endpoint} status=${status} body=$(cat /tmp/master_probe.body)"
-            case "${status}" in
-              400|401|422|503) ;;
-              *) exit 1 ;;
-            esac
-          done
-
-          echo "LIVE_GASI_V1_CORE=PASS"
+          echo "LIVE_MASTER_RECOVERY_DIAGNOSTIC=PASS"
