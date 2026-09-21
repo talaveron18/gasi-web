@@ -1,0 +1,53 @@
+name: Verify live GASI V1
+
+on:
+  push:
+    branches:
+      - 'ops/public-frontend-v1-20260921'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: contains(github.event.head_commit.message, '[verify-live-v1]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify live public and clinical proxy
+        run: |
+          set -euo pipefail
+          SITE="https://gasisalud.com"
+          check() {
+            local name="$1"; shift
+            local expected="$1"; shift
+            local status
+            status="$(curl -sS -D "/tmp/${name}.headers" -o "/tmp/${name}.body" -w '%{http_code}' "$@")"
+            echo "${name}: ${status} (expected ${expected})"
+            test "${status}" = "${expected}"
+          }
+
+          check home 200 "${SITE}/"
+          grep -iq '^x-content-type-options: nosniff' /tmp/home.headers
+          grep -iq '^x-frame-options: DENY' /tmp/home.headers
+          grep -iq '^strict-transport-security:' /tmp/home.headers
+          grep -iq '^content-security-policy:' /tmp/home.headers
+
+          check public_health 200 "${SITE}/api/health"
+          grep -q '"ok":true' /tmp/public_health.body
+          grep -q '"storage":"postgresql"' /tmp/public_health.body
+
+          check public_me 401 "${SITE}/api/auth/me"
+
+          check allowed_origin 400 -X POST             -H 'Origin: https://gasisalud.com'             -H 'Sec-Fetch-Site: same-origin'             -H 'Content-Type: application/json'             --data '{'             "${SITE}/api/auth/login"
+          grep -q '"detail":"invalid_json"' /tmp/allowed_origin.body
+
+          check cross_origin 403 -X POST             -H 'Origin: https://attacker.invalid'             -H 'Sec-Fetch-Site: cross-site'             -H 'Content-Type: application/json'             --data '{}'             "${SITE}/api/auth/register"
+          grep -q '"detail":"cross_site_request_rejected"' /tmp/cross_origin.body
+
+          check clinical_health 200 "${SITE}/api/internal-clinical/health"
+          grep -q '"ok":true' /tmp/clinical_health.body
+
+          check clinical_session 401 "${SITE}/api/internal-clinical/session"
+
+          echo "LIVE_GASI_V1_CORE=PASS"
