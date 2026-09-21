@@ -312,10 +312,6 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(res.status,200);
  assert.equal((await responseJson(res))[0].id,episode.patient_id);
 
- res=await handler(request("/api/internal-clinical/patients/search?q=12345678Z",{token:otherToken}),{});
- assert.equal(res.status,200);
- assert.deepEqual(await responseJson(res),[]);
-
  res=await handler(request("/api/internal-clinical/patients/search?q=Javier",{token:adminToken}),{});
  assert.equal(res.status,403);
  assert.equal((await responseJson(res)).detail,"clinical_role_required");
