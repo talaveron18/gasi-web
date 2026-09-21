@@ -322,6 +322,22 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(duplicateByDni.detail,"patient_identifier_conflict");
  assert.equal(duplicateByDni.candidate.id,episode.patient_id);
 
+ res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient:{given_name:"Javier",family_name:"Suárez",second_family_name:"Talaverón",birth_date:"1988-04-12"},center:"CENTER-A",summary:"Probable duplicate must require confirmation",level:2}}),{});
+ assert.equal(res.status,409);
+ const probableDuplicate=await responseJson(res);
+ assert.equal(probableDuplicate.detail,"probable_duplicate_patient");
+ assert.equal(probableDuplicate.candidate.id,episode.patient_id);
+
+ res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient:{given_name:"Javier",family_name:"Suárez",second_family_name:"Talaverón",birth_date:"1988-04-12",employee_number:"EMP-DISTINCT-002"},confirm_distinct_from_patient_id:episode.patient_id,center:"CENTER-A",summary:"Explicitly confirmed distinct person",level:2}}),{});
+ assert.equal(res.status,201);
+ const distinctPatientEpisode=await responseJson(res);
+ assert.notEqual(distinctPatientEpisode.patient_id,episode.patient_id);
+ assert.notEqual(distinctPatientEpisode.patient_ref,episode.patient_ref);
+ const overrideAudit=(await pool.query("SELECT metadata FROM internal_clinical_audit WHERE action='PATIENT_DUPLICATE_WARNING_OVERRIDDEN' ORDER BY seq DESC LIMIT 1")).rows[0];
+ assert.ok(overrideAudit);
+ assert.equal(overrideAudit.metadata.candidate_patient_id,episode.patient_id);
+ assert.equal(JSON.stringify(overrideAudit.metadata).includes("Javier"),false);
+
  res=await handler(request("/api/internal-clinical/episodes",{method:"POST",token:nurseToken,body:{patient_id:episode.patient_id,center:"CENTER-A",summary:"Second episode same stable history",level:2}}),{});
  assert.equal(res.status,201);
  const samePatientEpisode=await responseJson(res);
