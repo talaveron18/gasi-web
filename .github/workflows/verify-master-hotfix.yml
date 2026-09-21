@@ -1,0 +1,37 @@
+name: Verify MASTER_ACCESS hotfix
+
+on:
+  push:
+    branches:
+      - 'ops/clinical-env-refresh-20260921'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: contains(github.event.head_commit.message, '[verify-master-hotfix]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify recovery negative direct and public proxy
+        run: |
+          set -euo pipefail
+          payload='{"worker_id":"GASI-MASTER-01","recovery_secret":"invalid-negative-only","new_password":"NegativeOnly-Test-Password-123456789!"}'
+          direct_status="$(curl -sS -o /tmp/direct.body -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data "$payload" https://gasi-clinical.netlify.app/api/internal-clinical/master-recovery)"
+          echo "direct_master_wrong_code=$direct_status"
+          cat /tmp/direct.body
+          test "$direct_status" = "401"
+          grep -q '"detail":"invalid_recovery_credentials"' /tmp/direct.body
+
+          public_status="$(curl -sS -o /tmp/public.body -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data "$payload" https://gasisalud.com/api/internal-clinical/master-recovery)"
+          echo "public_master_wrong_code=$public_status"
+          cat /tmp/public.body
+          test "$public_status" = "401"
+          grep -q '"detail":"invalid_recovery_credentials"' /tmp/public.body
+
+          health_status="$(curl -sS -o /tmp/health.body -w '%{http_code}' https://gasisalud.com/api/internal-clinical/health)"
+          echo "clinical_health=$health_status"
+          test "$health_status" = "200"
+
+          echo "MASTER_HOTFIX_NEGATIVE=PASS"
