@@ -1,3 +1,4 @@
 Verify the currently live GASI V1 public deployment without redeploying it.
 Reverify after clinical environment refresh.
 Record master recovery production configuration gate.
+Classify master recovery endpoint response direct and proxied.
