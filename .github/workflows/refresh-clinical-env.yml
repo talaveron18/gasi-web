@@ -1,0 +1,86 @@
+name: Refresh clinical production environment
+
+on:
+  push:
+    branches:
+      - 'ops/clinical-env-refresh-20260921'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  refresh:
+    if: contains(github.event.head_commit.message, '[refresh-clinical-env]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout validated release
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 71e3edfa63f08dce76c07d05d5718aa0976a9949
+
+      - name: Verify validated SHA
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "71e3edfa63f08dce76c07d05d5718aa0976a9949"
+
+      - name: Create ephemeral relay key
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out /tmp/clinical-private.pem >/dev/null 2>&1
+          openssl pkey -in /tmp/clinical-private.pem -pubout -out /tmp/clinical-public.pem
+          PUB="$(base64 -w0 /tmp/clinical-public.pem)"
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_CLINICAL_KEY_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}:${PUB}" >/dev/null
+
+      - name: Await encrypted deploy capability and deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PAYLOAD=""
+          for i in $(seq 1 120); do
+            PAYLOAD="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/30/comments" --jq '.[].body' | sed -n "s/^NETLIFY_CLINICAL_CIPHERTEXT_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}://p" | tail -n 1)"
+            if [ -n "${PAYLOAD}" ]; then break; fi
+            sleep 5
+          done
+          test -n "${PAYLOAD}" || { echo "Encrypted deploy capability was not received." >&2; exit 1; }
+          printf '%s' "${PAYLOAD}" | base64 -d > /tmp/clinical-cipher.bin
+          PROXY_PATH="$(openssl pkeyutl -decrypt -inkey /tmp/clinical-private.pem -in /tmp/clinical-cipher.bin -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha256)"
+          case "${PROXY_PATH}" in
+            https://netlify-mcp.netlify.app/proxy/*) ;;
+            *) echo "Rejected unexpected deploy endpoint." >&2; exit 1 ;;
+          esac
+          npx -y @netlify/mcp@latest --site-id f3dd9c19-a3b9-40ab-8e90-f555b05429d3 --proxy-path "${PROXY_PATH}"
+          unset PROXY_PATH
+          rm -f /tmp/clinical-private.pem /tmp/clinical-public.pem /tmp/clinical-cipher.bin
+
+      - name: Verify live allowed origin after refresh
+        run: |
+          set -euo pipefail
+          SITE="https://gasisalud.com"
+          status="$(curl -sS -o /tmp/allowed.body -w '%{http_code}' -X POST -H 'Origin: https://gasisalud.com' -H 'Sec-Fetch-Site: same-origin' -H 'Content-Type: application/json' --data '{' "${SITE}/api/auth/login")"
+          echo "allowed_origin=${status}"
+          test "${status}" = "400"
+          grep -q '"detail":"invalid_json"' /tmp/allowed.body
+
+          status="$(curl -sS -o /tmp/cross.body -w '%{http_code}' -X POST -H 'Origin: https://attacker.invalid' -H 'Sec-Fetch-Site: cross-site' -H 'Content-Type: application/json' --data '{}' "${SITE}/api/auth/register")"
+          echo "cross_origin=${status}"
+          test "${status}" = "403"
+          grep -q '"detail":"cross_site_request_rejected"' /tmp/cross.body
+
+          status="$(curl -sS -o /tmp/health.body -w '%{http_code}' "${SITE}/api/internal-clinical/health")"
+          echo "clinical_health=${status}"
+          test "${status}" = "200"
+          grep -q '"ok":true' /tmp/health.body
+
+          echo "CLINICAL_ENV_REFRESH=PASS"
+
+      - name: Mark relay done
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/30/comments" -f body="NETLIFY_CLINICAL_DONE_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}:${{ job.status }}" >/dev/null
