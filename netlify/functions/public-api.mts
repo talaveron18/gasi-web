@@ -201,15 +201,27 @@ function clientSource(req:Request){
   return (req.headers.get("x-nf-client-connection-ip")||req.headers.get("x-forwarded-for")||"unknown").split(",")[0].trim();
 }
 
+function mutationOrigins(req:Request){
+  const allowed=new Set<string>([new URL(req.url).origin]);
+  for(const raw of env("GASI_PUBLIC_ORIGINS").split(",")){
+    const value=raw.trim();
+    if(!value)continue;
+    try{
+      const parsed=new URL(value);
+      if(parsed.protocol==="https:"&&!parsed.username&&!parsed.password&&parsed.pathname==="/"&&!parsed.search&&!parsed.hash)allowed.add(parsed.origin);
+    }catch{}
+  }
+  return allowed;
+}
 function enforceBrowserMutationOrigin(req:Request,path:string){
   if(path==="/api/payments/webhook")return;
   if(!["POST","PUT","PATCH","DELETE"].includes(req.method))return;
-  const expected=new URL(req.url).origin;
+  const allowed=mutationOrigins(req);
   const origin=(req.headers.get("origin")||"").trim();
   if(origin){
     let observed="";
     try{observed=new URL(origin).origin;}catch{throw new ApiError(403,"cross_site_request_rejected");}
-    if(observed!==expected)throw new ApiError(403,"cross_site_request_rejected");
+    if(!allowed.has(observed))throw new ApiError(403,"cross_site_request_rejected");
   }
   const fetchSite=(req.headers.get("sec-fetch-site")||"").trim().toLowerCase();
   if(fetchSite==="cross-site")throw new ApiError(403,"cross_site_request_rejected");
@@ -218,7 +230,7 @@ function enforceBrowserMutationOrigin(req:Request,path:string){
     if(referer){
       let observed="";
       try{observed=new URL(referer).origin;}catch{throw new ApiError(403,"cross_site_request_rejected");}
-      if(observed!==expected)throw new ApiError(403,"cross_site_request_rejected");
+      if(!allowed.has(observed))throw new ApiError(403,"cross_site_request_rejected");
     }
   }
 }
