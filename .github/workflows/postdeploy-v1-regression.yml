@@ -16,13 +16,13 @@ jobs:
       - name: Checkout exact release
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: a397bdd689f3b2b92910041b1c35ffe68580ca0b
+          ref: 2bcc8fb9fff534680af68ad81ada449bca5cace0
 
       - name: Verify exact release tree
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "a397bdd689f3b2b92910041b1c35ffe68580ca0b"
-          test "$(git rev-parse HEAD^{tree})" = "d7b3ed177ff41f55e710359e0a0cb104005c3e0e"
+          test "$(git rev-parse HEAD)" = "2bcc8fb9fff534680af68ad81ada449bca5cace0"
+          test "$(git rev-parse HEAD^{tree})" = "b3c52110d565a3ddac57cd6411c16faab9d5b898"
 
       - name: Live production negative and smoke regression
         shell: bash
@@ -69,6 +69,12 @@ jobs:
 
           request recovery_unauth 401 "$SITE/api/internal-clinical/recovery/snapshot"
           grep -Eq '"detail":"(missing_session|session_expired_or_revoked)"' /tmp/recovery_unauth.body
+
+          request master_recovery_wrong 401 -X POST \
+            -H 'Content-Type: application/json' \
+            --data '{"worker_id":"GASI-MASTER-01","recovery_secret":"definitely-wrong-recovery-secret","new_password":"Synthetic-New-Password-Only-For-Negative-Test-2026!"}' \
+            "$SITE/api/internal-clinical/master-recovery"
+          grep -q '"detail":"invalid_recovery_credentials"' /tmp/master_recovery_wrong.body
 
           request public_me_unauth 401 "$SITE/api/auth/me"
           request admin_unauth 401 "$SITE/api/admin/users"
