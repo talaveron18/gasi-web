@@ -1,0 +1,85 @@
+name: Postdeploy WEB_INFRA V1 regression
+
+on:
+  push:
+    branches:
+      - 'ops/postdeploy-regression-20260920'
+
+permissions:
+  contents: read
+
+jobs:
+  live-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact release
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: a397bdd689f3b2b92910041b1c35ffe68580ca0b
+
+      - name: Verify exact release tree
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "a397bdd689f3b2b92910041b1c35ffe68580ca0b"
+          test "$(git rev-parse HEAD^{tree})" = "d7b3ed177ff41f55e710359e0a0cb104005c3e0e"
+
+      - name: Live production negative and smoke regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          SITE="https://gasi-clinical.netlify.app"
+
+          request() {
+            local name="$1"; shift
+            local expected="$1"; shift
+            local body="/tmp/${name}.body"
+            local headers="/tmp/${name}.headers"
+            local status
+            status="$(curl -sS -D "$headers" -o "$body" -w '%{http_code}' "$@")"
+            echo "$name status=$status expected=$expected"
+            test "$status" = "$expected"
+          }
+
+          request access 200 "$SITE/acceso"
+          grep -iq '^x-content-type-options: nosniff' /tmp/access.headers
+          grep -iq '^x-frame-options: DENY' /tmp/access.headers
+          grep -iq '^referrer-policy: no-referrer' /tmp/access.headers
+          grep -iq '^strict-transport-security:' /tmp/access.headers
+          grep -iq '^content-security-policy:' /tmp/access.headers
+
+          request clinical_health 200 "$SITE/api/internal-clinical/health"
+          grep -q '"ok":true' /tmp/clinical_health.body
+          grep -q '"storage":"netlify-database"' /tmp/clinical_health.body
+          grep -iq '^x-request-id:' /tmp/clinical_health.headers
+          grep -iq '^server-timing:' /tmp/clinical_health.headers
+          grep -iq '^cache-control: no-store' /tmp/clinical_health.headers
+
+          request public_health 200 "$SITE/api/health"
+          grep -q '"ok":true' /tmp/public_health.body
+          grep -iq '^x-request-id:' /tmp/public_health.headers
+          grep -iq '^server-timing:' /tmp/public_health.headers
+          grep -iq '^cache-control: no-store' /tmp/public_health.headers
+
+          request no_session 401 "$SITE/api/internal-clinical/session"
+          grep -Eq '"detail":"(missing_session|session_expired_or_revoked)"' /tmp/no_session.body
+
+          request direct_foreign 401 "$SITE/api/internal-clinical/episodes/SYNTHETIC-FOREIGN-ID"
+          grep -Eq '"detail":"(missing_session|session_expired_or_revoked)"' /tmp/direct_foreign.body
+
+          request recovery_unauth 401 "$SITE/api/internal-clinical/recovery/snapshot"
+          grep -Eq '"detail":"(missing_session|session_expired_or_revoked)"' /tmp/recovery_unauth.body
+
+          request public_me_unauth 401 "$SITE/api/auth/me"
+          request admin_unauth 401 "$SITE/api/admin/users"
+
+          request cross_origin 403 -X POST             -H 'Origin: https://attacker.invalid'             -H 'Sec-Fetch-Site: cross-site'             -H 'Content-Type: application/json'             --data '{}'             "$SITE/api/auth/register"
+          grep -q '"detail":"cross_site_request_rejected"' /tmp/cross_origin.body
+
+          request malformed_json 400 -X POST             -H 'Origin: https://gasi-clinical.netlify.app'             -H 'Content-Type: application/json'             --data '{'             "$SITE/api/auth/register"
+          grep -q '"detail":"invalid_json"' /tmp/malformed_json.body
+
+          request oversized 413 -X POST             -H 'Origin: https://gasi-clinical.netlify.app'             -H 'Content-Type: application/json'             -H 'Content-Length: 40000'             --data '{}'             "$SITE/api/auth/register"
+          grep -q '"detail":"request_too_large"' /tmp/oversized.body
+
+          echo "POSTDEPLOY_REGRESSION=PASS"
