@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 const source=fs.readFileSync(new URL("../functions/internal-clinical.mts",import.meta.url),"utf8");
 test("recovery v4 snapshots tenant attendance and workstation state",()=>{
- assert.match(source,/schema_version:4,episodes,workers,audit:auditRows,counters,workstations,attendance,contingency/);
+ assert.match(source,/schema_version:5,patients,episodes,workers,audit:auditRows,counters,workstations,attendance,contingency/);
  assert.match(source,/SELECT tenant_id,center,channel_type,label,target,active,updated_at,updated_by_id FROM internal_contingency_channels/);
  assert.match(source,/SELECT id,tenant_id,center,label,credential_hash,active,created_at,revoked_at,claimed_at,network_fingerprint_hash FROM internal_center_workstations/);
  assert.match(source,/SELECT seq,worker_id,tenant_id,center,workstation_id,event_type,occurred_at,related_event_seq,reason,actor_id,metadata FROM internal_attendance_events/);
