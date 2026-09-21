@@ -37,7 +37,7 @@ function canonical(value){
  return "{"+Object.keys(value).sort().map(k=>JSON.stringify(k)+":"+canonical(value[k])).join(",")+"}";
 }
 function resignSnapshot(snapshot,secret){
- const payload={schema_version:snapshot.schema_version,episodes:snapshot.episodes,workers:snapshot.workers,audit:snapshot.audit,counters:snapshot.counters,workstations:snapshot.workstations,attendance:snapshot.attendance,contingency:snapshot.contingency};
+ const payload={schema_version:snapshot.schema_version,patients:snapshot.patients,episodes:snapshot.episodes,workers:snapshot.workers,audit:snapshot.audit,counters:snapshot.counters,workstations:snapshot.workstations,attendance:snapshot.attendance,contingency:snapshot.contingency};
  snapshot.snapshot_signature=crypto.createHmac("sha256",secret).update(canonical(payload)).digest("hex");
  return snapshot;
 }
@@ -649,7 +649,8 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/recovery/snapshot",{token:masterToken}),{});
  assert.equal(res.status,200);
  const snapshot=await responseJson(res);
- assert.equal(snapshot.schema_version,4);
+ assert.equal(snapshot.schema_version,5);
+ assert.ok(snapshot.patients.some(x=>x.id===episode.patient_id));
  assert.ok(snapshot.workstations.find(x=>x.id==="WS-A")?.claimed_at);
  assert.ok(snapshot.attendance.length>=5);
  assert.equal(snapshot.contingency.length,1);
@@ -727,6 +728,12 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  const restoredContingency=(await pool.query("SELECT target,active FROM internal_contingency_channels WHERE tenant_id='GASI-LEGACY' AND center='CENTER-A'")).rows[0];
  assert.equal(restoredContingency.target,"+34910000001");
  assert.equal(restoredContingency.active,true);
+ const restoredPatient=(await pool.query("SELECT id,medical_record_number,dni,employee_number FROM internal_clinical_patients WHERE id=$1",[episode.patient_id])).rows[0];
+ assert.equal(restoredPatient.id,episode.patient_id);
+ assert.equal(restoredPatient.medical_record_number,episode.patient_ref);
+ assert.equal(restoredPatient.dni,"12345678Z");
+ const restoredEpisodesForPatient=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_clinical_episodes WHERE patient_id=$1",[episode.patient_id])).rows[0].n;
+ assert.ok(restoredEpisodesForPatient>=2);
 
  res=await handler(request("/api/internal-clinical/session",{token:masterToken}),{});
  assert.equal(res.status,401);
