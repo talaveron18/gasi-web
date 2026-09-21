@@ -97,7 +97,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  assert.equal(initialRecovery.account_created,true);
  assert.equal(initialRecovery.session_revoked,true);
  const createdMaster=(await pool.query("SELECT id,tenant_id,role,active,must_change_password FROM internal_clinical_workers WHERE id='GASI-MASTER-01'")).rows[0];
- assert.equal(createdMaster.tenant_id,"__GASI_MASTER__");
+ assert.equal(createdMaster.tenant_id,"__MASTER__");
  assert.equal(createdMaster.role,"admin");
  assert.equal(createdMaster.active,true);
  assert.equal(createdMaster.must_change_password,false);
