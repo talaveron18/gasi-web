@@ -30,7 +30,7 @@ describe('createAuthoritativeNurseEpisode', () => {
     const episode={id:'DEMO-EP-0001',status:'ABIERTO',level:1,patientId};
     const api={createEpisode:jest.fn().mockResolvedValue(episode)};
     const result=await createAuthoritativeNurseEpisode({api,session:nurseSession,patientId:'  GASI-PT-00000001  ',center:'  Centro ficticio Madrid 01  ',level:'1',summary:'  Situación clínica sintética.  '});
-    expect(api.createEpisode).toHaveBeenCalledWith({patientId,patient:null,center:'Centro ficticio Madrid 01',level:1,summary:'Situación clínica sintética.'});
+    expect(api.createEpisode).toHaveBeenCalledWith({patientId,patient:null,confirmDistinctFromPatientId:null,center:'Centro ficticio Madrid 01',level:1,summary:'Situación clínica sintética.'});
     expect(result).toEqual({ok:true,episode});
   });
 
@@ -39,7 +39,16 @@ describe('createAuthoritativeNurseEpisode', () => {
     const api={createEpisode:jest.fn().mockResolvedValue(episode)};
     const patient={given_name:'Javier',family_name:'Suárez',age_years:38,dni:'12345678Z'};
     const result=await createAuthoritativeNurseEpisode({api,session:nurseSession,patient,center:'Centro ficticio Madrid 01',level:2,summary:'Consulta nueva'});
-    expect(api.createEpisode).toHaveBeenCalledWith({patientId:null,patient,center:'Centro ficticio Madrid 01',level:2,summary:'Consulta nueva'});
+    expect(api.createEpisode).toHaveBeenCalledWith({patientId:null,patient,confirmDistinctFromPatientId:null,center:'Centro ficticio Madrid 01',level:2,summary:'Consulta nueva'});
+    expect(result).toEqual({ok:true,episode});
+  });
+
+  test('propaga confirmación explícita de persona distinta sin saltarse identificadores fuertes', async () => {
+    const episode={id:'DEMO-EP-0003',status:'ABIERTO'};
+    const api={createEpisode:jest.fn().mockResolvedValue(episode)};
+    const patient={given_name:'Javier',family_name:'Suárez',age_years:38};
+    const result=await createAuthoritativeNurseEpisode({api,session:nurseSession,patient,confirmDistinctFromPatientId:'GASI-PT-OLD',center:'Centro ficticio Madrid 01',level:2,summary:'Persona distinta confirmada'});
+    expect(api.createEpisode).toHaveBeenCalledWith({patientId:null,patient,confirmDistinctFromPatientId:'GASI-PT-OLD',center:'Centro ficticio Madrid 01',level:2,summary:'Persona distinta confirmada'});
     expect(result).toEqual({ok:true,episode});
   });
 
