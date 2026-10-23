@@ -19,9 +19,6 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+()\d\s.-]{6,40}$/;
 const ALLOWED_SERVICES = new Set([
   'Enfermería presencial',
-  'Apoyo médico remoto',
-  'Fisioterapia',
-  'Psicología',
   'Formación sanitaria',
   'Otro'
 ]);
@@ -34,13 +31,7 @@ exports.handler = async (event) => {
   if ((event.body || '').length > 6000) return json(413, 'payload_too_large');
 
   let data;
-  try {
-    data = JSON.parse(event.body || '{}');
-  } catch {
-    return json(400, 'invalid_json');
-  }
-
-  // Honeypot: silently accept bot submissions without forwarding them.
+  try { data = JSON.parse(event.body || '{}'); } catch { return json(400, 'invalid_json'); }
   if (String(data.website || '').trim()) return json(200, 'ok');
 
   const name = String(data.name || '').trim().slice(0, 120);
@@ -56,55 +47,16 @@ exports.handler = async (event) => {
   if (!ALLOWED_SERVICES.has(service)) return json(400, 'invalid_service');
 
   const mailerSendKey = process.env.MAILERSEND_API_KEY;
-  if (!mailerSendKey) {
-    console.error('MAILERSEND_API_KEY is not configured');
-    return json(503, 'service_unavailable');
-  }
+  if (!mailerSendKey) return json(503, 'service_unavailable');
 
-  const emailBody = `
-    <h2>Nuevo contacto desde el chatbot GASI</h2>
-    <p><strong>Nombre:</strong> ${escapeHtml(name)}</p>
-    <p><strong>Correo:</strong> ${escapeHtml(email)}</p>
-    <p><strong>Telefono:</strong> ${escapeHtml(phone)}</p>
-    <p><strong>Servicio de interes:</strong> ${escapeHtml(service)}</p>
-  `;
-
+  const emailBody = `<h2>Nuevo contacto desde el chatbot GASI</h2><p><strong>Nombre:</strong> ${escapeHtml(name)}</p><p><strong>Correo:</strong> ${escapeHtml(email)}</p><p><strong>Telefono:</strong> ${escapeHtml(phone)}</p><p><strong>Servicio de interes:</strong> ${escapeHtml(service)}</p><p><em>Canal exclusivamente comercial. No admite contenido clínico ni urgencias.</em></p>`;
   let emailResponse;
   try {
     emailResponse = await fetch('https://api.mailersend.com/v1/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${mailerSendKey}`
-      },
-      body: JSON.stringify({
-        from: { email: 'coordinacion@gasisalud.com', name: 'Web GASI' },
-        to: [{ email: 'coordinacion@gasisalud.com', name: 'GASI Coordinacion' }],
-        subject: `Chatbot GASI: ${name} - ${service}`,
-        html: emailBody
-      })
+      method: 'POST', headers: {'Content-Type':'application/json','Authorization':`Bearer ${mailerSendKey}`},
+      body: JSON.stringify({from:{email:'coordinacion@gasisalud.com',name:'Web GASI'},to:[{email:'coordinacion@gasisalud.com',name:'GASI Coordinacion'}],subject:`Chatbot GASI: ${name} - ${service}`,html:emailBody})
     });
-  } catch (error) {
-    console.error('MailerSend transport error', error?.name || 'unknown_error');
-    return json(502, 'delivery_failed');
-  }
-
-  if (!emailResponse.ok) {
-    console.error('MailerSend request failed', emailResponse.status);
-    return json(502, 'delivery_failed');
-  }
-
-  const callMeBotPhone = process.env.CALLMEBOT_PHONE;
-  const callMeBotApiKey = process.env.CALLMEBOT_API_KEY;
-  if (callMeBotPhone && callMeBotApiKey) {
-    const whatsappMsg = encodeURIComponent(`GASI Chatbot - Nuevo contacto: ${name} | ${phone} | ${service}`);
-    try {
-      const whatsappResponse = await fetch(`https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(callMeBotPhone)}&text=${whatsappMsg}&apikey=${encodeURIComponent(callMeBotApiKey)}`);
-      if (!whatsappResponse.ok) console.error('Optional WhatsApp notification failed', whatsappResponse.status);
-    } catch (error) {
-      console.error('Optional WhatsApp notification transport error', error?.name || 'unknown_error');
-    }
-  }
-
+  } catch { return json(502, 'delivery_failed'); }
+  if (!emailResponse.ok) return json(502, 'delivery_failed');
   return json(200, 'ok');
 };
