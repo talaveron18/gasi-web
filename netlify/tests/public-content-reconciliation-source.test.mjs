@@ -1,0 +1,64 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(here, '../..');
+const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
+
+const publicSurfaces = [
+  'frontend/public/index.html',
+  'frontend/src/components/Navbar.jsx',
+  'frontend/src/components/Footer.jsx',
+  'frontend/src/components/Chatbot.jsx',
+  'frontend/src/pages/Home.jsx',
+  'frontend/src/pages/QuienesSomos.jsx',
+  'frontend/src/pages/Servicios.jsx',
+  'frontend/src/pages/CoberturaSanitaria.jsx',
+  'frontend/src/pages/FormacionSanitaria.jsx',
+  'frontend/src/pages/SaludLaboral.jsx',
+  'frontend/src/pages/Sectores.jsx',
+  'frontend/src/pages/Contacto.jsx',
+  'frontend/src/pages/PoliticaPrivacidad.jsx',
+  'frontend/src/pages/NotFound.jsx',
+];
+
+const forbiddenPromises = [
+  /reconocimientos?\s+m[eé]dicos?/i,
+  /fisioterapia/i,
+  /psicolog[ií]a/i,
+  /apoyo\s+m[eé]dico\s+remoto/i,
+  /telemedicina/i,
+];
+
+test('public copy does not advertise withdrawn or unverified services', () => {
+  const violations = [];
+  for (const file of publicSurfaces) {
+    const source = read(file);
+    for (const pattern of forbiddenPromises) {
+      if (pattern.test(source)) violations.push(`${file}: ${pattern}`);
+    }
+  }
+  assert.deepEqual(violations, []);
+});
+
+test('public navigation exposes only reconciled service destinations', () => {
+  const nav = read('frontend/src/components/Navbar.jsx');
+  assert.match(nav, /\/cobertura-sanitaria/);
+  assert.match(nav, /\/formacion-sanitaria/);
+  assert.doesNotMatch(nav, /nav-health-services/);
+});
+
+test('public course catalogue and course detail stay blocked at edge routing', () => {
+  const config = read('netlify.toml');
+  assert.match(config, /from\s*=\s*"\/api\/courses\/"[\s\S]*?status\s*=\s*404[\s\S]*?force\s*=\s*true/);
+  assert.match(config, /from\s*=\s*"\/api\/courses\/:course_id"[\s\S]*?status\s*=\s*404[\s\S]*?force\s*=\s*true/);
+});
+
+test('public contact surfaces explicitly delimit non-clinical channels', () => {
+  assert.match(read('frontend/src/components/Chatbot.jsx'), /No es un canal cl[ií]nico ni de urgencias/i);
+  assert.match(read('frontend/src/components/Footer.jsx'), /No son canales cl[ií]nicos ni de urgencias/i);
+  assert.match(read('frontend/src/pages/Contacto.jsx'), /no (?:es|son) (?:un )?canal(?:es)? cl[ií]nico(?:s)? ni de urgencias/i);
+});
