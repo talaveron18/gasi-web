@@ -1,29 +1,22 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, GraduationCap, Stethoscope, ArrowRight } from 'lucide-react';
+import { Building2, GraduationCap, ArrowRight } from 'lucide-react';
 
 const Servicios = () => {
   const services = [
     {
       icon: Building2,
       title: 'Cobertura Sanitaria en Empresas',
-      description: 'Servicios sanitarios configurados para cada centro, con enfermería presencial y, cuando corresponda, apoyo médico remoto asociado. La prestación concreta queda sujeta a la habilitación y autorización aplicables.',
-      benefits: ['Enfermería presencial', 'Apoyo médico remoto asociado', 'Configuración adaptada al centro', 'Cobertura sujeta a autorización'],
+      description: 'Cobertura sanitaria con enfermería presencial, configurada para cada centro y sujeta al alcance, habilitación y autorización aplicables.',
+      benefits: ['Enfermería presencial', 'Configuración adaptada al centro', 'Alcance definido antes del inicio', 'Prestación sujeta a autorización aplicable'],
       link: '/cobertura-sanitaria'
     },
     {
       icon: GraduationCap,
       title: 'Formación Sanitaria',
       description: 'Formación sanitaria para empresas y profesionales, adaptada al contexto y a las necesidades definidas para cada actividad.',
-      benefits: ['Formación sanitaria', 'Modalidades según actividad', 'Contenido adaptado', 'Docencia por profesionales cualificados'],
+      benefits: ['Formación sanitaria', 'Modalidades según actividad', 'Contenido adaptado', 'Alcance confirmado antes de la prestación'],
       link: '/formacion-sanitaria'
-    },
-    {
-      icon: Stethoscope,
-      title: 'Servicios Sanitarios Complementarios',
-      description: 'Fisioterapia y psicología dentro de configuraciones asistenciales definidas para cada cliente, junto con los servicios de enfermería y apoyo médico remoto cuando proceda. Cada prestación se activa únicamente cuando cuenta con el encaje y la autorización correspondientes.',
-      benefits: ['Fisioterapia', 'Psicología', 'Coordinación con la cobertura sanitaria', 'Activación según configuración autorizada'],
-      link: '/servicios-sanitarios-organizaciones'
     }
   ];
 
@@ -35,7 +28,7 @@ const Servicios = () => {
             Nuestros Servicios
           </h1>
           <p className="text-xl opacity-90">
-            Servicios sanitarios para empresas, configurados según las necesidades de cada centro
+            Cobertura sanitaria y formación sanitaria para organizaciones, según el alcance aplicable
           </p>
         </div>
       </section>
@@ -100,7 +93,7 @@ const Servicios = () => {
             ¿Necesita una configuración adaptada a su centro?
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Cuéntenos sus necesidades y revisaremos qué configuración sanitaria puede plantearse para su empresa.
+            Cuéntenos sus necesidades y confirmaremos qué alcance puede ofrecer GASI antes de cualquier prestación.
           </p>
           <Link to="/contacto">
             <button className="bg-white text-[#005EB8] hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold text-lg" data-testid="cta-contact">
