@@ -26,7 +26,6 @@ const publicSurfaces = [
 ];
 
 const forbiddenPromises = [
-  /reconocimientos?\s+m[eé]dicos?/i,
   /fisioterapia/i,
   /psicolog[ií]a/i,
   /apoyo\s+m[eé]dico\s+remoto/i,
@@ -42,6 +41,15 @@ test('public copy does not advertise withdrawn or unverified services', () => {
     }
   }
   assert.deepEqual(violations, []);
+});
+
+test('recognition-medical wording is exclusionary, never an advertised service', () => {
+  const occurrences = publicSurfaces.filter((file) => /reconocimientos?\s+m[eé]dicos?/i.test(read(file)));
+  assert.ok(occurrences.length > 0, 'expected an explicit public exclusion');
+  for (const file of occurrences) {
+    const source = read(file);
+    assert.match(source, /(?:no incluye|no realizamos|no ofrece)[\s\S]{0,120}reconocimientos?\s+m[eé]dicos?/i, file);
+  }
 });
 
 test('public navigation exposes only reconciled service destinations', () => {
