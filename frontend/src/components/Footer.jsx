@@ -14,7 +14,7 @@ const Footer = () => {
               className="h-80 w-auto mb-4 brightness-0 invert"
             />
             <p className="text-gray-400 text-sm">
-              Grupo de Asistencia Sanitaria Integral. Proveedor sanitario profesional para empresas.
+              Grupo de Asistencia Sanitaria Integral. Servicios sanitarios para organizaciones, sujetos a validación previa del alcance aplicable.
             </p>
           </div>
 
@@ -29,11 +29,6 @@ const Footer = () => {
               <li>
                 <Link to="/formacion-sanitaria" className="text-gray-400 hover:text-white transition-colors">
                   Formación Sanitaria
-                </Link>
-              </li>
-              <li>
-                <Link to="/salud-laboral" className="text-gray-400 hover:text-white transition-colors">
-                  Salud Laboral y Reconocimientos
                 </Link>
               </li>
             </ul>
