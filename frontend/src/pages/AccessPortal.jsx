@@ -21,7 +21,7 @@ export default function AccessPortal() {
           </div>
           <h1 className="mt-3 text-4xl font-bold">Acceder</h1>
           <p className="mt-3 text-lg text-slate-600">
-            Elige el espacio al que necesitas entrar. Cada acceso utiliza su propia identidad y permisos.
+            Acceso restringido a espacios habilitados por GASI. La disponibilidad depende de la identidad y permisos asignados.
           </p>
         </header>
 
@@ -30,23 +30,22 @@ export default function AccessPortal() {
             <GraduationCap className="h-8 w-8 text-[#005EB8]" aria-hidden="true" />
             <h2 className="mt-4 text-2xl font-bold">Alumnado</h2>
             <p className="mt-2 text-slate-600">
-              Accede a tus cursos, progreso y materiales de formación.
+              El acceso de alumnado no se ofrece actualmente desde la web pública. Este espacio se habilitará únicamente cuando exista un acceso separado y validado.
             </p>
-            <Link
-              to="/formacion-sanitaria"
-              state={{ openAuth: true }}
-              className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-[#005EB8] px-4 py-3 font-semibold text-white hover:bg-[#004a92] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#005EB8] focus-visible:ring-offset-2"
-              data-testid="access-student"
+            <span
+              className="mt-6 inline-flex w-full cursor-not-allowed items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-4 py-3 font-semibold text-slate-500"
+              aria-disabled="true"
+              data-testid="access-student-disabled"
             >
-              Entrar al aula
-            </Link>
+              Acceso no habilitado
+            </span>
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <Stethoscope className="h-8 w-8 text-[#005EB8]" aria-hidden="true" />
             <h2 className="mt-4 text-2xl font-bold">Equipo GASI</h2>
             <p className="mt-2 text-slate-600">
-              Acceso para profesionales, coordinación y administración autorizados.
+              Acceso restringido a profesionales, coordinación y administración previamente autorizados.
             </p>
             <Link
               to="/interno/acceso"
