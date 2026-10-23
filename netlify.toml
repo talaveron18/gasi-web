@@ -10,6 +10,15 @@
 [functions]
   directory = "netlify/functions"
 
+# The public training catalogue is intentionally unavailable until the
+# separate professional/student access path is validated. Keep this exact
+# anonymous legacy endpoint closed even though the function still contains
+# authenticated course infrastructure for future work.
+[[redirects]]
+  from = "/api/courses/"
+  to = "/404.html"
+  status = 404
+  force = true
 
 [[redirects]]
   from = "/*"
