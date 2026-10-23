@@ -14,7 +14,7 @@ const Footer = () => {
               className="h-80 w-auto mb-4 brightness-0 invert"
             />
             <p className="text-gray-400 text-sm">
-              Grupo de Asistencia Sanitaria Integral. Proveedor sanitario profesional para empresas.
+              Grupo de Asistencia Sanitaria Integral. Servicios sanitarios para empresas y organizaciones dentro del alcance aplicable.
             </p>
           </div>
 
@@ -33,7 +33,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/salud-laboral" className="text-gray-400 hover:text-white transition-colors">
-                  Salud Laboral y Reconocimientos
+                  Servicios Sanitarios para Organizaciones
                 </Link>
               </li>
             </ul>
@@ -42,50 +42,19 @@ const Footer = () => {
           <div>
             <h3 className="font-semibold text-lg mb-4">Empresa</h3>
             <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="/quienes-somos" className="text-gray-400 hover:text-white transition-colors">
-                  Quiénes Somos
-                </Link>
-              </li>
-              <li>
-                <Link to="/sectores" className="text-gray-400 hover:text-white transition-colors">
-                  Sectores Empresariales
-                </Link>
-              </li>
-              <li>
-                <Link to="/contacto" className="text-gray-400 hover:text-white transition-colors">
-                  Contacto
-                </Link>
-              </li>
-              <li>
-                <Link to="/politica-privacidad" className="text-gray-400 hover:text-white transition-colors">
-                  Política de Protección de Datos
-                </Link>
-              </li>
+              <li><Link to="/quienes-somos" className="text-gray-400 hover:text-white transition-colors">Quiénes Somos</Link></li>
+              <li><Link to="/sectores" className="text-gray-400 hover:text-white transition-colors">Sectores Empresariales</Link></li>
+              <li><Link to="/contacto" className="text-gray-400 hover:text-white transition-colors">Contacto</Link></li>
+              <li><Link to="/politica-privacidad" className="text-gray-400 hover:text-white transition-colors">Política de Protección de Datos</Link></li>
             </ul>
           </div>
 
           <div>
             <h3 className="font-semibold text-lg mb-4">Contacto</h3>
             <ul className="space-y-3 text-sm">
-              <li className="flex items-center gap-2 text-gray-400">
-                <Phone className="w-4 h-4" />
-                <a href="tel:622822101" className="hover:text-white transition-colors">
-                  622 822 101
-                </a>
-              </li>
-              <li className="flex items-center gap-2 text-gray-400">
-                <Phone className="w-4 h-4" />
-                <a href="https://wa.me/34634029865" className="hover:text-white transition-colors" target="_blank" rel="noopener noreferrer">
-                  634 029 865 (WhatsApp)
-                </a>
-              </li>
-              <li className="flex items-center gap-2 text-gray-400">
-                <Mail className="w-4 h-4" />
-                <a href="mailto:coordinacion@gasisalud.com" className="hover:text-white transition-colors">
-                  coordinacion@gasisalud.com
-                </a>
-              </li>
+              <li className="flex items-center gap-2 text-gray-400"><Phone className="w-4 h-4" /><a href="tel:622822101" className="hover:text-white transition-colors">622 822 101</a></li>
+              <li className="flex items-center gap-2 text-gray-400"><Phone className="w-4 h-4" /><a href="https://wa.me/34634029865" className="hover:text-white transition-colors" target="_blank" rel="noopener noreferrer">634 029 865 (WhatsApp)</a></li>
+              <li className="flex items-center gap-2 text-gray-400"><Mail className="w-4 h-4" /><a href="mailto:coordinacion@gasisalud.com" className="hover:text-white transition-colors">coordinacion@gasisalud.com</a></li>
             </ul>
           </div>
         </div>
