@@ -6,38 +6,32 @@ const Sectores = () => {
     {
       icon: '📦',
       title: 'Logística y Distribución',
-      description: 'Servicios sanitarios para centros logísticos, almacenes y plataformas de distribución. Trabajamos con líderes como Amazon, GXO, DHL y otros grandes operadores logísticos.',
-      needs: ['Cobertura sanitaria 24/7', 'Formación en prevención', 'Atención rápida en turno']
+      description: 'Podemos estudiar necesidades de cobertura sanitaria presencial en centros logísticos, almacenes y plataformas de distribución.',
     },
     {
       icon: '⚙️',
-      title: 'Industria y Manufactura',
-      description: 'Soluciones para plantas industriales, fábricas y centros de producción. Entendemos los riesgos del sector industrial y ofrecemos respuesta preventiva y reactiva.',
-      needs: ['Personal sanitario in situ', 'Reconocimientos específicos', 'Formación adaptada a riesgos']
+      title: 'Industria y Producción',
+      description: 'Valoramos necesidades de enfermería presencial y formación sanitaria en centros industriales y de producción.',
     },
     {
       icon: '🏪',
       title: 'Retail y Grandes Superficies',
-      description: 'Servicios para centros comerciales, hipermercados y grandes superficies como Leroy Merlin, Decathlon, Carrefour y similares.',
-      needs: ['Enfermería laboral', 'Atención preventiva', 'Reconocimientos periódicos']
+      description: 'Analizamos necesidades sanitarias presenciales y formativas en centros comerciales y grandes superficies.',
     },
     {
       icon: '🏢',
       title: 'Centros de Trabajo y Oficinas',
-      description: 'Cobertura sanitaria para grandes empresas con alta concentración de trabajadores en centros corporativos, campus empresariales y oficinas.',
-      needs: ['Sala sanitaria interna', 'Campañas de salud', 'Formación básica']
+      description: 'Podemos valorar cobertura de enfermería presencial y acciones de formación sanitaria para centros de trabajo y oficinas.',
     },
     {
       icon: '🏭',
       title: 'Construcción y Obras',
-      description: 'Servicios especializados para empresas constructoras, ingenierías y proyectos de obra con necesidades sanitarias específicas del sector.',
-      needs: ['Cobertura en obra', 'Formación en riesgos', 'Reconocimientos obligatorios']
+      description: 'Estudiamos cada solicitud para determinar si la cobertura sanitaria requerida puede prestarse dentro del alcance aplicable.',
     },
     {
       icon: '🛍️',
       title: 'Hostelería y Turismo',
-      description: 'Soluciones sanitarias para hoteles, restaurantes, cadenas de hostelería y complejos turísticos con necesidades de salud laboral.',
-      needs: ['Personal disponible', 'Formación en higiene', 'Chequeos regulares']
+      description: 'Podemos revisar necesidades de enfermería presencial y formación sanitaria en establecimientos de hostelería y turismo.',
     }
   ];
 
@@ -46,10 +40,10 @@ const Sectores = () => {
       <section className="bg-gradient-to-br from-[#005EB8] to-[#327BBD] text-white py-20">
         <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
           <h1 className="text-4xl lg:text-5xl font-bold mb-6" data-testid="page-title">
-            Sectores Empresariales
+            Sectores empresariales
           </h1>
           <p className="text-xl opacity-90">
-            Servicios sanitarios especializados para cada sector
+            Estudiamos cada necesidad antes de confirmar el alcance de la prestación
           </p>
         </div>
       </section>
@@ -58,10 +52,10 @@ const Sectores = () => {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-[#0F172A] mb-4">
-              Experiencia en Múltiples Sectores
+              Ámbitos en los que podemos valorar necesidades
             </h2>
-            <p className="text-lg text-[#64748B] max-w-2xl mx-auto">
-              Entendemos las necesidades únicas de cada sector y adaptamos nuestros servicios para ofrecer soluciones eficaces y personalizadas.
+            <p className="text-lg text-[#64748B] max-w-3xl mx-auto">
+              El sector no determina por sí solo la disponibilidad del servicio. GASI revisa la necesidad concreta y confirma previamente si puede atenderla, con qué profesionales y bajo qué alcance y requisitos aplicables.
             </p>
           </div>
 
@@ -72,20 +66,9 @@ const Sectores = () => {
                 <h3 className="text-2xl font-bold text-[#0F172A] mb-4 text-center">
                   {sector.title}
                 </h3>
-                <p className="text-[#64748B] mb-6">
+                <p className="text-[#64748B]">
                   {sector.description}
                 </p>
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-[#0F172A] mb-3 text-sm">Necesidades comunes:</h4>
-                  <ul className="space-y-1 text-sm">
-                    {sector.needs.map((need, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="text-[#005EB8] mt-0.5">✓</span>
-                        <span className="text-[#64748B]">{need}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               </Card>
             ))}
           </div>
@@ -95,14 +78,14 @@ const Sectores = () => {
       <section className="py-20 bg-[#F8FAFC]">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold text-[#0F172A] mb-6">
-            ¿Su sector no aparece aquí?
+            ¿Necesita valorar una cobertura concreta?
           </h2>
           <p className="text-lg text-[#64748B] mb-8">
-            Trabajamos con empresas de todos los sectores. Contáctenos y le explicaremos cómo podemos ayudarle.
+            Cuéntenos la necesidad. Antes de asumir cualquier prestación, confirmaremos si GASI puede atenderla y el alcance aplicable.
           </p>
           <a href="/contacto">
             <button className="bg-[#005EB8] hover:bg-[#004a92] text-white px-8 py-3 rounded-lg font-semibold text-lg" data-testid="cta-contact">
-              Contactar con GASI
+              Solicitar información
             </button>
           </a>
         </div>
