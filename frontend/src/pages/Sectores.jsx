@@ -6,38 +6,38 @@ const Sectores = () => {
     {
       icon: '📦',
       title: 'Logística y Distribución',
-      description: 'Servicios sanitarios para centros logísticos, almacenes y plataformas de distribución. Trabajamos con líderes como Amazon, GXO, DHL y otros grandes operadores logísticos.',
-      needs: ['Cobertura sanitaria 24/7', 'Formación en prevención', 'Atención rápida en turno']
+      description: 'Centros logísticos, almacenes y plataformas de distribución pueden requerir recursos sanitarios adaptados a su actividad, turnos y características del centro.',
+      needs: ['Enfermería presencial cuando proceda', 'Cobertura adaptada al centro', 'Formación sanitaria según necesidad']
     },
     {
       icon: '⚙️',
       title: 'Industria y Manufactura',
-      description: 'Soluciones para plantas industriales, fábricas y centros de producción. Entendemos los riesgos del sector industrial y ofrecemos respuesta preventiva y reactiva.',
-      needs: ['Personal sanitario in situ', 'Reconocimientos específicos', 'Formación adaptada a riesgos']
+      description: 'Plantas industriales, fábricas y centros de producción pueden configurar servicios sanitarios de acuerdo con sus necesidades y con el alcance autorizado.',
+      needs: ['Enfermería presencial cuando proceda', 'Configuración según el centro', 'Formación sanitaria según necesidad']
     },
     {
       icon: '🏪',
       title: 'Retail y Grandes Superficies',
-      description: 'Servicios para centros comerciales, hipermercados y grandes superficies como Leroy Merlin, Decathlon, Carrefour y similares.',
-      needs: ['Enfermería laboral', 'Atención preventiva', 'Reconocimientos periódicos']
+      description: 'Centros comerciales, hipermercados y grandes superficies pueden requerir cobertura sanitaria adaptada a sus instalaciones y actividad.',
+      needs: ['Enfermería presencial cuando proceda', 'Cobertura adaptada al centro', 'Formación sanitaria según necesidad']
     },
     {
       icon: '🏢',
       title: 'Centros de Trabajo y Oficinas',
-      description: 'Cobertura sanitaria para grandes empresas con alta concentración de trabajadores en centros corporativos, campus empresariales y oficinas.',
-      needs: ['Sala sanitaria interna', 'Campañas de salud', 'Formación básica']
+      description: 'Centros corporativos, campus empresariales y oficinas pueden configurar recursos sanitarios según sus necesidades y las características de cada centro.',
+      needs: ['Cobertura sanitaria configurable', 'Recursos definidos antes del inicio', 'Formación sanitaria según necesidad']
     },
     {
       icon: '🏭',
       title: 'Construcción y Obras',
-      description: 'Servicios especializados para empresas constructoras, ingenierías y proyectos de obra con necesidades sanitarias específicas del sector.',
-      needs: ['Cobertura en obra', 'Formación en riesgos', 'Reconocimientos obligatorios']
+      description: 'Proyectos de obra y construcción pueden plantear necesidades de cobertura sanitaria que deben definirse específicamente para cada servicio y ubicación.',
+      needs: ['Cobertura sanitaria cuando proceda', 'Configuración según el servicio', 'Formación sanitaria según necesidad']
     },
     {
       icon: '🛍️',
       title: 'Hostelería y Turismo',
-      description: 'Soluciones sanitarias para hoteles, restaurantes, cadenas de hostelería y complejos turísticos con necesidades de salud laboral.',
-      needs: ['Personal disponible', 'Formación en higiene', 'Chequeos regulares']
+      description: 'Hoteles, restauración y complejos turísticos pueden requerir recursos sanitarios configurados de acuerdo con su actividad y necesidades concretas.',
+      needs: ['Cobertura sanitaria configurable', 'Recursos según necesidad', 'Formación sanitaria según necesidad']
     }
   ];
 
@@ -45,23 +45,17 @@ const Sectores = () => {
     <div data-testid="sectores-page">
       <section className="bg-gradient-to-br from-[#005EB8] to-[#327BBD] text-white py-20">
         <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-          <h1 className="text-4xl lg:text-5xl font-bold mb-6" data-testid="page-title">
-            Sectores Empresariales
-          </h1>
-          <p className="text-xl opacity-90">
-            Servicios sanitarios especializados para cada sector
-          </p>
+          <h1 className="text-4xl lg:text-5xl font-bold mb-6" data-testid="page-title">Sectores Empresariales</h1>
+          <p className="text-xl opacity-90">Ámbitos en los que puede estudiarse una configuración sanitaria adaptada a cada centro</p>
         </div>
       </section>
 
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-[#0F172A] mb-4">
-              Experiencia en Múltiples Sectores
-            </h2>
+            <h2 className="text-3xl font-bold text-[#0F172A] mb-4">Necesidades diferentes según el sector</h2>
             <p className="text-lg text-[#64748B] max-w-2xl mx-auto">
-              Entendemos las necesidades únicas de cada sector y adaptamos nuestros servicios para ofrecer soluciones eficaces y personalizadas.
+              Cada servicio se estudia de forma individual. La disponibilidad y el alcance se confirman antes del inicio y quedan sujetos a los requisitos profesionales y administrativos aplicables.
             </p>
           </div>
 
@@ -69,14 +63,10 @@ const Sectores = () => {
             {sectors.map((sector, index) => (
               <Card key={index} className="p-8 hover-lift" data-testid={`sector-card-${index}`}>
                 <div className="text-6xl mb-4 text-center">{sector.icon}</div>
-                <h3 className="text-2xl font-bold text-[#0F172A] mb-4 text-center">
-                  {sector.title}
-                </h3>
-                <p className="text-[#64748B] mb-6">
-                  {sector.description}
-                </p>
+                <h3 className="text-2xl font-bold text-[#0F172A] mb-4 text-center">{sector.title}</h3>
+                <p className="text-[#64748B] mb-6">{sector.description}</p>
                 <div className="border-t pt-4">
-                  <h4 className="font-semibold text-[#0F172A] mb-3 text-sm">Necesidades comunes:</h4>
+                  <h4 className="font-semibold text-[#0F172A] mb-3 text-sm">Posibles necesidades:</h4>
                   <ul className="space-y-1 text-sm">
                     {sector.needs.map((need, idx) => (
                       <li key={idx} className="flex items-start gap-2">
@@ -94,16 +84,10 @@ const Sectores = () => {
 
       <section className="py-20 bg-[#F8FAFC]">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold text-[#0F172A] mb-6">
-            ¿Su sector no aparece aquí?
-          </h2>
-          <p className="text-lg text-[#64748B] mb-8">
-            Trabajamos con empresas de todos los sectores. Contáctenos y le explicaremos cómo podemos ayudarle.
-          </p>
+          <h2 className="text-3xl font-bold text-[#0F172A] mb-6">¿Su sector no aparece aquí?</h2>
+          <p className="text-lg text-[#64748B] mb-8">Cuéntenos las características de su organización y revisaremos si podemos plantear una configuración adecuada.</p>
           <a href="/contacto">
-            <button className="bg-[#005EB8] hover:bg-[#004a92] text-white px-8 py-3 rounded-lg font-semibold text-lg" data-testid="cta-contact">
-              Contactar con GASI
-            </button>
+            <button className="bg-[#005EB8] hover:bg-[#004a92] text-white px-8 py-3 rounded-lg font-semibold text-lg" data-testid="cta-contact">Solicitar información</button>
           </a>
         </div>
       </section>
