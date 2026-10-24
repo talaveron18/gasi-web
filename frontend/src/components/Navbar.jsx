@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, ChevronDown, User, LogOut } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { Link, useLocation } from 'react-router-dom';
+import { Menu, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,15 +12,7 @@ import {
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
-
   const isActive = (path) => location.pathname === path;
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/');
-  };
 
   return (
     <nav className="sticky top-0 z-50 glass-effect shadow-sm">
@@ -47,9 +38,7 @@ const Navbar = () => {
           </div>
 
           <div className="hidden lg:flex items-center space-x-4">
-            {user ? (
-              <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="flex items-center gap-2" data-testid="user-menu">{user.picture ? <img src={user.picture} alt={user.name} className="w-6 h-6 rounded-full" /> : <User className="w-5 h-5" />}<span>{user.name}</span></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem asChild><Link to="/dashboard" className="w-full" data-testid="user-dashboard-link"><User className="mr-2 h-4 w-4" />Mi Dashboard</Link></DropdownMenuItem><DropdownMenuItem onClick={handleLogout} data-testid="logout-button"><LogOut className="mr-2 h-4 w-4" />Cerrar Sesión</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
-            ) : <Link to="/acceso" data-testid="nav-login-button"><Button className="bg-[#005EB8] hover:bg-[#004a92] text-white">Acceder</Button></Link>}
+            <Link to="/acceso" data-testid="nav-login-button"><Button className="bg-[#005EB8] hover:bg-[#004a92] text-white">Acceder</Button></Link>
           </div>
 
           <button className="lg:hidden text-[#0F172A]" onClick={() => setIsOpen(!isOpen)} aria-label={isOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'} aria-expanded={isOpen} aria-controls="mobile-navigation-menu" data-testid="mobile-menu-button">{isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}</button>
@@ -61,7 +50,7 @@ const Navbar = () => {
           <Link to="/servicios" onClick={() => setIsOpen(false)}><Button variant="ghost" className="w-full justify-start">Servicios</Button></Link>
           <Link to="/sectores" onClick={() => setIsOpen(false)}><Button variant="ghost" className="w-full justify-start">Sectores</Button></Link>
           <Link to="/contacto" onClick={() => setIsOpen(false)}><Button variant="ghost" className="w-full justify-start">Contacto</Button></Link>
-          {user ? <><Link to="/dashboard" onClick={() => setIsOpen(false)}><Button variant="ghost" className="w-full justify-start">Mi Dashboard</Button></Link><Button variant="ghost" className="w-full justify-start" onClick={() => { handleLogout(); setIsOpen(false); }}>Cerrar Sesión</Button></> : <Link to="/acceso" onClick={() => setIsOpen(false)} data-testid="mobile-access-link"><Button className="w-full justify-start bg-[#005EB8] text-white">Acceder</Button></Link>}
+          <Link to="/acceso" onClick={() => setIsOpen(false)} data-testid="mobile-access-link"><Button className="w-full justify-start bg-[#005EB8] text-white">Acceder</Button></Link>
         </div></div>}
       </div>
     </nav>
