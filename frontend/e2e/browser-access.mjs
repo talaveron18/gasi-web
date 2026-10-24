@@ -10,26 +10,13 @@ import { fileURLToPath } from "node:url";
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const buildDir=path.resolve(__dirname,"../build");
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-
 const contentType=file=>({".html":"text/html; charset=utf-8",".js":"text/javascript; charset=utf-8",".css":"text/css; charset=utf-8",".json":"application/json",".svg":"image/svg+xml",".png":"image/png",".ico":"image/x-icon",".webp":"image/webp"}[path.extname(file).toLowerCase()]||"application/octet-stream");
-
 async function freePort(){return new Promise((resolve,reject)=>{const server=net.createServer();server.once("error",reject);server.listen(0,"127.0.0.1",()=>{const address=server.address();const port=typeof address==="object"&&address?address.port:0;server.close(err=>err?reject(err):resolve(port));});});}
-
 async function startStaticServer(){
   assert.ok(fs.existsSync(path.join(buildDir,"index.html")),"frontend/build missing; run yarn build before browser E2E");
-  const server=http.createServer((req,res)=>{
-    const u=new URL(req.url||"/","http://127.0.0.1");
-    if(u.pathname==="/api/courses"||u.pathname.startsWith("/api/courses/")){res.writeHead(404,{"content-type":"application/json","cache-control":"no-store"});res.end(JSON.stringify({detail:"not_found"}));return;}
-    if(u.pathname.includes("/api/auth/")){res.writeHead(401,{"content-type":"application/json","cache-control":"no-store"});res.end(JSON.stringify({detail:"unauthenticated"}));return;}
-    if(u.pathname.startsWith("/api/internal-clinical/")){res.writeHead(401,{"content-type":"application/json","cache-control":"no-store"});res.end(JSON.stringify({detail:"missing_session"}));return;}
-    let target=path.join(buildDir,decodeURIComponent(u.pathname));
-    try{const stat=fs.statSync(target);if(stat.isDirectory())target=path.join(target,"index.html");}catch{target=path.join(buildDir,"index.html");}
-    if(!path.resolve(target).startsWith(buildDir)){res.writeHead(403);res.end();return;}
-    fs.createReadStream(target).on("error",()=>{res.writeHead(500);res.end();}).once("open",()=>res.writeHead(200,{"content-type":contentType(target),"cache-control":"no-store"})).pipe(res);
-  });
+  const server=http.createServer((req,res)=>{const u=new URL(req.url||"/","http://127.0.0.1");if(u.pathname==="/api/courses"||u.pathname.startsWith("/api/courses/")){res.writeHead(404,{"content-type":"application/json","cache-control":"no-store"});res.end(JSON.stringify({detail:"not_found"}));return;}if(u.pathname.includes("/api/auth/")){res.writeHead(401,{"content-type":"application/json","cache-control":"no-store"});res.end(JSON.stringify({detail:"unauthenticated"}));return;}if(u.pathname.startsWith("/api/internal-clinical/")){res.writeHead(401,{"content-type":"application/json","cache-control":"no-store"});res.end(JSON.stringify({detail:"missing_session"}));return;}let target=path.join(buildDir,decodeURIComponent(u.pathname));try{const stat=fs.statSync(target);if(stat.isDirectory())target=path.join(target,"index.html");}catch{target=path.join(buildDir,"index.html");}if(!path.resolve(target).startsWith(buildDir)){res.writeHead(403);res.end();return;}fs.createReadStream(target).on("error",()=>{res.writeHead(500);res.end();}).once("open",()=>res.writeHead(200,{"content-type":contentType(target),"cache-control":"no-store"})).pipe(res);});
   const port=await freePort();await new Promise((resolve,reject)=>{server.once("error",reject);server.listen(port,"127.0.0.1",resolve);});return {server,origin:`http://127.0.0.1:${port}`};
 }
-
 function chromeBinary(){const candidates=[process.env.CHROME_BIN,"/usr/bin/google-chrome","/usr/bin/google-chrome-stable","/usr/bin/chromium","/usr/bin/chromium-browser"].filter(Boolean);const found=candidates.find(p=>fs.existsSync(p));assert.ok(found,`Chrome/Chromium not found. Checked: ${candidates.join(", ")}`);return found;}
 async function waitForTarget(debugPort,chrome,stderr){const deadline=Date.now()+30000;while(Date.now()<deadline){if(chrome.exitCode!==null)throw new Error(`Chrome exited before DevTools became ready (code ${chrome.exitCode}): ${stderr()}`);try{const response=await fetch(`http://127.0.0.1:${debugPort}/json/list`);if(response.ok){const targets=await response.json();const page=targets.find(t=>t.type==="page"&&t.webSocketDebuggerUrl);if(page)return page.webSocketDebuggerUrl;}}catch{}await sleep(100);}throw new Error(`Chrome DevTools endpoint did not become ready: ${stderr()}`);}
 async function cdp(wsUrl){const ws=new WebSocket(wsUrl);await new Promise((resolve,reject)=>{ws.addEventListener("open",resolve,{once:true});ws.addEventListener("error",reject,{once:true});});let id=0;const pending=new Map();ws.addEventListener("message",event=>{const msg=JSON.parse(typeof event.data==="string"?event.data:Buffer.from(event.data).toString("utf8"));if(msg.id&&pending.has(msg.id)){const {resolve,reject}=pending.get(msg.id);pending.delete(msg.id);if(msg.error)reject(new Error(`${msg.error.code}: ${msg.error.message}`));else resolve(msg.result||{});}});const send=(method,params={})=>new Promise((resolve,reject)=>{const messageId=++id;pending.set(messageId,{resolve,reject});ws.send(JSON.stringify({id:messageId,method,params}));});return {ws,send};}
@@ -40,42 +27,13 @@ async function key(send,key,code,virtualKeyCode){await send("Input.dispatchKeyEv
 async function tabUntil(send,testId,max=30){await send("Runtime.evaluate",{expression:"document.activeElement?.blur?.()"});for(let i=0;i<max;i++){await key(send,"Tab","Tab",9);const current=await value(send,"document.activeElement?.getAttribute?.('data-testid')||''");if(current===testId)return i+1;}throw new Error(`Keyboard focus never reached ${testId}`);}
 function axHas(nodes,role,name){return nodes.some(n=>n.role?.value===role&&n.name?.value===name&&!n.ignored);}
 function unnamedInteractive(nodes){const interactive=new Set(["button","link","textbox","combobox","checkbox","radio","switch","menuitem","tab"]);return nodes.filter(n=>!n.ignored&&interactive.has(String(n.role?.value||""))&&!String(n.name?.value||"").trim()).map(n=>String(n.role?.value||"unknown"));}
-
-const {server,origin}=await startStaticServer();
-const debugPort=await freePort();
-const profileDir=fs.mkdtempSync(path.join(os.tmpdir(),"gasi-browser-e2e-"));
-const chrome=spawn(chromeBinary(),["--headless=new","--no-sandbox","--disable-dev-shm-usage","--disable-gpu","--disable-background-networking","--disable-default-apps","--disable-extensions","--no-first-run","--no-default-browser-check",`--remote-debugging-port=${debugPort}`,"--remote-debugging-address=127.0.0.1",`--user-data-dir=${profileDir}`,"about:blank"],{stdio:["ignore","ignore","pipe"],env:{...process.env,DBUS_SESSION_BUS_ADDRESS:"/dev/null"}});
-let chromeStderr="";chrome.stderr.on("data",chunk=>{chromeStderr+=chunk.toString();});
-
+const {server,origin}=await startStaticServer();const debugPort=await freePort();const profileDir=fs.mkdtempSync(path.join(os.tmpdir(),"gasi-browser-e2e-"));const chrome=spawn(chromeBinary(),["--headless=new","--no-sandbox","--disable-dev-shm-usage","--disable-gpu","--disable-background-networking","--disable-default-apps","--disable-extensions","--no-first-run","--no-default-browser-check",`--remote-debugging-port=${debugPort}`,"--remote-debugging-address=127.0.0.1",`--user-data-dir=${profileDir}`,"about:blank"],{stdio:["ignore","ignore","pipe"],env:{...process.env,DBUS_SESSION_BUS_ADDRESS:"/dev/null"}});let chromeStderr="";chrome.stderr.on("data",chunk=>{chromeStderr+=chunk.toString();});
 try{
-  const wsUrl=await waitForTarget(debugPort,chrome,()=>chromeStderr);const {ws,send}=await cdp(wsUrl);
-  await send("Page.enable");await send("Runtime.enable");await send("Accessibility.enable");await send("Network.enable");
-
-  await navigate(send,`${origin}/acceso`,'[data-testid="access-portal"]');
-  const landing=await value(send,"document.body.innerText");
-  assert.equal(await value(send,"document.documentElement.lang"),"es");
-  assert.equal(await value(send,"Boolean(document.querySelector('main'))"),true);
-  assert.match(landing,/\bAcceder\b/);assert.match(landing,/Alumnado/);assert.match(landing,/Equipo GASI/);assert.match(landing,/Acceso no habilitado/);assert.doesNotMatch(landing,/Acceso profesional/);
-
-  const accessState=JSON.parse(await value(send,"JSON.stringify({studentLink:document.querySelector('[data-testid=\"access-student\"]')?.getAttribute('href')||null,studentDisabled:document.querySelector('[data-testid=\"access-student-disabled\"]')?.getAttribute('aria-disabled')||null,team:document.querySelector('[data-testid=\"access-team\"]')?.getAttribute('href')||null})"));
-  assert.deepEqual(accessState,{studentLink:null,studentDisabled:"true",team:"/interno/acceso"});
-
-  const ax=await send("Accessibility.getFullAXTree");
-  assert.equal(axHas(ax.nodes||[],"link","Entrar al aula"),false,"Disabled student access must not be exposed as a public link");
-  assert.ok(axHas(ax.nodes||[],"link","Entrar al área de equipo"),"Team destination missing from browser accessibility tree");
-  assert.deepEqual(unnamedInteractive(ax.nodes||[]),[],"Public access has unnamed interactive controls");
-
-  await tabUntil(send,"access-team");
-  const teamFocus=JSON.parse(await value(send,"JSON.stringify({id:document.activeElement?.getAttribute('data-testid'),shadow:getComputedStyle(document.activeElement).boxShadow})"));
-  assert.equal(teamFocus.id,"access-team");assert.notEqual(teamFocus.shadow,"none","Keyboard focus must be visibly rendered on team access");
-
-  await send("Runtime.evaluate",{expression:"document.activeElement.click()"});await waitFor(send,"location.pathname==='/interno/acceso'");
-  await waitFor(send,"document.querySelector('[data-testid=\"internal-login-form\"]')");
-  const loginText=await value(send,"document.body.innerText");assert.match(loginText,/Acceso interno/i);assert.doesNotMatch(loginText,/Alumnado/);
-
-  const apiStatus=await value(send,`fetch(${JSON.stringify(`${origin}/api/courses`)}).then(r=>r.status)`);assert.equal(apiStatus,404,"Public course catalogue API must remain closed");
-  console.log(JSON.stringify({status:"PASS",origin,access:{student:"disabled",team:"/interno/acceso"},public_course_api:"404 closed"}));
-  ws.close();
-} finally {
-  chrome.kill("SIGTERM");server.close();fs.rmSync(profileDir,{recursive:true,force:true});
-}
+ const wsUrl=await waitForTarget(debugPort,chrome,()=>chromeStderr);const {ws,send}=await cdp(wsUrl);await send("Page.enable");await send("Runtime.enable");await send("Accessibility.enable");await send("Network.enable");
+ await navigate(send,`${origin}/acceso`,'[data-testid="access-portal"]');const landing=await value(send,"document.body.innerText");assert.equal(await value(send,"document.documentElement.lang"),"es");assert.equal(await value(send,"Boolean(document.querySelector('main'))"),true);assert.match(landing,/\bAcceder\b/);assert.match(landing,/Alumnado/);assert.match(landing,/Equipo GASI/);assert.match(landing,/Acceso no habilitado/);assert.doesNotMatch(landing,/Acceso profesional/);
+ const accessState=JSON.parse(await value(send,"JSON.stringify({studentLink:document.querySelector('[data-testid=\"access-student\"]')?.getAttribute('href')||null,studentDisabled:document.querySelector('[data-testid=\"access-student-disabled\"]')?.getAttribute('aria-disabled')||null,team:document.querySelector('[data-testid=\"access-team\"]')?.getAttribute('href')||null})"));assert.deepEqual(accessState,{studentLink:null,studentDisabled:"true",team:"/interno/acceso"});
+ const ax=await send("Accessibility.getFullAXTree");assert.equal(axHas(ax.nodes||[],"link","Entrar al aula"),false,"Disabled student access must not be exposed as a public link");assert.ok(axHas(ax.nodes||[],"link","Entrar al área de equipo"),"Team destination missing from browser accessibility tree");assert.deepEqual(unnamedInteractive(ax.nodes||[]),[],"Public access has unnamed interactive controls");
+ await tabUntil(send,"access-team");const teamFocus=JSON.parse(await value(send,"JSON.stringify({id:document.activeElement?.getAttribute('data-testid'),shadow:getComputedStyle(document.activeElement).boxShadow})"));assert.equal(teamFocus.id,"access-team");assert.notEqual(teamFocus.shadow,"none","Keyboard focus must be visibly rendered on team access");
+ await send("Runtime.evaluate",{expression:"document.activeElement.click()"});await waitFor(send,"location.pathname==='/interno/acceso'");await waitFor(send,"document.querySelector('form') && /Acceso al equipo GASI/i.test(document.body.innerText)");const loginText=await value(send,"document.body.innerText");assert.match(loginText,/Acceso al equipo GASI/i);assert.match(loginText,/Identificador de acceso/i);assert.match(loginText,/Contraseña/i);assert.doesNotMatch(loginText,/Alumnado/);
+ const apiStatus=await value(send,`fetch(${JSON.stringify(`${origin}/api/courses`)}).then(r=>r.status)`);assert.equal(apiStatus,404,"Public course catalogue API must remain closed");console.log(JSON.stringify({status:"PASS",origin,access:{student:"disabled",team:"/interno/acceso"},public_course_api:"404 closed"}));ws.close();
+}finally{chrome.kill("SIGTERM");server.close();fs.rmSync(profileDir,{recursive:true,force:true});}
