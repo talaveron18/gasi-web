@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'automation/web-internal-clinical-*'
+      - 'automation/public-reconcile-*'
       - 'work/web-infra-v1-*'
   workflow_dispatch:
 
