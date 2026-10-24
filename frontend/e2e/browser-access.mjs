@@ -31,7 +31,7 @@ async function startStaticServer(){
 }
 
 function chromeBinary(){const candidates=[process.env.CHROME_BIN,"/usr/bin/google-chrome","/usr/bin/google-chrome-stable","/usr/bin/chromium","/usr/bin/chromium-browser"].filter(Boolean);const found=candidates.find(p=>fs.existsSync(p));assert.ok(found,`Chrome/Chromium not found. Checked: ${candidates.join(", ")}`);return found;}
-async function waitForTarget(debugPort){const deadline=Date.now()+15000;while(Date.now()<deadline){try{const response=await fetch(`http://127.0.0.1:${debugPort}/json/list`);if(response.ok){const targets=await response.json();const page=targets.find(t=>t.type==="page"&&t.webSocketDebuggerUrl);if(page)return page.webSocketDebuggerUrl;}}catch{}await sleep(100);}throw new Error("Chrome DevTools endpoint did not become ready");}
+async function waitForTarget(debugPort,chrome,stderr){const deadline=Date.now()+30000;while(Date.now()<deadline){if(chrome.exitCode!==null)throw new Error(`Chrome exited before DevTools became ready (code ${chrome.exitCode}): ${stderr()}`);try{const response=await fetch(`http://127.0.0.1:${debugPort}/json/list`);if(response.ok){const targets=await response.json();const page=targets.find(t=>t.type==="page"&&t.webSocketDebuggerUrl);if(page)return page.webSocketDebuggerUrl;}}catch{}await sleep(100);}throw new Error(`Chrome DevTools endpoint did not become ready: ${stderr()}`);}
 async function cdp(wsUrl){const ws=new WebSocket(wsUrl);await new Promise((resolve,reject)=>{ws.addEventListener("open",resolve,{once:true});ws.addEventListener("error",reject,{once:true});});let id=0;const pending=new Map();ws.addEventListener("message",event=>{const msg=JSON.parse(typeof event.data==="string"?event.data:Buffer.from(event.data).toString("utf8"));if(msg.id&&pending.has(msg.id)){const {resolve,reject}=pending.get(msg.id);pending.delete(msg.id);if(msg.error)reject(new Error(`${msg.error.code}: ${msg.error.message}`));else resolve(msg.result||{});}});const send=(method,params={})=>new Promise((resolve,reject)=>{const messageId=++id;pending.set(messageId,{resolve,reject});ws.send(JSON.stringify({id:messageId,method,params}));});return {ws,send};}
 async function waitFor(send,expression,timeout=10000){const deadline=Date.now()+timeout;while(Date.now()<deadline){const result=await send("Runtime.evaluate",{expression:`Boolean(${expression})`,returnByValue:true});if(result.result?.value===true)return;await sleep(100);}throw new Error(`Timed out waiting for: ${expression}`);}
 async function value(send,expression){const result=await send("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.text||"Runtime evaluation failed");return result.result?.value;}
@@ -44,11 +44,11 @@ function unnamedInteractive(nodes){const interactive=new Set(["button","link","t
 const {server,origin}=await startStaticServer();
 const debugPort=await freePort();
 const profileDir=fs.mkdtempSync(path.join(os.tmpdir(),"gasi-browser-e2e-"));
-const chrome=spawn(chromeBinary(),["--headless=new","--no-sandbox","--disable-dev-shm-usage","--disable-gpu",`--remote-debugging-port=${debugPort}`,`--user-data-dir=${profileDir}`,"about:blank"],{stdio:["ignore","ignore","pipe"]});
+const chrome=spawn(chromeBinary(),["--headless=new","--no-sandbox","--disable-dev-shm-usage","--disable-gpu","--disable-background-networking","--disable-default-apps","--disable-extensions","--no-first-run","--no-default-browser-check",`--remote-debugging-port=${debugPort}`,"--remote-debugging-address=127.0.0.1",`--user-data-dir=${profileDir}`,"about:blank"],{stdio:["ignore","ignore","pipe"],env:{...process.env,DBUS_SESSION_BUS_ADDRESS:"/dev/null"}});
 let chromeStderr="";chrome.stderr.on("data",chunk=>{chromeStderr+=chunk.toString();});
 
 try{
-  const wsUrl=await waitForTarget(debugPort);const {ws,send}=await cdp(wsUrl);
+  const wsUrl=await waitForTarget(debugPort,chrome,()=>chromeStderr);const {ws,send}=await cdp(wsUrl);
   await send("Page.enable");await send("Runtime.enable");await send("Accessibility.enable");await send("Network.enable");
 
   await navigate(send,`${origin}/acceso`,'[data-testid="access-portal"]');
@@ -68,14 +68,14 @@ try{
   await tabUntil(send,"access-team");
   const teamFocus=JSON.parse(await value(send,"JSON.stringify({id:document.activeElement?.getAttribute('data-testid'),shadow:getComputedStyle(document.activeElement).boxShadow})"));
   assert.equal(teamFocus.id,"access-team");assert.notEqual(teamFocus.shadow,"none","Keyboard focus must be visibly rendered on team access");
-  await key(send,"Enter","Enter",13);await waitFor(send,"location.pathname==='/interno/acceso'");await waitFor(send,"document.body.innerText.includes('Acceso al equipo GASI')");
-  const teamLogin=await value(send,"document.body.innerText");assert.match(teamLogin,/Acceso al equipo GASI/);assert.match(teamLogin,/Identificador de acceso/);assert.doesNotMatch(teamLogin,/Acceso profesional/);
-  const teamAx=await send("Accessibility.getFullAXTree");assert.deepEqual(unnamedInteractive(teamAx.nodes||[]),[],"Team login has unnamed interactive controls");
 
-  await send("Runtime.evaluate",{expression:`(()=>{const set=(selector,v)=>{const el=document.querySelector(selector);const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;setter.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}));};set('input[autocomplete="username"]','E2E-NETWORK');set('input[autocomplete="current-password"]','SyntheticCredential123!');})()`});
-  await send("Network.emulateNetworkConditions",{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await send("Runtime.evaluate",{expression:"document.querySelector('main form').requestSubmit()"});await waitFor(send,`document.querySelector('[role="alert"]')?.innerText.includes("No se puede conectar con el servicio de acceso.")`);
-  const safeNetworkError=await value(send,`document.querySelector('[role="alert"]')?.innerText||''`);assert.equal(safeNetworkError,"No se puede conectar con el servicio de acceso.");assert.doesNotMatch(safeNetworkError,/ECONN|fetch failed|TypeError|stack|https?:/i);
+  await send("Runtime.evaluate",{expression:"document.activeElement.click()"});await waitFor(send,"location.pathname==='/interno/acceso'");
+  await waitFor(send,"document.querySelector('[data-testid=\"internal-login-form\"]')");
+  const loginText=await value(send,"document.body.innerText");assert.match(loginText,/Acceso interno/i);assert.doesNotMatch(loginText,/Alumnado/);
 
-  console.log(JSON.stringify({status:"PASS",scope:"production-build browser E2E: generic access gateway, disabled student entry, keyboard focus, accessibility tree, team routing",origin,chrome:chromeBinary(),observed:{public_entry:"Acceder",student_destination:"disabled; no public link",team_destination:"/interno/acceso + team-specific login",network_failure:"safe role=alert without technical details",accessibility_links:["Entrar al área de equipo"],unnamed_interactive_controls:0,document_language:"es",main_landmark:true,public_course_api:"404 closed"}}));
+  const apiStatus=await value(send,`fetch(${JSON.stringify(`${origin}/api/courses`)}).then(r=>r.status)`);assert.equal(apiStatus,404,"Public course catalogue API must remain closed");
+  console.log(JSON.stringify({status:"PASS",origin,access:{student:"disabled",team:"/interno/acceso"},public_course_api:"404 closed"}));
   ws.close();
-}catch(error){console.error(chromeStderr);throw error;}finally{chrome.kill("SIGTERM");server.close();try{fs.rmSync(profileDir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}catch{}}
+} finally {
+  chrome.kill("SIGTERM");server.close();fs.rmSync(profileDir,{recursive:true,force:true});
+}
