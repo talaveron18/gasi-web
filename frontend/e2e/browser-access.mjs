@@ -28,9 +28,9 @@ async function startStaticServer(){
   assert.ok(fs.existsSync(path.join(buildDir,"index.html")),"frontend/build missing; run yarn build before browser E2E");
   const server=http.createServer((req,res)=>{
     const u=new URL(req.url||"/","http://127.0.0.1");
-    if(u.pathname.includes("/api/courses/")){
-      res.writeHead(200,{"content-type":"application/json","cache-control":"no-store"});
-      res.end("[]");return;
+    if(u.pathname==="/api/courses"||u.pathname.startsWith("/api/courses/")){
+      res.writeHead(404,{"content-type":"application/json","cache-control":"no-store"});
+      res.end(JSON.stringify({detail:"not_found"}));return;
     }
     if(u.pathname.includes("/api/auth/")){
       res.writeHead(401,{"content-type":"application/json","cache-control":"no-store"});
@@ -232,7 +232,8 @@ try{
       accessibility_links:["Entrar al aula","Entrar al área de equipo"],
       unnamed_interactive_controls:0,
       document_language:"es",
-      main_landmark:true
+      main_landmark:true,
+      public_course_api:"404 closed"
     }
   }));
   ws.close();
