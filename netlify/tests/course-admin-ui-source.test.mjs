@@ -8,7 +8,7 @@ const api=fs.readFileSync(new URL("../functions/public-api.mts",import.meta.url)
 const migration=fs.readFileSync(new URL("../database/migrations/20260920190000_public-web-v1/migration.sql",import.meta.url),"utf8");
 
 test("legacy course administration route is closed from the public application",()=>{
-  assert.match(app,/path="\/dashboard\/admin\/cursos" element=\{<Navigate to="\/acceso" replace \/>\}/);
+  assert.match(app,/path="\/dashboard\/admin\/cursos"\s+element=\{<Navigate\s+to="\/acceso"\s+replace\s*\/>\}/);
   assert.doesNotMatch(app,/function PublicAdminRoute\(\)/);
   assert.doesNotMatch(app,/admin-courses-link/);
 });
