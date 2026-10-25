@@ -18,8 +18,8 @@ test("dormant public auth has no demo provider fallback and is not advertised fr
 });
 
 test("legacy student dashboard routes fail closed to the generic access gateway",()=>{
-  assert.match(app,/path="\/dashboard" element=\{<Navigate to="\/acceso" replace \/>\}/);
-  assert.match(app,/path="\/dashboard\/admin\/cursos" element=\{<Navigate to="\/acceso" replace \/>\}/);
+  assert.match(app,/path="\/dashboard"\s+element=\{<Navigate\s+to="\/acceso"\s+replace\s*\/>\}/);
+  assert.match(app,/path="\/dashboard\/admin\/cursos"\s+element=\{<Navigate\s+to="\/acceso"\s+replace\s*\/>\}/);
 });
 
 test("dormant public auth retains opaque revocable secure cookie sessions for future separated access",()=>{
