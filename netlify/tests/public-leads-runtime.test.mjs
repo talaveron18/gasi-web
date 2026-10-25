@@ -108,15 +108,15 @@ test("contact rejects oversized body before parsing",async()=>{
   assert.equal(JSON.parse(response.body).message,"payload_too_large");
 });
 
-test("chatbot endpoint enforces privacy and allowed service",async()=>{
+test("chatbot endpoint enforces privacy and only accepts a currently advertised service",async()=>{
   resetEnv();
   let calls=0;
-  global.fetch=async(url,options)=>{calls++;return {ok:true,status:202};};
+  global.fetch=async()=>{calls++;return {ok:true,status:202};};
 
   let response=await chatbot.handler({
     httpMethod:"POST",
     body:JSON.stringify({
-      service:"Psicología",name:"Ana",email:"ana@example.com",phone:"+34 600 000 004",
+      service:"Enfermería presencial",name:"Ana",email:"ana@example.com",phone:"+34 600 000 004",
       website:"",accepts_privacy:false
     })
   });
@@ -127,12 +127,23 @@ test("chatbot endpoint enforces privacy and allowed service",async()=>{
   response=await chatbot.handler({
     httpMethod:"POST",
     body:JSON.stringify({
-      service:"Psicología",name:"Ana",email:"ana@example.com",phone:"+34 600 000 004",
+      service:"Enfermería presencial",name:"Ana",email:"ana@example.com",phone:"+34 600 000 004",
       website:"",accepts_privacy:true
     })
   });
   assert.equal(response.statusCode,200);
   assert.equal(JSON.parse(response.body).message,"sent");
+  assert.equal(calls,1);
+
+  response=await chatbot.handler({
+    httpMethod:"POST",
+    body:JSON.stringify({
+      service:"Psicología",name:"Ana",email:"ana@example.com",phone:"+34 600 000 004",
+      website:"",accepts_privacy:true
+    })
+  });
+  assert.equal(response.statusCode,422);
+  assert.equal(JSON.parse(response.body).message,"invalid_service");
   assert.equal(calls,1);
 });
 
