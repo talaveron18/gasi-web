@@ -9,6 +9,10 @@ class InternalClinicalStore:
 
     Collections are intentionally separate from public-site user data.
     Mongo `_id` is never exposed by this adapter.
+
+    Tenant-scoped accessors are the required path for multiclient clinical
+    reads/writes. Legacy unscoped accessors remain temporarily for migration
+    callers and must not be used by tenant-facing routes.
     """
 
     def __init__(self, db):
@@ -20,11 +24,12 @@ class InternalClinicalStore:
 
     async def ensure_indexes(self) -> None:
         await self.episodes.create_index("id", unique=True)
-        await self.episodes.create_index([("center", 1), ("status", 1)])
-        await self.episodes.create_index([("discipline", 1), ("created_at", -1)])
+        await self.episodes.create_index([("tenant_id", 1), ("center", 1), ("status", 1)])
+        await self.episodes.create_index([("tenant_id", 1), ("discipline", 1), ("created_at", -1)])
         await self.workers.create_index("id", unique=True)
-        await self.audit.create_index([("at", -1)])
-        await self.audit.create_index([("episode_id", 1), ("at", -1)])
+        await self.workers.create_index([("tenant_id", 1), ("id", 1)])
+        await self.audit.create_index([("tenant_id", 1), ("at", -1)])
+        await self.audit.create_index([("tenant_id", 1), ("episode_id", 1), ("at", -1)])
 
     @staticmethod
     def clean(doc: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -32,6 +37,13 @@ class InternalClinicalStore:
             return None
         value = dict(doc)
         value.pop("_id", None)
+        return value
+
+    @staticmethod
+    def _tenant(tenant_id: str) -> str:
+        value = (tenant_id or "").strip()
+        if not value:
+            raise ValueError("tenant_id_required")
         return value
 
     async def next_episode_id(self) -> str:
@@ -46,13 +58,36 @@ class InternalClinicalStore:
     async def get_episode(self, episode_id: str) -> Optional[Dict[str, Any]]:
         return self.clean(await self.episodes.find_one({"id": episode_id}))
 
+    async def get_episode_for_tenant(self, tenant_id: str, episode_id: str) -> Optional[Dict[str, Any]]:
+        tenant = self._tenant(tenant_id)
+        return self.clean(await self.episodes.find_one({"tenant_id": tenant, "id": episode_id}))
+
     async def list_episodes(self, query: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         cursor = self.episodes.find(query or {}).sort("created_at", -1)
+        return [self.clean(row) async for row in cursor]
+
+    async def list_episodes_for_tenant(self, tenant_id: str, query: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        tenant = self._tenant(tenant_id)
+        scoped = dict(query or {})
+        if "tenant_id" in scoped and scoped["tenant_id"] != tenant:
+            raise ValueError("cross_tenant_query_forbidden")
+        scoped["tenant_id"] = tenant
+        cursor = self.episodes.find(scoped).sort("created_at", -1)
         return [self.clean(row) async for row in cursor]
 
     async def insert_episode(self, episode: Dict[str, Any]) -> Dict[str, Any]:
         await self.episodes.insert_one(dict(episode))
         return dict(episode)
+
+    async def insert_episode_for_tenant(self, tenant_id: str, episode: Dict[str, Any]) -> Dict[str, Any]:
+        tenant = self._tenant(tenant_id)
+        value = dict(episode)
+        supplied = (value.get("tenant_id") or "").strip()
+        if supplied and supplied != tenant:
+            raise ValueError("cross_tenant_write_forbidden")
+        value["tenant_id"] = tenant
+        await self.episodes.insert_one(value)
+        return value
 
     async def replace_episode(self, episode: Dict[str, Any]) -> Dict[str, Any]:
         result = await self.episodes.replace_one({"id": episode["id"]}, dict(episode), upsert=False)
@@ -60,11 +95,29 @@ class InternalClinicalStore:
             raise KeyError(episode["id"])
         return dict(episode)
 
+    async def replace_episode_for_tenant(self, tenant_id: str, episode: Dict[str, Any]) -> Dict[str, Any]:
+        tenant = self._tenant(tenant_id)
+        value = dict(episode)
+        if (value.get("tenant_id") or "").strip() != tenant:
+            raise ValueError("cross_tenant_write_forbidden")
+        result = await self.episodes.replace_one({"tenant_id": tenant, "id": value["id"]}, value, upsert=False)
+        if result.matched_count != 1:
+            raise KeyError(value["id"])
+        return value
+
     async def get_worker(self, worker_id: str) -> Optional[Dict[str, Any]]:
         return self.clean(await self.workers.find_one({"id": worker_id}))
 
+    async def get_worker_for_tenant(self, tenant_id: str, worker_id: str) -> Optional[Dict[str, Any]]:
+        tenant = self._tenant(tenant_id)
+        return self.clean(await self.workers.find_one({"tenant_id": tenant, "id": worker_id}))
+
     async def list_workers(self) -> List[Dict[str, Any]]:
         return [self.clean(row) async for row in self.workers.find({}).sort("display_name", 1)]
+
+    async def list_workers_for_tenant(self, tenant_id: str) -> List[Dict[str, Any]]:
+        tenant = self._tenant(tenant_id)
+        return [self.clean(row) async for row in self.workers.find({"tenant_id": tenant}).sort("display_name", 1)]
 
     async def insert_worker(self, worker: Dict[str, Any]) -> Dict[str, Any]:
         value = dict(worker)
@@ -114,7 +167,6 @@ class InternalClinicalStore:
             }},
             upsert=True,
         )
-
 
     async def export_recovery_snapshot(self) -> Dict[str, Any]:
         """Export the complete internal-clinical data plane for controlled backup/restore."""
