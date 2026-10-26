@@ -36,24 +36,27 @@ def issue_identity_session(*, identity: IdentityState, now: datetime | None = No
     )
 
 
-def session_can_access_center(*, identity: IdentityState, session: SessionState, center: str, now: datetime | None = None) -> bool:
+def session_can_access_center(*, identity: IdentityState, session: SessionState, tenant_id: str, center: str, now: datetime | None = None) -> bool:
     if session.worker_id != identity.worker.worker_id:
         return False
     if not identity.worker.active:
         return False
     if not session_is_valid(session, current_auth_version=identity.auth_version, now=now):
         return False
-    return can_access_center(identity.worker, center)
+    return can_access_center(identity.worker, tenant_id, center)
 
 
 def revoke_identity(identity: IdentityState, *, actor: WorkerAccess) -> IdentityState:
     if not actor.active or actor.role != "admin" or not actor.master_admin:
         raise WorkerAccessError("master_admin_required")
+    if actor.tenant_id != identity.worker.tenant_id:
+        raise WorkerAccessError("cross_tenant_identity_revoke_forbidden")
     if identity.worker.master_admin and identity.worker.worker_id == actor.worker_id:
         raise WorkerAccessError("master_admin_self_lockout_forbidden")
     revoked = WorkerAccess(
         worker_id=identity.worker.worker_id,
         role=identity.worker.role,
+        tenant_id=identity.worker.tenant_id,
         centers=identity.worker.centers,
         active=False,
         master_admin=identity.worker.master_admin,
