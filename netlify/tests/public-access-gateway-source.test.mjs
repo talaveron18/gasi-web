@@ -35,7 +35,11 @@ test("gateway auto-routes only already authenticated sessions without exposing p
  assert.match(portal,/Navigate to="\/interno\/clinica"/);
  assert.doesNotMatch(portal,/openAuth/);
  assert.doesNotMatch(portal,/REACT_APP_OAUTH_LOGIN_URL/);
- assert.doesNotMatch(portal,/Registrarse|Crear cuenta|Registro público/i);
+ // Informational wording may state that public registration does not exist;
+ // what must never exist is a registration route, CTA or account-creation action.
+ assert.doesNotMatch(portal,/to="\/(?:registro|registrarse|signup|sign-up)"/i);
+ assert.doesNotMatch(portal,/href="[^\"]*(?:registro|registrarse|signup|sign-up)[^\"]*"/i);
+ assert.doesNotMatch(portal,/>\s*(?:Registrarse|Crear cuenta)\s*</i);
 });
 
 test("internal login wording is scoped to the GASI team rather than presented as generic public professional access",()=>{
