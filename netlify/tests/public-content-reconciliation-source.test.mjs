@@ -23,6 +23,13 @@ const publicSurfaces = [
   'frontend/src/pages/Contacto.jsx',
   'frontend/src/pages/PoliticaPrivacidad.jsx',
   'frontend/src/pages/NotFound.jsx',
+  // Public request handlers are part of the externally reachable copy/contract
+  // even when their text is mainly used in validation or lead delivery.
+  'frontend/functions/chatbot.js',
+  'frontend/functions/contact.js',
+  'netlify/functions/chatbot.js',
+  'netlify/functions/contact.js',
+  'netlify/functions/public-lead-utils.js',
 ];
 
 const forbiddenPromises = [
@@ -52,6 +59,15 @@ test('recognition-medical wording is exclusionary, never an advertised service',
   }
 });
 
+test('public lead handlers accept only the reconciled commercial service vocabulary', () => {
+  const expected = ['Enfermería presencial', 'Formación sanitaria', 'Otro'];
+  for (const file of ['frontend/functions/chatbot.js', 'netlify/functions/public-lead-utils.js']) {
+    const source = read(file);
+    for (const service of expected) assert.ok(source.includes(service), `${file}: missing ${service}`);
+    assert.doesNotMatch(source, /Reconocimientos? médicos/i, file);
+  }
+});
+
 test('public navigation exposes only reconciled service destinations', () => {
   const nav = read('frontend/src/components/Navbar.jsx');
   assert.match(nav, /\/cobertura-sanitaria/);
@@ -69,4 +85,6 @@ test('public contact surfaces explicitly delimit non-clinical channels', () => {
   assert.match(read('frontend/src/components/Chatbot.jsx'), /No es un canal cl[ií]nico ni de urgencias/i);
   assert.match(read('frontend/src/components/Footer.jsx'), /No son canales cl[ií]nicos ni de urgencias/i);
   assert.match(read('frontend/src/pages/Contacto.jsx'), /no (?:es|son) (?:un )?canal(?:es)? cl[ií]nico(?:s)? ni de urgencias/i);
+  assert.match(read('frontend/functions/chatbot.js'), /Canal exclusivamente comercial\. No admite contenido clínico ni urgencias/i);
+  assert.match(read('netlify/functions/chatbot.js'), /no admite contenido clínico ni datos de salud/i);
 });
