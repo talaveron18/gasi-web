@@ -33,7 +33,7 @@ async def login(payload:LoginInput):
  return{'token':token,'expires_at':session.expires_at.isoformat(),'profile':_profile(worker)}
 @router.post('/logout')
 async def logout(authorization:Optional[str]=Header(default=None,alias='Authorization')):
- actor=await _actor(authorization);_tenant(actor);await _store().rotate_auth_version(actor['id']);await internal_prototype._audit(actor,'LOGOUT_ALL_SESSIONS');return{'ok':True}
+ actor=await _actor(authorization);tenant=_tenant(actor);await _store().rotate_auth_version_for_tenant(tenant,actor['id']);await internal_prototype._audit(actor,'LOGOUT_ALL_SESSIONS');return{'ok':True}
 @router.get('/session')
 async def session_status(authorization:Optional[str]=Header(default=None,alias='Authorization')):
  actor=await _actor(authorization);_tenant(actor);await internal_prototype._audit(actor,'SESSION_VALIDATED');return{**_profile(actor),'active':actor.get('active',True)}
@@ -58,4 +58,4 @@ async def change_worker_access(worker_id:str,payload:AccessChangeInput,authoriza
  if not target:raise HTTPException(404,'worker_not_found')
  if target['id']==internal_prototype.MASTER_ADMIN_ID:raise HTTPException(409,'master_access_is_intrinsic')
  if target['id']==actor['id']and payload.state=='REVOKED':raise HTTPException(409,'self_revocation_not_allowed')
- target=await _store().set_worker_state(worker_id,payload.state=='ACTIVE');await internal_prototype._audit(actor,'IDENTITY_REACTIVATED'if target['active']else'IDENTITY_REVOKED',metadata={'target_actor_id':worker_id,'access_state':payload.state});return _profile(target)
+ target=await _store().set_worker_state_for_tenant(tenant,worker_id,payload.state=='ACTIVE');await internal_prototype._audit(actor,'IDENTITY_REACTIVATED'if target['active']else'IDENTITY_REVOKED',metadata={'target_actor_id':worker_id,'access_state':payload.state});return _profile(target)
