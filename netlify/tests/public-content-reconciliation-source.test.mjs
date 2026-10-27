@@ -66,16 +66,32 @@ test('public lead handlers accept only the reconciled commercial service vocabul
   }
 });
 
-test('home, services and SEO identify the current offer explicitly', () => {
-  const home = read('frontend/src/pages/Home.jsx');
-  const services = read('frontend/src/pages/Servicios.jsx');
-  const index = read('frontend/public/index.html');
-  for (const source of [home, services, index]) {
-    assert.match(source, /[Ee]nfermer[ií]a [Pp]resencial/);
-    assert.match(source, /[Ff]ormaci[oó]n [Ss]anitaria/);
+test('all public offer pages name only the current offer and delimit scope', () => {
+  const bothOfferPages = [
+    'frontend/src/pages/Home.jsx',
+    'frontend/src/pages/Servicios.jsx',
+    'frontend/src/pages/QuienesSomos.jsx',
+    'frontend/src/pages/SaludLaboral.jsx',
+    'frontend/src/pages/Sectores.jsx',
+  ];
+  for (const file of bothOfferPages) {
+    const source = read(file);
+    assert.match(source, /enfermer[ií]a presencial/i, `${file}: missing nursing offer`);
+    assert.match(source, /formaci[oó]n sanitaria/i, `${file}: missing training offer`);
+    assert.match(source, /alcance|requisitos aplicables|confirmaci[oó]n previa/i, `${file}: missing scope limitation`);
   }
-  assert.match(home, /sujetas? a confirmaci[oó]n|se confirma|requisitos aplicables/i);
-  assert.match(services, /requisitos aplicables/i);
+
+  const nursing = read('frontend/src/pages/CoberturaSanitaria.jsx');
+  assert.match(nursing, /enfermer[ií]a presencial/i);
+  assert.match(nursing, /alcance aplicable|alcance previamente|confirmaremos primero/i);
+
+  const training = read('frontend/src/pages/FormacionSanitaria.jsx');
+  assert.match(training, /formaci[oó]n sanitaria/i);
+  assert.match(training, /alcance|disponibilidad|confirmaci[oó]n/i);
+
+  const index = read('frontend/public/index.html');
+  assert.match(index, /enfermer[ií]a presencial/i);
+  assert.match(index, /formaci[oó]n sanitaria/i);
   assert.match(index, /sujetas a confirmaci[oó]n previa de alcance y requisitos aplicables/i);
 });
 
