@@ -23,8 +23,6 @@ const publicSurfaces = [
   'frontend/src/pages/Contacto.jsx',
   'frontend/src/pages/PoliticaPrivacidad.jsx',
   'frontend/src/pages/NotFound.jsx',
-  // Public request handlers are part of the externally reachable copy/contract
-  // even when their text is mainly used in validation or lead delivery.
   'frontend/functions/chatbot.js',
   'frontend/functions/contact.js',
   'netlify/functions/chatbot.js',
@@ -66,6 +64,19 @@ test('public lead handlers accept only the reconciled commercial service vocabul
     for (const service of expected) assert.ok(source.includes(service), `${file}: missing ${service}`);
     assert.doesNotMatch(source, /Reconocimientos? médicos/i, file);
   }
+});
+
+test('home, services and SEO identify the current offer explicitly', () => {
+  const home = read('frontend/src/pages/Home.jsx');
+  const services = read('frontend/src/pages/Servicios.jsx');
+  const index = read('frontend/public/index.html');
+  for (const source of [home, services, index]) {
+    assert.match(source, /Enfermer[ií]a (?:P|p)resencial/);
+    assert.match(source, /Formaci[oó]n (?:S|s)anitaria/);
+  }
+  assert.match(home, /sujetas? a confirmaci[oó]n|se confirma|requisitos aplicables/i);
+  assert.match(services, /requisitos aplicables/i);
+  assert.match(index, /sujetas a confirmaci[oó]n previa de alcance y requisitos aplicables/i);
 });
 
 test('public navigation exposes only reconciled service destinations', () => {
