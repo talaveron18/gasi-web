@@ -10,6 +10,7 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 
 const publicSurfaces = [
   'frontend/public/index.html',
+  'frontend/src/App.js',
   'frontend/src/components/Navbar.jsx',
   'frontend/src/components/Footer.jsx',
   'frontend/src/components/Chatbot.jsx',
@@ -100,6 +101,14 @@ test('public navigation exposes only reconciled service destinations', () => {
   assert.match(nav, /\/cobertura-sanitaria/);
   assert.match(nav, /\/formacion-sanitaria/);
   assert.doesNotMatch(nav, /nav-health-services/);
+});
+
+test('public router cannot expose the withdrawn course catalogue/detail surfaces', () => {
+  const app = read('frontend/src/App.js');
+  assert.match(app, /path="\/curso\/:courseId"\s+element=\{<Navigate\s+to="\/formacion-sanitaria"\s+replace\/>\}/);
+  assert.match(app, /path="\/dashboard\/admin\/cursos"\s+element=\{<Navigate\s+to="\/acceso"\s+replace\/>\}/);
+  assert.doesNotMatch(app, /<Route\s+path="\/curso\/:courseId"\s+element=\{<CursoDetalle/);
+  assert.doesNotMatch(app, /<Route\s+path="\/dashboard\/admin\/cursos"\s+element=\{<AdminCourses/);
 });
 
 test('public course catalogue and course detail stay blocked at edge routing', () => {
