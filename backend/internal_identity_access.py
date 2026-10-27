@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Iterable
 
 from internal_session_security import SessionState, issue_session, session_is_valid
-from internal_worker_management import WorkerAccess, WorkerAccessError, can_access_center
+from internal_worker_management import WorkerAccess, WorkerAccessError, can_access_center, change_worker_access
 
 
 class IdentityAccessError(ValueError):
@@ -44,6 +45,29 @@ def session_can_access_center(*, identity: IdentityState, session: SessionState,
     if not session_is_valid(session, current_auth_version=identity.auth_version, now=now):
         return False
     return can_access_center(identity.worker, tenant_id, center)
+
+
+def change_identity_access(
+    identity: IdentityState,
+    *,
+    actor: WorkerAccess,
+    role: str | None = None,
+    centers: Iterable[str] | None = None,
+    active: bool | None = None,
+) -> IdentityState:
+    """Apply an authorised access change and revoke every previously issued session.
+
+    Role, centre scope and active-state changes are security-sensitive.  Incrementing
+    auth_version makes sessions issued under the previous authorisation unusable.
+    """
+    changed = change_worker_access(
+        identity.worker,
+        actor=actor,
+        role=role,
+        centers=centers,
+        active=active,
+    )
+    return IdentityState(worker=changed, auth_version=identity.auth_version + 1)
 
 
 def revoke_identity(identity: IdentityState, *, actor: WorkerAccess) -> IdentityState:
