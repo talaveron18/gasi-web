@@ -26,8 +26,20 @@ class InternalClinicalStore:
         await self.episodes.create_index("id", unique=True)
         await self.episodes.create_index([("tenant_id", 1), ("center", 1), ("status", 1)])
         await self.episodes.create_index([("tenant_id", 1), ("discipline", 1), ("created_at", -1)])
-        await self.workers.create_index("id", unique=True)
-        await self.workers.create_index([("tenant_id", 1), ("id", 1)])
+
+        # Worker identity is tenant-local. Remove the legacy global unique id
+        # index before enforcing the compound key so two tenants may safely use
+        # the same worker identifier without weakening uniqueness inside either
+        # tenant. The explicit name makes this migration idempotent.
+        worker_indexes = await self.workers.index_information()
+        legacy_worker_id = worker_indexes.get("id_1")
+        if legacy_worker_id and legacy_worker_id.get("unique") and legacy_worker_id.get("key") == [("id", 1)]:
+            await self.workers.drop_index("id_1")
+        await self.workers.create_index(
+            [("tenant_id", 1), ("id", 1)],
+            unique=True,
+            name="tenant_worker_unique",
+        )
         await self.audit.create_index([("tenant_id", 1), ("at", -1)])
         await self.audit.create_index([("tenant_id", 1), ("episode_id", 1), ("at", -1)])
 
