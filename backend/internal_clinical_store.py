@@ -133,9 +133,25 @@ class InternalClinicalStore:
         )
         return self.clean(row)
 
+    async def set_worker_state_for_tenant(self, tenant_id: str, worker_id: str, active: bool) -> Optional[Dict[str, Any]]:
+        tenant = self._tenant(tenant_id)
+        row = await self.workers.find_one_and_update(
+            {"tenant_id": tenant, "id": worker_id},
+            {"$set": {"active": active}, "$inc": {"auth_version": 1}},
+            return_document=ReturnDocument.AFTER,
+        )
+        return self.clean(row)
+
     async def rotate_auth_version(self, worker_id: str) -> Optional[Dict[str, Any]]:
         row = await self.workers.find_one_and_update(
             {"id": worker_id}, {"$inc": {"auth_version": 1}}, return_document=ReturnDocument.AFTER
+        )
+        return self.clean(row)
+
+    async def rotate_auth_version_for_tenant(self, tenant_id: str, worker_id: str) -> Optional[Dict[str, Any]]:
+        tenant = self._tenant(tenant_id)
+        row = await self.workers.find_one_and_update(
+            {"tenant_id": tenant, "id": worker_id}, {"$inc": {"auth_version": 1}}, return_document=ReturnDocument.AFTER
         )
         return self.clean(row)
 
@@ -143,6 +159,14 @@ class InternalClinicalStore:
         update = {"$addToSet": {"delegated_privileges": privilege}} if grant else {"$pull": {"delegated_privileges": privilege}}
         row = await self.workers.find_one_and_update(
             {"id": worker_id}, update, return_document=ReturnDocument.AFTER
+        )
+        return self.clean(row)
+
+    async def set_privilege_for_tenant(self, tenant_id: str, worker_id: str, privilege: str, grant: bool) -> Optional[Dict[str, Any]]:
+        tenant = self._tenant(tenant_id)
+        update = {"$addToSet": {"delegated_privileges": privilege}} if grant else {"$pull": {"delegated_privileges": privilege}}
+        row = await self.workers.find_one_and_update(
+            {"tenant_id": tenant, "id": worker_id}, update, return_document=ReturnDocument.AFTER
         )
         return self.clean(row)
 
