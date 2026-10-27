@@ -16,52 +16,26 @@ export default function AccessPortal() {
       <div className="mx-auto max-w-4xl px-6">
         <header className="mx-auto max-w-2xl text-center">
           <div className="inline-flex items-center gap-2 text-sm font-semibold text-[#005EB8]">
-            <LogIn className="h-4 w-4" aria-hidden="true" />
-            GASI
+            <LogIn className="h-4 w-4" aria-hidden="true" /> GASI
           </div>
           <h1 className="mt-3 text-4xl font-bold">Acceder</h1>
-          <p className="mt-3 text-lg text-slate-600">
-            Acceso restringido a espacios habilitados por GASI. La disponibilidad depende de la identidad y permisos asignados.
-          </p>
+          <p className="mt-3 text-lg text-slate-600">Acceso restringido a espacios habilitados por GASI. La disponibilidad depende de la identidad y permisos asignados.</p>
         </header>
-
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <GraduationCap className="h-8 w-8 text-[#005EB8]" aria-hidden="true" />
             <h2 className="mt-4 text-2xl font-bold">Alumnado</h2>
-            <p className="mt-2 text-slate-600">
-              El acceso de alumnado no se ofrece actualmente desde la web pública. Este espacio se habilitará únicamente cuando exista un acceso separado y validado.
-            </p>
-            <span
-              className="mt-6 inline-flex w-full cursor-not-allowed items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-4 py-3 font-semibold text-slate-500"
-              aria-disabled="true"
-              data-testid="access-student-disabled"
-            >
-              Acceso no habilitado
-            </span>
+            <p className="mt-2 text-slate-600">Acceso separado para alumnado con una cuenta previamente habilitada por GASI. No existe registro público.</p>
+            <Link to="/alumnado/acceso" className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-[#005EB8] px-4 py-3 font-semibold text-[#005EB8] hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#005EB8] focus-visible:ring-offset-2" data-testid="access-student">Entrar al aula</Link>
           </section>
-
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <Stethoscope className="h-8 w-8 text-[#005EB8]" aria-hidden="true" />
             <h2 className="mt-4 text-2xl font-bold">Equipo GASI</h2>
-            <p className="mt-2 text-slate-600">
-              Acceso restringido a profesionales, coordinación y administración previamente autorizados.
-            </p>
-            <Link
-              to="/interno/acceso"
-              className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-[#005EB8] px-4 py-3 font-semibold text-[#005EB8] hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#005EB8] focus-visible:ring-offset-2"
-              data-testid="access-team"
-            >
-              Entrar al área de equipo
-            </Link>
+            <p className="mt-2 text-slate-600">Acceso restringido a profesionales, coordinación y administración previamente autorizados.</p>
+            <Link to="/interno/acceso" className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-[#005EB8] px-4 py-3 font-semibold text-[#005EB8] hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#005EB8] focus-visible:ring-offset-2" data-testid="access-team">Entrar al área de equipo</Link>
           </section>
         </div>
-
-        {(loading || sessionChecking) && (
-          <p role="status" aria-live="polite" className="mt-6 text-center text-sm text-slate-500">
-            Comprobando si ya tienes una sesión activa…
-          </p>
-        )}
+        {(loading || sessionChecking) && <p role="status" aria-live="polite" className="mt-6 text-center text-sm text-slate-500">Comprobando si ya tienes una sesión activa…</p>}
       </div>
     </main>
   );
