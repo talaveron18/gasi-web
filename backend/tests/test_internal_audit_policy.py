@@ -21,6 +21,15 @@ def test_rejects_clinical_or_secret_fields(key):
         sanitize_audit_metadata({key: "DEMO value"})
 
 
+@pytest.mark.parametrize("key", [
+    "access_token", "refresh-token", "apiSecret", "sessionCookie", "AuthorizationHeader",
+    "patientName", "patient-ref", "clinicalText", "diagnosisCode", "prescription_id",
+])
+def test_rejects_decorated_sensitive_key_variants(key):
+    with pytest.raises(ValueError, match="audit_metadata_forbidden"):
+        sanitize_audit_metadata({key: "DEMO value"})
+
+
 def test_rejects_nested_objects_to_avoid_hidden_clinical_payloads():
     with pytest.raises(ValueError, match="audit_metadata_must_be_scalar"):
         sanitize_audit_metadata({"evidence": {"text": "synthetic clinical narrative"}})
