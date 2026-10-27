@@ -6,6 +6,7 @@ from backend.internal_identity_access import (
     IdentityAccessError,
     issue_identity_session,
     build_identity_state,
+    change_identity_access,
     revoke_identity,
     session_can_access_center,
 )
@@ -45,6 +46,24 @@ def test_expired_session_cannot_reach_assigned_center():
     identity = build_identity_state(worker=_worker())
     session = issue_identity_session(identity=identity, now=NOW, ttl_minutes=30)
     assert not session_can_access_center(identity=identity, session=session, tenant_id=TENANT_A, center=CENTER_1, now=NOW + timedelta(minutes=31))
+
+
+def test_access_scope_change_revokes_previous_session_and_applies_new_center():
+    identity = build_identity_state(worker=_worker())
+    old_session = issue_identity_session(identity=identity, now=NOW)
+    changed = change_identity_access(identity, actor=_master(), centers=(CENTER_2,))
+    assert changed.auth_version == identity.auth_version + 1
+    assert not session_can_access_center(identity=changed, session=old_session, tenant_id=TENANT_A, center=CENTER_1, now=NOW)
+    new_session = issue_identity_session(identity=changed, now=NOW)
+    assert not session_can_access_center(identity=changed, session=new_session, tenant_id=TENANT_A, center=CENTER_1, now=NOW)
+    assert session_can_access_center(identity=changed, session=new_session, tenant_id=TENANT_A, center=CENTER_2, now=NOW)
+
+
+def test_cross_tenant_master_cannot_change_identity_scope():
+    identity = build_identity_state(worker=_worker())
+    with pytest.raises(WorkerAccessError) as exc:
+        change_identity_access(identity, actor=_master(tenant_id=TENANT_B), centers=(CENTER_2,))
+    assert str(exc.value) == "cross_tenant_worker_change_forbidden"
 
 
 def test_master_revocation_invalidates_existing_session():
