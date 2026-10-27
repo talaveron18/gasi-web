@@ -12,8 +12,18 @@ FORBIDDEN_AUDIT_KEYS = frozenset({
     "patient_name", "diagnosis", "prescription", "indication", "password", "token",
     "secret", "authorization", "cookie",
 })
+# Block decorated/compound variants too (for example access_token, patientName,
+# clinicalText). Exact-name filtering alone is too easy to bypass accidentally.
+FORBIDDEN_AUDIT_KEY_FRAGMENTS = (
+    "clinical", "patient", "diagnos", "prescript", "indication", "narrative",
+    "password", "passwd", "token", "secret", "authorization", "cookie",
+)
 ALLOWED_SCALAR_TYPES = (str, int, float, bool, type(None))
 GENESIS_HASH = "0" * 64
+
+
+def _normalized_audit_key(key: str) -> str:
+    return "".join(char for char in key.lower() if char.isalnum())
 
 
 def sanitize_audit_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -22,7 +32,9 @@ def sanitize_audit_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any
     clean: dict[str, Any] = {}
     for raw_key, value in metadata.items():
         key = str(raw_key).strip()
-        if not key or key.lower() in FORBIDDEN_AUDIT_KEYS:
+        normalized = _normalized_audit_key(key)
+        if (not key or key.lower() in FORBIDDEN_AUDIT_KEYS
+                or any(fragment in normalized for fragment in FORBIDDEN_AUDIT_KEY_FRAGMENTS)):
             raise ValueError("audit_metadata_forbidden")
         if not isinstance(value, ALLOWED_SCALAR_TYPES):
             raise ValueError("audit_metadata_must_be_scalar")
