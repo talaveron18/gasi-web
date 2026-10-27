@@ -43,6 +43,26 @@ class Collection:
     async def find_one(self, query):
         return next((dict(row) for row in self.rows if self._matches(row, query)), None)
 
+    async def find_one_and_update(self, query, update, **_kwargs):
+        for index, current in enumerate(self.rows):
+            if not self._matches(current, query):
+                continue
+            value = dict(current)
+            for key, item in update.get("$set", {}).items():
+                value[key] = item
+            for key, item in update.get("$inc", {}).items():
+                value[key] = value.get(key, 0) + item
+            for key, item in update.get("$addToSet", {}).items():
+                items = list(value.get(key, []))
+                if item not in items:
+                    items.append(item)
+                value[key] = items
+            for key, item in update.get("$pull", {}).items():
+                value[key] = [entry for entry in value.get(key, []) if entry != item]
+            self.rows[index] = value
+            return dict(value)
+        return None
+
     def find(self, query):
         return Cursor([dict(row) for row in self.rows if self._matches(row, query)])
 
@@ -67,8 +87,9 @@ class DB:
             {"id": "EP-B", "tenant_id": "TENANT-B", "center": "CENTRO-1", "created_at": "2"},
         ])
         self.internal_clinical_workers = Collection([
-            {"id": "NURSE-A", "tenant_id": "TENANT-A", "display_name": "A"},
-            {"id": "NURSE-B", "tenant_id": "TENANT-B", "display_name": "B"},
+            {"id": "NURSE-SHARED", "tenant_id": "TENANT-A", "display_name": "A", "active": True, "auth_version": 1, "delegated_privileges": []},
+            {"id": "NURSE-SHARED", "tenant_id": "TENANT-B", "display_name": "B", "active": True, "auth_version": 7, "delegated_privileges": []},
+            {"id": "NURSE-B", "tenant_id": "TENANT-B", "display_name": "B2", "active": True, "auth_version": 1, "delegated_privileges": []},
         ])
         self.internal_clinical_audit = Collection()
         self.internal_clinical_counters = Collection()
@@ -102,9 +123,33 @@ async def test_insert_and_replace_fail_closed_on_cross_tenant_payload():
 @pytest.mark.asyncio
 async def test_worker_lookup_and_listing_do_not_cross_tenants():
     store = InternalClinicalStore(DB())
-    assert (await store.get_worker_for_tenant("TENANT-A", "NURSE-A"))["id"] == "NURSE-A"
+    assert (await store.get_worker_for_tenant("TENANT-A", "NURSE-SHARED"))["display_name"] == "A"
     assert await store.get_worker_for_tenant("TENANT-A", "NURSE-B") is None
-    assert [row["id"] for row in await store.list_workers_for_tenant("TENANT-B")] == ["NURSE-B"]
+    assert {row["id"] for row in await store.list_workers_for_tenant("TENANT-B")} == {"NURSE-SHARED", "NURSE-B"}
+
+
+@pytest.mark.asyncio
+async def test_worker_state_mutation_is_tenant_scoped_for_same_worker_id():
+    store = InternalClinicalStore(DB())
+    changed = await store.set_worker_state_for_tenant("TENANT-A", "NURSE-SHARED", False)
+    assert changed["active"] is False
+    assert changed["auth_version"] == 2
+    other = await store.get_worker_for_tenant("TENANT-B", "NURSE-SHARED")
+    assert other["active"] is True
+    assert other["auth_version"] == 7
+
+
+@pytest.mark.asyncio
+async def test_auth_rotation_and_privilege_mutation_do_not_cross_tenants():
+    store = InternalClinicalStore(DB())
+    await store.rotate_auth_version_for_tenant("TENANT-B", "NURSE-SHARED")
+    await store.set_privilege_for_tenant("TENANT-B", "NURSE-SHARED", "worker_access_management", True)
+    tenant_a = await store.get_worker_for_tenant("TENANT-A", "NURSE-SHARED")
+    tenant_b = await store.get_worker_for_tenant("TENANT-B", "NURSE-SHARED")
+    assert tenant_a["auth_version"] == 1
+    assert tenant_a["delegated_privileges"] == []
+    assert tenant_b["auth_version"] == 8
+    assert tenant_b["delegated_privileges"] == ["worker_access_management"]
 
 
 @pytest.mark.asyncio
@@ -112,3 +157,5 @@ async def test_empty_tenant_fails_closed():
     store = InternalClinicalStore(DB())
     with pytest.raises(ValueError, match="tenant_id_required"):
         await store.get_episode_for_tenant(" ", "EP-A")
+    with pytest.raises(ValueError, match="tenant_id_required"):
+        await store.rotate_auth_version_for_tenant(" ", "NURSE-SHARED")
