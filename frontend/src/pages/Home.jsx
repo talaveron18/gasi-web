@@ -8,8 +8,8 @@ const Home = () => {
   const services = [
     {
       icon: <Building2 className="w-12 h-12 text-[#005EB8]" />,
-      title: 'Cobertura Sanitaria en Empresas',
-      description: 'Cobertura sanitaria y enfermería presencial en instalaciones, cuando el alcance contratado y aplicable lo permita.',
+      title: 'Enfermería Presencial en Empresas',
+      description: 'Enfermería presencial en instalaciones, cuando el alcance acordado y los requisitos aplicables lo permitan.',
       link: '/cobertura-sanitaria',
       image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/c29a6c5d_1.png'
     },
@@ -40,8 +40,8 @@ const Home = () => {
       <section className="relative h-[600px] flex items-center justify-center bg-gradient-to-br from-[#005EB8] to-[#327BBD] text-white overflow-hidden">
         <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'url(https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/c29a6c5d_1.png)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 animate-fade-in" data-testid="hero-title">Servicios Sanitarios para Organizaciones</h1>
-          <p className="text-lg sm:text-xl mb-8 text-white/90 max-w-2xl mx-auto">GASI ofrece cobertura sanitaria y formación sanitaria para organizaciones. Cada solicitud se estudia y se confirma de acuerdo con el alcance aplicable antes de iniciar cualquier prestación.</p>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 animate-fade-in" data-testid="hero-title">Enfermería Presencial y Formación Sanitaria</h1>
+          <p className="text-lg sm:text-xl mb-8 text-white/90 max-w-2xl mx-auto">GASI estudia servicios de enfermería presencial y formación sanitaria para organizaciones. Cada solicitud se revisa y se confirma de acuerdo con el alcance y los requisitos aplicables antes de iniciar cualquier prestación.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/contacto"><Button size="lg" className="bg-white text-[#005EB8] hover:bg-gray-100 text-lg px-8" data-testid="hero-cta-contact">Solicitar Información <ArrowRight className="ml-2 w-5 h-5" /></Button></Link>
             <Link to="/servicios"><Button size="lg" variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#005EB8] text-lg px-8" data-testid="hero-cta-services">Ver Servicios</Button></Link>
@@ -51,7 +51,7 @@ const Home = () => {
 
       <section className="py-20 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-16"><h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4" data-testid="services-section-title">Servicios actuales</h2><p className="text-lg text-[#64748B] max-w-2xl mx-auto">Ámbitos de servicio que pueden configurarse para organizaciones, sujetos a confirmación de alcance.</p></div>
+          <div className="text-center mb-16"><h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4" data-testid="services-section-title">Servicios actuales</h2><p className="text-lg text-[#64748B] max-w-2xl mx-auto">Enfermería presencial y formación sanitaria para organizaciones, siempre sujetas a confirmación previa de alcance y requisitos aplicables.</p></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {services.map((service, index) => (<Link to={service.link} key={index} className="group" data-testid={`service-card-${index}`}><Card className="h-full hover-lift border-2 border-transparent hover:border-[#005EB8] transition-all"><div className="h-48 overflow-hidden rounded-t-lg"><img src={service.image} alt={service.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /></div><CardContent className="p-6"><div className="mb-4">{service.icon}</div><h3 className="text-xl font-bold text-[#0F172A] mb-3 group-hover:text-[#005EB8] transition-colors">{service.title}</h3><p className="text-[#64748B] mb-4">{service.description}</p><div className="flex items-center text-[#005EB8] font-semibold group-hover:translate-x-2 transition-transform">Más información <ArrowRight className="ml-2 w-4 h-4" /></div></CardContent></Card></Link>))}
           </div>
@@ -62,7 +62,7 @@ const Home = () => {
 
       <section className="py-20 lg:py-24 bg-white"><div className="max-w-7xl mx-auto px-6 lg:px-8"><div className="text-center mb-16"><h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4">Cómo trabajamos</h2><p className="text-lg text-[#64748B]">Primero delimitamos la necesidad y el alcance que puede prestarse.</p></div><div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">{advantages.map((adv, index) => (<div key={index} className="text-center" data-testid={`advantage-${index}`}><div className="inline-flex items-center justify-center w-16 h-16 bg-[#005EB8]/10 rounded-full text-[#005EB8] mb-4">{adv.icon}</div><h3 className="font-bold text-[#0F172A] mb-2">{adv.title}</h3><p className="text-[#64748B] text-sm">{adv.desc}</p></div>))}</div></div></section>
 
-      <section className="py-20 bg-gradient-to-r from-[#005EB8] to-[#327BBD] text-white"><div className="max-w-4xl mx-auto px-6 text-center"><h2 className="text-3xl lg:text-4xl font-bold mb-6">¿Quiere plantearnos una necesidad sanitaria?</h2><p className="text-xl mb-8 opacity-90">Envíenos la información y confirmaremos si podemos atenderla y bajo qué alcance.</p><Link to="/contacto"><Button size="lg" className="bg-white text-[#005EB8] hover:bg-gray-100 text-lg px-8" data-testid="cta-contact-bottom">Solicitar información</Button></Link></div></section>
+      <section className="py-20 bg-gradient-to-r from-[#005EB8] to-[#327BBD] text-white"><div className="max-w-4xl mx-auto px-6 text-center"><h2 className="text-3xl lg:text-4xl font-bold mb-6">¿Quiere plantearnos una necesidad?</h2><p className="text-xl mb-8 opacity-90">Envíenos la información y confirmaremos si encaja en los servicios actuales y bajo qué alcance.</p><Link to="/contacto"><Button size="lg" className="bg-white text-[#005EB8] hover:bg-gray-100 text-lg px-8" data-testid="cta-contact-bottom">Solicitar información</Button></Link></div></section>
     </div>
   );
 };
