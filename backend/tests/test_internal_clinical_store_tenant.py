@@ -27,8 +27,10 @@ class Result:
 
 
 class Collection:
-    def __init__(self, rows=None):
+    def __init__(self, rows=None, indexes=None):
         self.rows = [dict(row) for row in (rows or [])]
+        self.indexes = dict(indexes or {"_id_": {"key": [("_id", 1)]}})
+        self.dropped_indexes = []
 
     @staticmethod
     def _matches(row, query):
@@ -76,8 +78,19 @@ class Collection:
                 return Result(1)
         return Result(0)
 
-    async def create_index(self, *_args, **_kwargs):
-        return None
+    async def index_information(self):
+        return dict(self.indexes)
+
+    async def drop_index(self, name):
+        self.dropped_indexes.append(name)
+        self.indexes.pop(name, None)
+
+    async def create_index(self, keys, **kwargs):
+        if isinstance(keys, str):
+            keys = [(keys, 1)]
+        name = kwargs.get("name") or "_".join(f"{key}_{direction}" for key, direction in keys)
+        self.indexes[name] = {"key": list(keys), **{key: value for key, value in kwargs.items() if key != "name"}}
+        return name
 
 
 class DB:
@@ -90,7 +103,10 @@ class DB:
             {"id": "NURSE-SHARED", "tenant_id": "TENANT-A", "display_name": "A", "active": True, "auth_version": 1, "delegated_privileges": []},
             {"id": "NURSE-SHARED", "tenant_id": "TENANT-B", "display_name": "B", "active": True, "auth_version": 7, "delegated_privileges": []},
             {"id": "NURSE-B", "tenant_id": "TENANT-B", "display_name": "B2", "active": True, "auth_version": 1, "delegated_privileges": []},
-        ])
+        ], indexes={
+            "_id_": {"key": [("_id", 1)]},
+            "id_1": {"key": [("id", 1)], "unique": True},
+        })
         self.internal_clinical_audit = Collection()
         self.internal_clinical_counters = Collection()
 
@@ -150,6 +166,24 @@ async def test_auth_rotation_and_privilege_mutation_do_not_cross_tenants():
     assert tenant_a["delegated_privileges"] == []
     assert tenant_b["auth_version"] == 8
     assert tenant_b["delegated_privileges"] == ["worker_access_management"]
+
+
+@pytest.mark.asyncio
+async def test_worker_index_migrates_from_global_to_tenant_unique_key():
+    db = DB()
+    store = InternalClinicalStore(db)
+    await store.ensure_indexes()
+    assert db.internal_clinical_workers.dropped_indexes == ["id_1"]
+    assert "id_1" not in db.internal_clinical_workers.indexes
+    assert db.internal_clinical_workers.indexes["tenant_worker_unique"] == {
+        "key": [("tenant_id", 1), ("id", 1)],
+        "unique": True,
+    }
+
+    # Re-running index setup must be safe and must not try to drop the legacy
+    # index again.
+    await store.ensure_indexes()
+    assert db.internal_clinical_workers.dropped_indexes == ["id_1"]
 
 
 @pytest.mark.asyncio
