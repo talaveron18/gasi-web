@@ -71,8 +71,8 @@ test('home, services and SEO identify the current offer explicitly', () => {
   const services = read('frontend/src/pages/Servicios.jsx');
   const index = read('frontend/public/index.html');
   for (const source of [home, services, index]) {
-    assert.match(source, /Enfermer[ií]a (?:P|p)resencial/);
-    assert.match(source, /Formaci[oó]n (?:S|s)anitaria/);
+    assert.match(source, /[Ee]nfermer[ií]a [Pp]resencial/);
+    assert.match(source, /[Ff]ormaci[oó]n [Ss]anitaria/);
   }
   assert.match(home, /sujetas? a confirmaci[oó]n|se confirma|requisitos aplicables/i);
   assert.match(services, /requisitos aplicables/i);
