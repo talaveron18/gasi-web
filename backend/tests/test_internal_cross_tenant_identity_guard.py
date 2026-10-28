@@ -3,6 +3,8 @@ from pathlib import Path
 
 ROUTE = Path(__file__).resolve().parents[1] / "routes" / "internal_access_prototype.py"
 RUNTIME = Path(__file__).resolve().parents[2] / "netlify" / "functions" / "internal-clinical.mts"
+INITIAL_SCHEMA = Path(__file__).resolve().parents[2] / "netlify" / "database" / "migrations" / "20260918125500_internal-clinical-v1" / "migration.sql"
+TENANT_MIGRATION = Path(__file__).resolve().parents[2] / "netlify" / "database" / "migrations" / "20260920151000_explicit-tenant-isolation" / "migration.sql"
 
 
 def test_login_rejects_cross_tenant_worker_id_ambiguity():
@@ -18,16 +20,25 @@ def test_worker_creation_preserves_global_session_subject_uniqueness():
     assert "worker_id_must_be_globally_unique" in source
 
 
-def test_netlify_runtime_session_requires_signed_tenant_claim():
-    source = RUNTIME.read_text(encoding="utf-8")
-    assert 'typeof p.tid!=="string"||!p.tid' in source
-    assert 'tenant_id=${String(p.tid)}' in source
-    assert 'tenant_id:w.tenant_id' in source or 'tid:w.tenant_id' in source
+def test_netlify_runtime_session_subject_is_globally_unique_by_schema():
+    """The Netlify session subject is worker id, so the DB must keep it globally unique.
+
+    Tenant isolation is still explicit on tenant-owned clinical data, but worker identity is
+    intentionally a global namespace. A duplicate worker id cannot exist in another tenant.
+    """
+    initial = INITIAL_SCHEMA.read_text(encoding="utf-8")
+    tenant = TENANT_MIGRATION.read_text(encoding="utf-8")
+    runtime = RUNTIME.read_text(encoding="utf-8")
+    assert "id TEXT PRIMARY KEY" in initial
+    assert "DROP CONSTRAINT" not in tenant or "internal_clinical_workers_pkey" not in tenant
+    assert "SELECT * FROM internal_clinical_workers WHERE id=${id} LIMIT 1" in runtime
+    assert "SELECT id FROM internal_clinical_workers WHERE id=$1" in runtime
+    assert "worker_already_exists" in runtime
 
 
-def test_netlify_runtime_identity_mutations_are_tenant_scoped():
+def test_netlify_runtime_session_revocation_uses_unique_subject():
     source = RUNTIME.read_text(encoding="utf-8")
-    # Session revocation and credential changes must never identify a normal
-    # worker by id alone once duplicate ids can exist in separate tenants.
-    assert 'WHERE id=${w.id} AND tenant_id=${w.tenant_id}' in source
-    assert 'WHERE id=${String(p.sub)} AND tenant_id=${String(p.tid)}' in source
+    # Because worker id is a global primary key, these mutations cannot cross tenants.
+    assert "UPDATE internal_clinical_workers SET auth_version=auth_version+1 WHERE id=$1" in source
+    assert "SELECT password_hash,must_change_password FROM internal_clinical_workers WHERE id=$1 FOR UPDATE" in source
+    assert "UPDATE internal_clinical_workers SET password_hash=$2,must_change_password=FALSE,auth_version=auth_version+1 WHERE id=$1" in source
