@@ -111,6 +111,20 @@ def test_cross_center_physician_cannot_read_or_respond_by_known_episode_id():
     assert response.status_code==403 and response.json()["detail"]=="episode_forbidden"
 
 
+def test_episode_list_is_scoped_to_assigned_centers_for_clinical_roles():
+    center_a_id=create().json()["id"]
+    center_b=client.post("/api/internal-clinical/episodes",headers=h("GASI-NURSE-B"),json={"patient_ref":"PAC-B-LIST","center":CENTER_B,"level":2,"summary":"Valoración centro B"})
+    assert center_b.status_code==201
+    center_b_id=center_b.json()["id"]
+
+    list_a=client.get("/api/internal-clinical/episodes",headers=h("GASI-PHYS-01"))
+    list_b=client.get("/api/internal-clinical/episodes",headers=h("GASI-PHYS-B"))
+    assert list_a.status_code==200 and [e["id"] for e in list_a.json()]==[center_a_id]
+    assert list_b.status_code==200 and [e["id"] for e in list_b.json()]==[center_b_id]
+    assert all(e["center"]==CENTER for e in list_a.json())
+    assert all(e["center"]==CENTER_B for e in list_b.json())
+
+
 def test_deactivated_worker_session_is_rejected():
     headers=h("GASI-NURSE-01"); store.workers["GASI-NURSE-01"]["active"]=False
     r=client.get("/api/internal-clinical/episodes",headers=headers)
