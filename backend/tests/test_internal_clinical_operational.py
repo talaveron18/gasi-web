@@ -27,6 +27,7 @@ class MemoryStore:
             "GASI-PHYS-01": {"id":"GASI-PHYS-01","role":"physician","display_name":"Facultativo","centers":[CENTER],"active":True,"delegated_privileges":[],"auth_version":1},
             "GASI-PSY-01": {"id":"GASI-PSY-01","role":"psychologist","display_name":"Psicología","centers":[CENTER],"active":True,"delegated_privileges":[],"auth_version":1},
             "GASI-NURSE-B": {"id":"GASI-NURSE-B","role":"nurse","display_name":"Enfermería B","centers":[CENTER_B],"active":True,"delegated_privileges":[],"auth_version":1},
+            "GASI-PHYS-B": {"id":"GASI-PHYS-B","role":"physician","display_name":"Facultativo B","centers":[CENTER_B],"active":True,"delegated_privileges":[],"auth_version":1},
         }
     async def get_worker(self, i): return deepcopy(self.workers.get(i))
     async def list_workers(self): return [deepcopy(x) for x in self.workers.values()]
@@ -100,6 +101,14 @@ def test_cross_center_direct_id_read_and_write_are_denied():
     assert client.get(f"/api/internal-clinical/episodes/{eid}",headers=h("GASI-NURSE-B")).status_code==403
     r=client.post(f"/api/internal-clinical/episodes/{eid}/addenda",headers=h("GASI-NURSE-B"),json={"text":"Intento centro ajeno"})
     assert r.status_code==403
+
+
+def test_cross_center_physician_cannot_read_or_respond_by_known_episode_id():
+    eid=create().json()["id"]
+    read=client.get(f"/api/internal-clinical/episodes/{eid}",headers=h("GASI-PHYS-B"))
+    response=client.post(f"/api/internal-clinical/episodes/{eid}/responses",headers=h("GASI-PHYS-B"),json={"text":"Intento facultativo centro ajeno"})
+    assert read.status_code==403 and read.json()["detail"]=="episode_forbidden"
+    assert response.status_code==403 and response.json()["detail"]=="episode_forbidden"
 
 
 def test_deactivated_worker_session_is_rejected():
