@@ -25,7 +25,8 @@ def _require_worker_manager(actor):
 def _profile(actor):return{'id':actor['id'],'tenant_id':actor.get('tenant_id'),'role':actor['role'],'display_name':actor['display_name'],'centers':actor.get('centers',[]),'operational_state':'ACTIVE'if actor.get('active',True)else'REVOKED','delegated_privileges':sorted(actor.get('delegated_privileges',[]))}
 @router.post('/login')
 async def login(payload:LoginInput):
- tenant=internal_prototype._required(payload.tenant_id,'tenant_id');worker=await _store().get_worker_for_tenant(tenant,payload.worker_id.strip())
+ tenant=internal_prototype._required(payload.tenant_id,'tenant_id');worker_id=payload.worker_id.strip();worker=await _store().get_worker_for_tenant(tenant,worker_id);global_worker=await _store().get_worker(worker_id)
+ if worker and global_worker and (global_worker.get('tenant_id')or'').strip()!=tenant:raise HTTPException(409,'ambiguous_worker_identity')
  if not worker or not worker.get('active',True) or not worker.get('password_hash') or not verify_password(payload.password,worker['password_hash']):raise HTTPException(401,'invalid_credentials')
  session=issue_session(worker_id=worker['id'],auth_version=int(worker.get('auth_version',1)),ttl_minutes=int(os.environ.get('GASI_INTERNAL_SESSION_TTL_MINUTES','30')))
  token=sign_session_token(session,secret=os.environ.get('GASI_INTERNAL_SESSION_SECRET',''))
@@ -43,7 +44,7 @@ async def professional_profile(authorization:Optional[str]=Header(default=None,a
 @router.post('/workers',status_code=status.HTTP_201_CREATED)
 async def create_worker(payload:WorkerCreateInput,authorization:Optional[str]=Header(default=None,alias='Authorization')):
  actor=await _actor(authorization);_require_worker_manager(actor);tenant=_tenant(actor);worker_id=internal_prototype._required(payload.id,'worker_id');display_name=internal_prototype._required(payload.display_name,'display_name')
- if await _store().get_worker_for_tenant(tenant,worker_id):raise HTTPException(409,'worker_already_exists')
+ if await _store().get_worker(worker_id):raise HTTPException(409,'worker_id_must_be_globally_unique')
  if payload.role=='admin':
   if payload.centers:raise HTTPException(422,'admin_cannot_have_clinical_centers')
   centers=[]
