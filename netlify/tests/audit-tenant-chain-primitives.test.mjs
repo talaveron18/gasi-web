@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import test from "node:test";
-import {auditTenantId,auditTenantLockKey,lockAuditTenant,previousAuditHashForTenant,validAuditChainsByTenant,ZERO_HASH} from "../functions/internal-audit-tenant-chain.mts";
+import {appendAuditEventForTenant,auditTenantId,auditTenantLockKey,lockAuditTenant,previousAuditHashForTenant,validAuditChainsByTenant,ZERO_HASH} from "../functions/internal-audit-tenant-chain.mts";
 
 const canonical=(value)=>{if(value===null||typeof value!=="object")return JSON.stringify(value);if(Array.isArray(value))return "["+value.map(canonical).join(",")+"]";return "{"+Object.keys(value).sort().map(k=>JSON.stringify(k)+":"+canonical(value[k])).join(",")+"}";};
 function row(tenant,seq,previous,action){const payload={at:`2026-10-29T15:00:0${seq}.000Z`,actor_id:`${tenant}-USER`,actor_role:"admin",action,episode_id:null,metadata:{actor_tenant_id:tenant}};const event_hash=crypto.createHash("sha256").update(previous+":"+canonical(payload)).digest("hex");return {tenant_id:tenant,seq,previous_hash:previous,event_hash,...payload};}
@@ -32,6 +32,30 @@ test("advisory lock is derived from tenant rather than one global constant",asyn
   await lockAuditTenant(client,"TENANT-B");
   assert.match(calls[0][0],/pg_advisory_xact_lock/);
   assert.notEqual(calls[0][1][0],calls[1][1][0]);
+});
+
+test("atomic append locks and links only the authenticated tenant chain",async()=>{
+  const calls=[];
+  const prior="a".repeat(64);
+  const client={query:async(sql,args)=>{calls.push([sql,args]);if(/SELECT event_hash/.test(sql))return {rows:[{event_hash:prior}]};return {rows:[]};}};
+  const at="2026-10-29T17:00:00.000Z";
+  const event=await appendAuditEventForTenant(client,{id:"A-1",role:"admin",tenant_id:"TENANT-A"},"READ",{scope:"audit"},canonical,at);
+  assert.equal(event.tenant_id,"TENANT-A");
+  assert.equal(event.previous_hash,prior);
+  assert.equal(event.metadata.actor_tenant_id,"TENANT-A");
+  assert.match(calls[0][0],/pg_advisory_xact_lock/);
+  assert.match(calls[1][0],/WHERE tenant_id=\$1/);
+  assert.deepEqual(calls[1][1],["TENANT-A"]);
+  assert.match(calls[2][0],/^INSERT INTO internal_clinical_audit/);
+  assert.equal(calls[2][1][6],prior);
+  assert.equal(calls[2][1][7],event.event_hash);
+});
+
+test("atomic append fails before any query when tenant identity is missing",async()=>{
+  let queried=false;
+  const client={query:async()=>{queried=true;return {rows:[]};}};
+  await assert.rejects(()=>appendAuditEventForTenant(client,{id:"A-1",role:"admin"},"READ",{},canonical),/audit_tenant_required/);
+  assert.equal(queried,false);
 });
 
 test("snapshot verification accepts independent interleaved tenant chains",()=>{
