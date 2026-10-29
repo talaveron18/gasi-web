@@ -29,6 +29,21 @@ export async function lockAuditTenant(client:any,tenantId:string){
   await client.query("SELECT pg_advisory_xact_lock($1::bigint)",[auditTenantLockKey(tenantId).toString()]);
 }
 
+export async function appendAuditEventForTenant(client:any,worker:any,action:string,safeMetadata:any,canonical:(value:any)=>string,at=new Date().toISOString()){
+  const tenant=auditTenantId(worker);
+  await lockAuditTenant(client,tenant);
+  const previous=await previousAuditHashForTenant(client,tenant);
+  const metadata={...(safeMetadata||{}),actor_tenant_id:tenant};
+  const episodeId=typeof metadata.episode_id==="string"?metadata.episode_id:null;
+  const payload={at,actor_id:String(worker.id),actor_role:String(worker.role),action:String(action),episode_id:episodeId,metadata};
+  const eventHash=crypto.createHash("sha256").update(previous+":"+canonical(payload)).digest("hex");
+  await client.query(
+    "INSERT INTO internal_clinical_audit(at,actor_id,actor_role,action,episode_id,metadata,previous_hash,event_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+    [at,payload.actor_id,payload.actor_role,payload.action,episodeId,metadata,previous,eventHash],
+  );
+  return {tenant_id:tenant,previous_hash:previous,event_hash:eventHash,...payload};
+}
+
 export function validAuditChainsByTenant(rows:any[],canonical:(value:any)=>string){
   const groups=new Map<string,any[]>();
   for(const row of rows||[]){
