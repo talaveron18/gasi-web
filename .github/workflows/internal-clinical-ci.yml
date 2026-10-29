@@ -79,6 +79,8 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Typecheck clinical function
         run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-clinical.mts
+      - name: Typecheck personal inbox function
+        run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-personal-inbox.mts
       - name: Typecheck public API function
         run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/public-api.mts
       - name: Tenant isolation and security regression
@@ -156,3 +158,7 @@ jobs:
         env:
           GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
         run: node --test tests/runtime-postgres-integration.test.mjs
+      - name: PostgreSQL personal inbox isolation integration
+        env:
+          GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
+        run: node --test tests/runtime-personal-inbox-postgres.test.mjs
