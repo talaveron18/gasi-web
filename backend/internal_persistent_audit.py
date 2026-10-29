@@ -28,6 +28,13 @@ class PersistentAuditStore:
             [("tenant_id", 1), ("event_hash", 1)], unique=True,
             name="tenant_audit_event_hash_unique",
         )
+        # A hash chain must have at most one child for each previous hash.
+        # This unique tenant-scoped edge makes concurrent writers fail closed
+        # instead of silently creating two valid-looking branches.
+        await self.collection.create_index(
+            [("tenant_id", 1), ("previous_hash", 1)], unique=True,
+            name="tenant_audit_previous_hash_unique",
+        )
         await self.collection.create_index(
             [("tenant_id", 1), ("at", -1)], name="tenant_audit_timeline",
         )
