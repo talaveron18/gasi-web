@@ -106,6 +106,33 @@ test('public navigation exposes only reconciled service destinations', () => {
   assert.doesNotMatch(nav, /nav-health-services/);
 });
 
+test('every directly rendered public route is represented in the reconciliation inventory', () => {
+  const app = read('frontend/src/App.js');
+  const expected = new Map([
+    ['/', 'Home'],
+    ['/quienes-somos', 'QuienesSomos'],
+    ['/servicios', 'Servicios'],
+    ['/cobertura-sanitaria', 'CoberturaSanitaria'],
+    ['/formacion-sanitaria', 'FormacionSanitaria'],
+    ['/servicios-sanitarios-organizaciones', 'SaludLaboral'],
+    ['/sectores', 'Sectores'],
+    ['/contacto', 'Contacto'],
+    ['/politica-privacidad', 'PoliticaPrivacidad'],
+    ['/acceso', 'AccessPortal'],
+    ['/alumnado/acceso', 'StudentAccess'],
+    ['*', 'NotFound'],
+  ]);
+  for (const [route, component] of expected) {
+    assert.match(app, new RegExp(`path="${route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\s+element=\\{<${component}\\s*\\/>\\}`), `missing public route ${route}`);
+    assert.ok(publicSurfaces.includes(`frontend/src/pages/${component}.jsx`), `${route}: ${component} is outside public reconciliation inventory`);
+  }
+  const directPublicRoutes = [...app.matchAll(/<Route\s+path="([^"]+)"\s+element=\{<([A-Z][A-Za-z0-9]*)\s*\/>\}/g)]
+    .filter(([, route]) => !route.startsWith('/interno/') && !route.startsWith('/dashboard'))
+    .map(([, route, component]) => [route, component])
+    .filter(([, component]) => component !== 'Navigate');
+  assert.deepEqual(directPublicRoutes.sort(), [...expected.entries()].sort(), 'new directly rendered public route must be explicitly inventoried and audited');
+});
+
 test('public router cannot expose the withdrawn course catalogue/detail surfaces', () => {
   const app = read('frontend/src/App.js');
   assert.match(app, /path="\/curso\/:courseId"\s+element=\{<Navigate\s+to="\/formacion-sanitaria"\s+replace\/>\}/);
