@@ -24,6 +24,8 @@ const publicSurfaces = [
   'frontend/src/pages/Contacto.jsx',
   'frontend/src/pages/PoliticaPrivacidad.jsx',
   'frontend/src/pages/NotFound.jsx',
+  'frontend/src/pages/AccessPortal.jsx',
+  'frontend/src/pages/StudentAccess.jsx',
   'frontend/functions/chatbot.js',
   'frontend/functions/contact.js',
   'netlify/functions/chatbot.js',
@@ -109,6 +111,19 @@ test('public router cannot expose the withdrawn course catalogue/detail surfaces
   assert.match(app, /path="\/dashboard\/admin\/cursos"\s+element=\{<Navigate\s+to="\/acceso"\s+replace\/>\}/);
   assert.doesNotMatch(app, /<Route\s+path="\/curso\/:courseId"\s+element=\{<CursoDetalle/);
   assert.doesNotMatch(app, /<Route\s+path="\/dashboard\/admin\/cursos"\s+element=\{<AdminCourses/);
+});
+
+test('public access gateway is non-commercial and does not imply open registration or availability', () => {
+  const portal = read('frontend/src/pages/AccessPortal.jsx');
+  const student = read('frontend/src/pages/StudentAccess.jsx');
+  assert.match(portal, /Acceso restringido/);
+  assert.match(portal, /No existe registro público/);
+  assert.match(portal, /previamente autorizados/);
+  assert.match(student, /Área reservada/);
+  assert.match(student, /No se permite el registro público/);
+  for (const source of [portal, student]) {
+    assert.doesNotMatch(source, /contrata|comprar|precio|disponible para todos|registro abierto/i);
+  }
 });
 
 test('public course catalogue and course detail stay blocked at edge routing', () => {
