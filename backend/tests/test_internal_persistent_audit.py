@@ -57,10 +57,13 @@ async def test_persistence_rejects_clinical_content_secrets_nested_metadata_and_
 
 
 @pytest.mark.asyncio
-async def test_indexes_and_list_limit_are_tenant_scoped_and_bounded():
+async def test_indexes_and_list_limit_are_tenant_scoped_bounded_and_fork_proof():
     collection=Collection(); store=PersistentAuditStore(collection); await store.ensure_indexes()
-    assert collection.indexes["tenant_audit_event_hash_unique"]["unique"] is True
-    assert collection.indexes["tenant_audit_event_hash_unique"]["keys"][:1]==[("tenant_id",1)]
+    event_index=collection.indexes["tenant_audit_event_hash_unique"]
+    edge_index=collection.indexes["tenant_audit_previous_hash_unique"]
+    assert event_index["unique"] is True and event_index["keys"][:1]==[("tenant_id",1)]
+    assert edge_index["unique"] is True
+    assert edge_index["keys"]==[("tenant_id",1),("previous_hash",1)]
     for i in range(3):
         await store.append(tenant_id="TENANT-A", actor_id="A", actor_role="nurse", action="VIEW", at=f"2026-10-29T01:0{i}:00+00:00")
     rows=await store.list_for_tenant("TENANT-A", limit=2)
