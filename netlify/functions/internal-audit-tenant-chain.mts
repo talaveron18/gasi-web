@@ -29,4 +29,25 @@ export async function lockAuditTenant(client:any,tenantId:string){
   await client.query("SELECT pg_advisory_xact_lock($1::bigint)",[auditTenantLockKey(tenantId).toString()]);
 }
 
+export function validAuditChainsByTenant(rows:any[],canonical:(value:any)=>string){
+  const groups=new Map<string,any[]>();
+  for(const row of rows||[]){
+    const tenant=String(row?.tenant_id||"").trim();
+    if(!tenant)return false;
+    groups.set(tenant,[...(groups.get(tenant)||[]),row]);
+  }
+  for(const tenantRows of groups.values()){
+    const ordered=[...tenantRows].sort((a:any,b:any)=>Number(a.seq)-Number(b.seq));
+    let previous=ZERO_HASH;
+    for(const x of ordered){
+      if(String(x.previous_hash||"")!==previous)return false;
+      const payload={at:String(x.at),actor_id:String(x.actor_id),actor_role:String(x.actor_role),action:String(x.action),episode_id:x.episode_id==null?null:String(x.episode_id),metadata:x.metadata||{}};
+      const expected=crypto.createHash("sha256").update(previous+":"+canonical(payload)).digest("hex");
+      if(String(x.event_hash||"")!==expected)return false;
+      previous=expected;
+    }
+  }
+  return true;
+}
+
 export {ZERO_HASH};
