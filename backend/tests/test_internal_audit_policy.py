@@ -6,7 +6,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from internal_audit_policy import (  # noqa: E402
-    ValidatedAuditStream, append_audit_event, build_audit_event,
+    ValidatedAuditStream, append_audit_event, build_audit_addendum, build_audit_event,
     sanitize_audit_metadata, verify_audit_chain,
 )
 
@@ -104,3 +104,30 @@ def test_validated_stream_rejects_unexpected_top_level_fields():
     with pytest.raises(ValueError, match="audit_event_unexpected_field"):
         stream.append({"actor_id": "USR-DEMO-ADMIN-01", "actor_role": "admin", "action": "EPISODE_VIEWED", "clinical_content": "FICTICIO"})
     assert stream == []
+
+
+def test_addendum_references_original_hash_without_copying_original_event():
+    target = "a" * 64
+    event = build_audit_addendum(actor_id="USR-DEMO-ADMIN-01", actor_role="admin",
+                                 target_event_hash=target, reason_code="ACTION_CODE_CORRECTION",
+                                 corrected_field="action", corrected_value="EPISODE_VIEWED")
+    assert event["action"] == "AUDIT_ADDENDUM"
+    assert event["metadata"] == {"target_event_hash": target, "reason_code": "ACTION_CODE_CORRECTION",
+                                  "corrected_field": "action", "corrected_value": "EPISODE_VIEWED"}
+    assert "text" not in event["metadata"] and "content" not in event["metadata"]
+
+
+def test_addendum_rejects_free_form_reason_and_unapproved_fields():
+    with pytest.raises(ValueError, match="audit_addendum_reason_invalid"):
+        build_audit_addendum(actor_id="USR-DEMO-ADMIN-01", actor_role="admin", target_event_hash="a" * 64,
+                             reason_code="because I want to change it")
+    with pytest.raises(ValueError, match="audit_addendum_field_invalid"):
+        build_audit_addendum(actor_id="USR-DEMO-ADMIN-01", actor_role="admin", target_event_hash="a" * 64,
+                             reason_code="OPERATIONAL_METADATA_CORRECTION", corrected_field="clinical_content",
+                             corrected_value="forbidden")
+
+
+def test_addendum_requires_real_sha256_shaped_target_reference():
+    with pytest.raises(ValueError, match="audit_addendum_target_hash_invalid"):
+        build_audit_addendum(actor_id="USR-DEMO-ADMIN-01", actor_role="admin", target_event_hash="not-a-hash",
+                             reason_code="ACTOR_ROLE_CORRECTION")
