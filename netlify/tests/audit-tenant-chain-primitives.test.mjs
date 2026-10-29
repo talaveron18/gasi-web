@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import test from "node:test";
-import {auditTenantId,auditTenantLockKey,lockAuditTenant,previousAuditHashForTenant,ZERO_HASH} from "../functions/internal-audit-tenant-chain.mts";
+import {auditTenantId,auditTenantLockKey,lockAuditTenant,previousAuditHashForTenant,validAuditChainsByTenant,ZERO_HASH} from "../functions/internal-audit-tenant-chain.mts";
+
+const canonical=(value)=>{if(value===null||typeof value!=="object")return JSON.stringify(value);if(Array.isArray(value))return "["+value.map(canonical).join(",")+"]";return "{"+Object.keys(value).sort().map(k=>JSON.stringify(k)+":"+canonical(value[k])).join(",")+"}";};
+function row(tenant,seq,previous,action){const payload={at:`2026-10-29T15:00:0${seq}.000Z`,actor_id:`${tenant}-USER`,actor_role:"admin",action,episode_id:null,metadata:{actor_tenant_id:tenant}};const event_hash=crypto.createHash("sha256").update(previous+":"+canonical(payload)).digest("hex");return {tenant_id:tenant,seq,previous_hash:previous,event_hash,...payload};}
 
 test("tenant audit chain fails closed without authenticated tenant",()=>{
   assert.throws(()=>auditTenantId({tenant_id:""}),/audit_tenant_required/);
@@ -28,4 +32,15 @@ test("advisory lock is derived from tenant rather than one global constant",asyn
   await lockAuditTenant(client,"TENANT-B");
   assert.match(calls[0][0],/pg_advisory_xact_lock/);
   assert.notEqual(calls[0][1][0],calls[1][1][0]);
+});
+
+test("snapshot verification accepts independent interleaved tenant chains",()=>{
+  const a1=row("TENANT-A",1,ZERO_HASH,"LOGIN"),b1=row("TENANT-B",2,ZERO_HASH,"LOGIN"),a2=row("TENANT-A",3,a1.event_hash,"READ"),b2=row("TENANT-B",4,b1.event_hash,"READ");
+  assert.equal(validAuditChainsByTenant([a1,b1,a2,b2],canonical),true);
+});
+
+test("snapshot verification fails closed for missing tenant or cross-tenant linkage",()=>{
+  const a1=row("TENANT-A",1,ZERO_HASH,"LOGIN"),b1=row("TENANT-B",2,ZERO_HASH,"LOGIN");
+  assert.equal(validAuditChainsByTenant([{...a1,tenant_id:""}],canonical),false);
+  assert.equal(validAuditChainsByTenant([a1,{...b1,previous_hash:a1.event_hash}],canonical),false);
 });
