@@ -32,6 +32,7 @@ const publicSurfaces = [
   'netlify/functions/chatbot.js',
   'netlify/functions/contact.js',
   'netlify/functions/public-lead-utils.js',
+  'netlify.toml',
 ];
 
 const forbiddenPromises = [
@@ -97,6 +98,19 @@ test('all public offer pages name only the current offer and delimit scope', () 
   assert.match(index, /enfermer[ií]a presencial/i);
   assert.match(index, /formaci[oó]n sanitaria/i);
   assert.match(index, /sujetas a confirmaci[oó]n previa de alcance y requisitos aplicables/i);
+});
+
+test('public metadata advertises only the reconciled offer and preserves scope limitation', () => {
+  const index = read('frontend/public/index.html');
+  const title = index.match(/<title>([^<]+)<\/title>/i)?.[1] ?? '';
+  const description = index.match(/<meta\s+name="description"\s+content="([^"]+)"\s*\/?>/i)?.[1] ?? '';
+  for (const value of [title, description]) {
+    assert.match(value, /GASI/i);
+    assert.doesNotMatch(value, /fisioterapia|psicolog[ií]a|telemedicina|reconocimientos?\s+m[eé]dicos?/i);
+  }
+  assert.match(description, /enfermer[ií]a presencial/i);
+  assert.match(description, /formaci[oó]n sanitaria/i);
+  assert.match(description, /confirmaci[oó]n previa de alcance y requisitos aplicables/i);
 });
 
 test('public navigation exposes only reconciled service destinations', () => {
@@ -166,6 +180,14 @@ test('public course catalogue and course detail stay blocked at edge routing', (
   const config = read('netlify.toml');
   assert.match(config, /from\s*=\s*"\/api\/courses\/"[\s\S]*?status\s*=\s*404[\s\S]*?force\s*=\s*true/);
   assert.match(config, /from\s*=\s*"\/api\/courses\/:course_id"[\s\S]*?status\s*=\s*404[\s\S]*?force\s*=\s*true/);
+  const redirects = [...config.matchAll(/\[\[redirects\]\][\s\S]*?(?=\n\[\[redirects\]\]|\n\[\[headers\]\]|$)/g)].map((match) => match[0]);
+  const publicApiRedirects = redirects.filter((block) => /from\s*=\s*"\/api\//.test(block));
+  assert.equal(publicApiRedirects.length, 2, 'new public /api edge route must be explicitly reconciled');
+  for (const block of publicApiRedirects) {
+    assert.match(block, /status\s*=\s*404/);
+    assert.match(block, /force\s*=\s*true/);
+  }
+  assert.match(config, /from\s*=\s*"\/\*"[\s\S]*?to\s*=\s*"\/index\.html"[\s\S]*?status\s*=\s*200/);
 });
 
 test('public contact surfaces explicitly delimit non-clinical channels', () => {
