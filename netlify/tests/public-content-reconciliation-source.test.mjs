@@ -11,6 +11,7 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 const publicSurfaces = [
   'frontend/public/index.html',
   'frontend/src/App.js',
+  'frontend/src/components/Layout.jsx',
   'frontend/src/components/Navbar.jsx',
   'frontend/src/components/Footer.jsx',
   'frontend/src/components/Chatbot.jsx',
@@ -124,6 +125,14 @@ test('public access gateway is non-commercial and does not imply open registrati
   for (const source of [portal, student]) {
     assert.doesNotMatch(source, /contrata|comprar|precio|disponible para todos|registro abierto/i);
   }
+});
+
+test('floating WhatsApp CTA is explicitly commercial and discourages health data', () => {
+  const layout = read('frontend/src/components/Layout.jsx');
+  assert.match(layout, /consulta%20comercial/);
+  assert.match(layout, /No%20incluyo%20datos%20de%20salud/);
+  assert.match(layout, /WhatsApp comercial · no es un canal clínico ni de urgencias/);
+  assert.match(layout, /aria-label="Contactar con GASI por WhatsApp para una consulta comercial\. No es un canal clínico ni de urgencias"/);
 });
 
 test('public course catalogue and course detail stay blocked at edge routing', () => {
