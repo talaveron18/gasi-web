@@ -37,9 +37,11 @@ export async function appendAuditEventForTenant(client:any,worker:any,action:str
   const episodeId=typeof metadata.episode_id==="string"?metadata.episode_id:null;
   const payload={at,actor_id:String(worker.id),actor_role:String(worker.role),action:String(action),episode_id:episodeId,metadata};
   const eventHash=crypto.createHash("sha256").update(previous+":"+canonical(payload)).digest("hex");
+  // tenant_id is a GENERATED ALWAYS column derived from authenticated actor_tenant_id metadata.
+  // Do not write it explicitly: PostgreSQL rejects explicit values for generated columns.
   await client.query(
-    "INSERT INTO internal_clinical_audit(at,actor_id,actor_role,action,episode_id,metadata,previous_hash,event_hash,tenant_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
-    [at,payload.actor_id,payload.actor_role,payload.action,episodeId,metadata,previous,eventHash,tenant],
+    "INSERT INTO internal_clinical_audit(at,actor_id,actor_role,action,episode_id,metadata,previous_hash,event_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+    [at,payload.actor_id,payload.actor_role,payload.action,episodeId,metadata,previous,eventHash],
   );
   return {tenant_id:tenant,previous_hash:previous,event_hash:eventHash,...payload};
 }
