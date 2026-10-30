@@ -34,7 +34,7 @@ test("advisory lock is derived from tenant rather than one global constant",asyn
   assert.notEqual(calls[0][1][0],calls[1][1][0]);
 });
 
-test("atomic append locks and links only the authenticated tenant chain",async()=>{
+test("atomic append locks, links and persists only the authenticated tenant chain",async()=>{
   const calls=[];
   const prior="a".repeat(64);
   const client={query:async(sql,args)=>{calls.push([sql,args]);if(/SELECT event_hash/.test(sql))return {rows:[{event_hash:prior}]};return {rows:[]};}};
@@ -47,8 +47,10 @@ test("atomic append locks and links only the authenticated tenant chain",async()
   assert.match(calls[1][0],/WHERE tenant_id=\$1/);
   assert.deepEqual(calls[1][1],["TENANT-A"]);
   assert.match(calls[2][0],/^INSERT INTO internal_clinical_audit/);
+  assert.match(calls[2][0],/tenant_id\) VALUES\([^)]*\$9\)$/);
   assert.equal(calls[2][1][6],prior);
   assert.equal(calls[2][1][7],event.event_hash);
+  assert.equal(calls[2][1][8],"TENANT-A");
 });
 
 test("atomic append fails before any query when tenant identity is missing",async()=>{
