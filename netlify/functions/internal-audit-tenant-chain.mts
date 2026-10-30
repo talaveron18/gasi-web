@@ -50,7 +50,8 @@ export function validAuditChainsByTenant(rows:any[],canonical:(value:any)=>strin
   const groups=new Map<string,any[]>();
   for(const row of rows||[]){
     const tenant=String(row?.tenant_id||"").trim();
-    if(!tenant)return false;
+    const metadataTenant=String(row?.metadata?.actor_tenant_id||"").trim();
+    if(!tenant||metadataTenant!==tenant)return false;
     groups.set(tenant,[...(groups.get(tenant)||[]),row]);
   }
   for(const tenantRows of groups.values()){
@@ -65,6 +66,19 @@ export function validAuditChainsByTenant(rows:any[],canonical:(value:any)=>strin
     }
   }
   return true;
+}
+
+export async function restoreAuditRowsByTenant(client:any,rows:any[],canonical:(value:any)=>string){
+  if(!validAuditChainsByTenant(rows,canonical))throw new Error("invalid_audit_chain");
+  const ordered=[...(rows||[])].sort((a:any,b:any)=>Number(a.seq)-Number(b.seq));
+  for(const row of ordered){
+    // tenant_id is regenerated from metadata.actor_tenant_id by storage. This prevents a restore payload
+    // from claiming one tenant in the generated column while hashing another tenant in metadata.
+    await client.query(
+      "INSERT INTO internal_clinical_audit(seq,at,actor_id,actor_role,action,episode_id,metadata,previous_hash,event_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+      [Number(row.seq),String(row.at),String(row.actor_id),String(row.actor_role),String(row.action),row.episode_id==null?null:String(row.episode_id),row.metadata||{},String(row.previous_hash),String(row.event_hash)],
+    );
+  }
 }
 
 export {ZERO_HASH};
