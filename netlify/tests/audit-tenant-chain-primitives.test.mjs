@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import test from "node:test";
-import {appendAuditEventForTenant,auditTenantId,auditTenantLockKey,lockAuditTenant,previousAuditHashForTenant,validAuditChainsByTenant,ZERO_HASH} from "../functions/internal-audit-tenant-chain.mts";
+import {appendAuditEventForTenant,auditTenantId,auditTenantLockKey,lockAuditTenant,previousAuditHashForTenant,restoreAuditRowsByTenant,validAuditChainsByTenant,ZERO_HASH} from "../functions/internal-audit-tenant-chain.mts";
 
 const canonical=(value)=>{if(value===null||typeof value!=="object")return JSON.stringify(value);if(Array.isArray(value))return "["+value.map(canonical).join(",")+"]";return "{"+Object.keys(value).sort().map(k=>JSON.stringify(k)+":"+canonical(value[k])).join(",")+"}";};
 function row(tenant,seq,previous,action){const payload={at:`2026-10-29T15:00:0${seq}.000Z`,actor_id:`${tenant}-USER`,actor_role:"admin",action,episode_id:null,metadata:{actor_tenant_id:tenant}};const event_hash=crypto.createHash("sha256").update(previous+":"+canonical(payload)).digest("hex");return {tenant_id:tenant,seq,previous_hash:previous,event_hash,...payload};}
@@ -67,8 +67,30 @@ test("snapshot verification accepts independent interleaved tenant chains",()=>{
   assert.equal(validAuditChainsByTenant([a1,b1,a2,b2],canonical),true);
 });
 
-test("snapshot verification fails closed for missing tenant or cross-tenant linkage",()=>{
+test("snapshot verification fails closed for missing, mismatched or cross-tenant identity",()=>{
   const a1=row("TENANT-A",1,ZERO_HASH,"LOGIN"),b1=row("TENANT-B",2,ZERO_HASH,"LOGIN");
   assert.equal(validAuditChainsByTenant([{...a1,tenant_id:""}],canonical),false);
+  assert.equal(validAuditChainsByTenant([{...a1,tenant_id:"TENANT-B"}],canonical),false);
   assert.equal(validAuditChainsByTenant([a1,{...b1,previous_hash:a1.event_hash}],canonical),false);
+});
+
+test("restore validates all tenant chains before writing and lets storage regenerate tenant_id",async()=>{
+  const a1=row("TENANT-A",1,ZERO_HASH,"LOGIN"),b1=row("TENANT-B",2,ZERO_HASH,"LOGIN"),calls=[];
+  const client={query:async(sql,args)=>{calls.push([sql,args]);return {rows:[]};}};
+  await restoreAuditRowsByTenant(client,[b1,a1],canonical);
+  assert.equal(calls.length,2);
+  assert.match(calls[0][0],/^INSERT INTO internal_clinical_audit\(seq,at/);
+  assert.doesNotMatch(calls[0][0],/tenant_id/);
+  assert.equal(calls[0][1][0],1);
+  assert.equal(calls[0][1][6].actor_tenant_id,"TENANT-A");
+  assert.equal(calls[1][1][0],2);
+  assert.equal(calls[1][1][6].actor_tenant_id,"TENANT-B");
+});
+
+test("restore fails closed before writing when snapshot tenant identity is forged",async()=>{
+  let queried=false;
+  const client={query:async()=>{queried=true;return {rows:[]};}};
+  const forged={...row("TENANT-A",1,ZERO_HASH,"LOGIN"),tenant_id:"TENANT-B"};
+  await assert.rejects(()=>restoreAuditRowsByTenant(client,[forged],canonical),/invalid_audit_chain/);
+  assert.equal(queried,false);
 });
