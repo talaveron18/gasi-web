@@ -12,13 +12,13 @@ export default function AccessPortal() {
   if (!sessionChecking && isAuthenticated && !session?.mustChangePassword) return <Navigate to="/interno/clinica" replace />;
 
   return (
-    <main className="min-h-screen bg-slate-50 py-16 text-slate-900" data-testid="access-portal">
+    <section className="min-h-screen bg-slate-50 py-16 text-slate-900" data-testid="access-portal" aria-labelledby="access-portal-title">
       <div className="mx-auto max-w-4xl px-6">
         <header className="mx-auto max-w-2xl text-center">
           <div className="inline-flex items-center gap-2 text-sm font-semibold text-[#005EB8]">
             <LogIn className="h-4 w-4" aria-hidden="true" /> GASI
           </div>
-          <h1 className="mt-3 text-4xl font-bold">Acceder</h1>
+          <h1 id="access-portal-title" className="mt-3 text-4xl font-bold">Acceder</h1>
           <p className="mt-3 text-lg text-slate-600">Acceso restringido a espacios habilitados por GASI. La disponibilidad depende de la identidad y permisos asignados.</p>
         </header>
         <div className="mt-10 grid gap-6 md:grid-cols-2">
@@ -37,6 +37,6 @@ export default function AccessPortal() {
         </div>
         {(loading || sessionChecking) && <p role="status" aria-live="polite" className="mt-6 text-center text-sm text-slate-500">Comprobando si ya tienes una sesión activa…</p>}
       </div>
-    </main>
+    </section>
   );
 }
