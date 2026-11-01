@@ -152,6 +152,8 @@ jobs:
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: '24'
+      - name: Install PostgreSQL client tools
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - name: Install Netlify function dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: PostgreSQL attendance and recovery integration
@@ -162,3 +164,7 @@ jobs:
         env:
           GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
         run: node --test tests/runtime-personal-inbox-postgres.test.mjs
+      - name: PostgreSQL backup and restore rehearsal
+        env:
+          GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
+        run: node tests/postgres-backup-restore-rehearsal.mjs
