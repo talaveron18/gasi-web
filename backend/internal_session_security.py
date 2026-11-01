@@ -24,6 +24,7 @@ class SessionState:
     expires_at: datetime
     auth_version: int
     active: bool = True
+    tenant_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -70,8 +71,9 @@ def _b64decode(value: str) -> bytes:
         raise SessionSecurityError("invalid_session_token") from exc
 
 
-def issue_session(*, worker_id: str, auth_version: int, now: datetime | None = None, ttl_minutes: int = 30) -> SessionState:
+def issue_session(*, worker_id: str, auth_version: int, tenant_id: str | None = None, now: datetime | None = None, ttl_minutes: int = 30) -> SessionState:
     safe_worker = _required(worker_id, "worker_id")
+    safe_tenant = _required(tenant_id, "tenant_id") if tenant_id is not None else None
     if auth_version < 1 or ttl_minutes < 1 or ttl_minutes > 480:
         raise SessionSecurityError("invalid_session_policy")
     issued = _utc(now)
@@ -81,6 +83,7 @@ def issue_session(*, worker_id: str, auth_version: int, now: datetime | None = N
         issued_at=issued,
         expires_at=issued + timedelta(minutes=ttl_minutes),
         auth_version=auth_version,
+        tenant_id=safe_tenant,
     )
 
 
@@ -93,6 +96,8 @@ def sign_session_token(session: SessionState, *, secret: str) -> str:
         "exp": int(session.expires_at.timestamp()),
         "av": session.auth_version,
     }
+    if session.tenant_id:
+        payload["tid"] = session.tenant_id
     encoded = _b64encode(json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8"))
     signature = _b64encode(hmac.new(key, encoded.encode("ascii"), hashlib.sha256).digest())
     return f"v1.{encoded}.{signature}"
@@ -112,12 +117,14 @@ def _decode_signed_session(*, token: str, secret: str) -> SessionState:
         raise SessionSecurityError("invalid_session_signature")
     try:
         payload = json.loads(_b64decode(encoded).decode("utf-8"))
+        tenant_id = _required(str(payload["tid"]), "tenant_id") if payload.get("tid") is not None else None
         session = SessionState(
             session_id=_required(str(payload["sid"]), "session_id"),
             worker_id=_required(str(payload["sub"]), "worker_id"),
             issued_at=datetime.fromtimestamp(int(payload["iat"]), tz=timezone.utc),
             expires_at=datetime.fromtimestamp(int(payload["exp"]), tz=timezone.utc),
             auth_version=int(payload["av"]),
+            tenant_id=tenant_id,
         )
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError) as exc:
         raise SessionSecurityError("invalid_session_token") from exc
@@ -129,6 +136,14 @@ def _decode_signed_session(*, token: str, secret: str) -> SessionState:
 def signed_session_subject(*, token: str, secret: str) -> str:
     """Return subject only after signature verification; not sufficient to authorize a request."""
     return _decode_signed_session(token=token, secret=secret).worker_id
+
+
+def signed_session_identity(*, token: str, secret: str) -> tuple[str, str]:
+    """Return the signed tenant and worker identity required by tenant-facing routes."""
+    session = _decode_signed_session(token=token, secret=secret)
+    if not session.tenant_id:
+        raise SessionSecurityError("tenant_session_required")
+    return session.tenant_id, session.worker_id
 
 
 def verify_session_token(*, token: str, secret: str, current_auth_version: int, now: datetime | None = None) -> SessionState:
