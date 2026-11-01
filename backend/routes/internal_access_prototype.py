@@ -28,7 +28,7 @@ async def login(payload:LoginInput):
  tenant=internal_prototype._required(payload.tenant_id,'tenant_id');worker_id=payload.worker_id.strip();worker=await _store().get_worker_for_tenant(tenant,worker_id);global_worker=await _store().get_worker(worker_id)
  if worker and global_worker and (global_worker.get('tenant_id')or'').strip()!=tenant:raise HTTPException(409,'ambiguous_worker_identity')
  if not worker or not worker.get('active',True) or not worker.get('password_hash') or not verify_password(payload.password,worker['password_hash']):raise HTTPException(401,'invalid_credentials')
- session=issue_session(worker_id=worker['id'],auth_version=int(worker.get('auth_version',1)),ttl_minutes=int(os.environ.get('GASI_INTERNAL_SESSION_TTL_MINUTES','30')))
+ session=issue_session(worker_id=worker['id'],tenant_id=tenant,auth_version=int(worker.get('auth_version',1)),ttl_minutes=int(os.environ.get('GASI_INTERNAL_SESSION_TTL_MINUTES','30')))
  token=sign_session_token(session,secret=os.environ.get('GASI_INTERNAL_SESSION_SECRET',''))
  await internal_prototype._audit(worker,'LOGIN_SUCCESS')
  return{'token':token,'expires_at':session.expires_at.isoformat(),'profile':_profile(worker)}
