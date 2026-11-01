@@ -160,13 +160,13 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: PostgreSQL attendance and recovery integration
         env:
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
-        run: node tests/runtime-attendance-postgres.test.mjs
+          GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
+        run: node --test tests/runtime-postgres-integration.test.mjs
       - name: PostgreSQL personal inbox isolation integration
         env:
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
-        run: node tests/runtime-personal-inbox-postgres.test.mjs
+          GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
+        run: node --test tests/runtime-personal-inbox-postgres.test.mjs
       - name: PostgreSQL backup and restore rehearsal
         env:
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
-        run: node tests/postgres-backup-restore.test.mjs
+          GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
+        run: node tests/postgres-backup-restore-rehearsal.mjs
