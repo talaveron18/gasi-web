@@ -22,11 +22,11 @@ export default function StudentAccess() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 py-16 text-slate-900" data-testid="student-access">
+    <section className="min-h-screen bg-slate-50 py-16 text-slate-900" data-testid="student-access" aria-labelledby="student-access-title">
       <div className="mx-auto max-w-md px-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
           <GraduationCap className="h-9 w-9 text-[#005EB8]" aria-hidden="true" />
-          <h1 className="mt-4 text-3xl font-bold">Acceso de alumnado</h1>
+          <h1 id="student-access-title" className="mt-4 text-3xl font-bold">Acceso de alumnado</h1>
           <p className="mt-2 text-slate-600">Área reservada a alumnado con una cuenta habilitada por GASI.</p>
           <form className="mt-7 space-y-5" onSubmit={submit}>
             <div>
@@ -46,6 +46,6 @@ export default function StudentAccess() {
           <Link to="/acceso" className="mt-5 inline-block text-sm font-semibold text-[#005EB8]">Volver a accesos</Link>
         </div>
       </div>
-    </main>
+    </section>
   );
 }
