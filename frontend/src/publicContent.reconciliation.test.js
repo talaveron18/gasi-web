@@ -14,6 +14,7 @@ const PUBLIC_SURFACE_FILES = [
   'pages/AccessPortal.jsx',
   'pages/StudentAccess.jsx',
   'pages/InternalAccess.jsx',
+  'pages/NotFound.jsx',
   'components/Navbar.jsx',
   'components/Footer.jsx',
   'components/Chatbot.jsx',
