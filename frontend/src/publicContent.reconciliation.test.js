@@ -26,7 +26,7 @@ const metadata = fs.readFileSync(path.join(__dirname, '../public/index.html'), '
 // Claims that are outside the currently approved public offer. Keep this list explicit so
 // future copy changes fail CI instead of silently reintroducing obsolete promises.
 const FORBIDDEN_PUBLIC_CLAIMS = [
-  /reconocimientos?\s+m[eé]dicos?\s+(?:para|en|a)\s+(?:empresas|trabajadores|organizaciones)/i,
+  /reconocimientos?\s+m[eé]dicos?/i,
   /vigilancia\s+de\s+la\s+salud\s+(?:para|en|a)\s+(?:empresas|trabajadores|organizaciones)/i,
   /evaluaci[oó]n\s+de\s+riesgos\s+(?:laborales|para empresas)/i,
   /gesti[oó]n\s+de\s+bajas\s+(?:laborales|m[eé]dicas)/i,
@@ -42,9 +42,10 @@ describe('reconciliación del contenido público GASI', () => {
     expect(metadata).not.toMatch(pattern);
   });
 
-  test('mantiene la exclusión explícita de vigilancia de salud y reconocimientos médicos', () => {
+  test('la ruta de organizaciones delimita positivamente el alcance público actual', () => {
     const organisations = read('pages/SaludLaboral.jsx');
-    expect(organisations).toContain('Esta oferta no incluye vigilancia de la salud, reconocimientos médicos laborales, evaluación de riesgos ni gestión de bajas.');
+    expect(organisations).toContain('La oferta pública se limita a los servicios descritos en esta web. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.');
+    expect(organisations).toContain('Enfermería presencial y formación sanitaria, con alcance sujeto a confirmación previa y a los requisitos aplicables.');
   });
 
   test('metadatos limitan la oferta a enfermería presencial y formación sanitaria', () => {
