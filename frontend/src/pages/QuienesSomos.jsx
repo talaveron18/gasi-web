@@ -36,7 +36,7 @@ const QuienesSomos = () => {
               Cada servicio se define según las necesidades del cliente y queda condicionado a la habilitación profesional, autorización sanitaria y demás requisitos que resulten aplicables a la configuración concreta.
             </p>
             <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-              GASI no actúa como servicio de prevención ajeno y no ofrece vigilancia de la salud, reconocimientos médicos laborales, evaluación de riesgos ni gestión de bajas como parte de esta oferta.
+              La oferta pública actual se limita a la enfermería presencial y la formación sanitaria descritas en esta web. Cualquier necesidad distinta se estudia antes de confirmar si GASI puede asumirla.
             </p>
 
             <h2 className="text-3xl font-bold text-[#0F172A] mb-6 mt-12">Nuestra Filosofía</h2>
