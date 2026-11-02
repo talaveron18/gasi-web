@@ -1,46 +1,44 @@
 from pathlib import Path
 
 
-PRODUCTION_FUNCTION = (
-    Path(__file__).resolve().parents[2]
-    / "netlify"
-    / "functions"
-    / "internal-clinical.mts"
-)
+ROOT = Path(__file__).resolve().parents[2]
+PRODUCTION_FUNCTION = ROOT / "netlify" / "functions" / "internal-clinical.mts"
+TENANT_GATEWAY = ROOT / "netlify" / "functions" / "internal-clinical-guarded.mts"
+NETLIFY_CONFIG = ROOT / "netlify.toml"
 
 
-def _source() -> str:
-    return PRODUCTION_FUNCTION.read_text(encoding="utf-8")
+def _source(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
 
 
-def test_production_actor_binds_worker_lookup_to_signed_tenant() -> None:
-    """A professional session must resolve identity by (tenant, worker), not id alone.
-
-    The Netlify function is the production internal clinical API. This regression is
-    intentionally source-level so CI cannot report the Python legacy harness as
-    evidence for production tenant isolation.
-    """
-    source = _source()
-    actor_start = source.index("async function actor(")
-    actor_end = source.index("\nconst FORBIDDEN_AUDIT_KEYS", actor_start)
-    actor_source = source[actor_start:actor_end]
-
-    assert "tenant_id" in actor_source, "production actor must query tenant_id"
-    assert "p.tenant" in actor_source or "p.tid" in actor_source, (
-        "production actor must bind the worker lookup to a signed tenant claim"
-    )
-    assert "WHERE id=${String(p.sub)} LIMIT 1" not in actor_source, (
-        "worker id alone is not a tenant boundary"
-    )
+def test_production_route_is_fronted_by_tenant_gateway() -> None:
+    config = _source(NETLIFY_CONFIG)
+    assert 'from = "/api/internal-clinical/*"' in config
+    assert "internal-clinical-guarded?original_path=:splat" in config
+    assert config.index('from = "/api/internal-clinical/*"') < config.index('from = "/*"')
 
 
-def test_production_session_payload_requires_tenant_claim() -> None:
-    """Decoded production sessions must reject tokens without a tenant boundary."""
-    source = _source()
-    decode_start = source.index("function decode(token:string)")
-    decode_end = source.index("\nasync function actor(", decode_start)
-    decode_source = source[decode_start:decode_end]
+def test_effective_gateway_requires_signed_tenant_claim() -> None:
+    gateway = _source(TENANT_GATEWAY)
+    assert 'typeof p.tenant_id!=="string"' in gateway
+    assert "!p.tenant_id" in gateway
+    assert "tenant_id:tenantId" in gateway
+    assert "sign({...payload,tenant_id:tenantId})" in gateway
 
-    assert "tenant" in decode_source or ".tid" in decode_source, (
-        "production session decoding must require a tenant claim"
-    )
+
+def test_effective_gateway_binds_worker_lookup_to_signed_tenant() -> None:
+    gateway = _source(TENANT_GATEWAY)
+    assert "WHERE id=${String(p.sub)} AND tenant_id=${String(p.tenant_id)} LIMIT 1" in gateway
+    assert "tenantBoundSession" in gateway
+
+
+def test_legacy_handler_is_only_reached_behind_gateway_for_authenticated_routes() -> None:
+    gateway = _source(TENANT_GATEWAY)
+    guard = gateway.index("await tenantBoundSession(delegated)")
+    delegated_handler = gateway.rindex("return internalClinical(delegated,context)")
+    assert guard < delegated_handler
+
+
+def test_legacy_handler_still_checks_session_revocation() -> None:
+    source = _source(PRODUCTION_FUNCTION)
+    assert "Number(w.auth_version)!==Number(p.av)" in source
