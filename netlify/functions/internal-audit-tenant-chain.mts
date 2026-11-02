@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 const ZERO_HASH="0".repeat(64);
+const LEGACY_TENANT="GASI-LEGACY";
 
 export function auditTenantId(worker:any){
   const tenant=String(worker?.tenant_id||"").trim();
@@ -46,12 +47,22 @@ export async function appendAuditEventForTenant(client:any,worker:any,action:str
   return {tenant_id:tenant,previous_hash:previous,event_hash:eventHash,...payload};
 }
 
+function validStoredTenantIdentity(row:any){
+  const tenant=String(row?.tenant_id||"").trim();
+  const metadataTenant=String(row?.metadata?.actor_tenant_id||"").trim();
+  if(!tenant)return false;
+  // Rows created before tenant scoping intentionally derive GASI-LEGACY from missing actor_tenant_id.
+  // They remain verifiable/restorable as one isolated historical chain, but a row may never claim
+  // GASI-LEGACY while carrying a different authenticated tenant in its hashed metadata.
+  if(tenant===LEGACY_TENANT)return !metadataTenant;
+  return metadataTenant===tenant;
+}
+
 export function validAuditChainsByTenant(rows:any[],canonical:(value:any)=>string){
   const groups=new Map<string,any[]>();
   for(const row of rows||[]){
     const tenant=String(row?.tenant_id||"").trim();
-    const metadataTenant=String(row?.metadata?.actor_tenant_id||"").trim();
-    if(!tenant||metadataTenant!==tenant)return false;
+    if(!validStoredTenantIdentity(row))return false;
     groups.set(tenant,[...(groups.get(tenant)||[]),row]);
   }
   for(const tenantRows of groups.values()){
@@ -72,8 +83,8 @@ export async function restoreAuditRowsByTenant(client:any,rows:any[],canonical:(
   if(!validAuditChainsByTenant(rows,canonical))throw new Error("invalid_audit_chain");
   const ordered=[...(rows||[])].sort((a:any,b:any)=>Number(a.seq)-Number(b.seq));
   for(const row of ordered){
-    // tenant_id is regenerated from metadata.actor_tenant_id by storage. This prevents a restore payload
-    // from claiming one tenant in the generated column while hashing another tenant in metadata.
+    // tenant_id is regenerated from metadata.actor_tenant_id by storage. Historical rows without that
+    // metadata regenerate as GASI-LEGACY; current rows regenerate as their authenticated tenant.
     await client.query(
       "INSERT INTO internal_clinical_audit(seq,at,actor_id,actor_role,action,episode_id,metadata,previous_hash,event_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
       [Number(row.seq),String(row.at),String(row.actor_id),String(row.actor_role),String(row.action),row.episode_id==null?null:String(row.episode_id),row.metadata||{},String(row.previous_hash),String(row.event_hash)],
@@ -81,4 +92,4 @@ export async function restoreAuditRowsByTenant(client:any,rows:any[],canonical:(
   }
 }
 
-export {ZERO_HASH};
+export {ZERO_HASH,LEGACY_TENANT};
