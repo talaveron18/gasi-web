@@ -10,6 +10,15 @@
 [functions]
   directory = "netlify/functions"
 
+# The production clinical API is routed through a tenant-bound gateway. The
+# legacy handler remains the implementation behind this guard, but is not the
+# public entry point.
+[[redirects]]
+  from = "/api/internal-clinical/*"
+  to = "/.netlify/functions/internal-clinical-guarded?original_path=:splat"
+  status = 200
+  force = true
+
 # The public training catalogue is intentionally unavailable until the
 # separate professional/student access path is validated. Keep these
 # anonymous legacy endpoints closed even though the function still contains
