@@ -17,6 +17,10 @@ class TenantClinicalAccess:
         self._store = store
         self.tenant_id = tenant
 
+    async def next_episode_id(self) -> str:
+        # Episode identifiers are globally unique counters; data access remains tenant-scoped.
+        return await self._store.next_episode_id()
+
     async def get_episode(self, episode_id: str):
         return await self._store.get_episode_for_tenant(self.tenant_id, episode_id)
 
@@ -57,3 +61,6 @@ class TenantClinicalAccess:
             raise ValueError("cross_tenant_audit_forbidden")
         value["tenant_id"] = self.tenant_id
         await self._store.append_audit(value)
+
+    async def list_audit(self, limit: int = 1000):
+        return await self._store.list_audit_for_tenant(self.tenant_id, limit)
