@@ -53,13 +53,9 @@ test('public copy does not advertise withdrawn or unverified services', () => {
   assert.deepEqual(violations, []);
 });
 
-test('recognition-medical wording is exclusionary, never an advertised service', () => {
+test('recognition-medical wording is absent from every public surface', () => {
   const occurrences = publicSurfaces.filter((file) => /reconocimientos?\s+m[eé]dicos?/i.test(read(file)));
-  assert.ok(occurrences.length > 0, 'expected an explicit public exclusion');
-  for (const file of occurrences) {
-    const source = read(file);
-    assert.match(source, /(?:no incluye|no realizamos|no ofrece)[\s\S]{0,120}reconocimientos?\s+m[eé]dicos?/i, file);
-  }
+  assert.deepEqual(occurrences, [], 'recognition-medical wording must not be published, even as an exclusion');
 });
 
 test('public lead handlers accept only the reconciled commercial service vocabulary', () => {
@@ -181,12 +177,14 @@ test('public course catalogue and course detail stay blocked at edge routing', (
   assert.match(config, /from\s*=\s*"\/api\/courses\/"[\s\S]*?status\s*=\s*404[\s\S]*?force\s*=\s*true/);
   assert.match(config, /from\s*=\s*"\/api\/courses\/:course_id"[\s\S]*?status\s*=\s*404[\s\S]*?force\s*=\s*true/);
   const redirects = [...config.matchAll(/\[\[redirects\]\][\s\S]*?(?=\n\[\[redirects\]\]|\n\[\[headers\]\]|$)/g)].map((match) => match[0]);
-  const publicApiRedirects = redirects.filter((block) => /from\s*=\s*"\/api\//.test(block));
-  assert.equal(publicApiRedirects.length, 2, 'new public /api edge route must be explicitly reconciled');
-  for (const block of publicApiRedirects) {
+  const courseApiRedirects = redirects.filter((block) => /from\s*=\s*"\/api\/courses(?:\/|\/\:course_id)"/.test(block));
+  assert.equal(courseApiRedirects.length, 2, 'course catalogue/detail edge blocks must remain explicit');
+  for (const block of courseApiRedirects) {
     assert.match(block, /status\s*=\s*404/);
     assert.match(block, /force\s*=\s*true/);
   }
+  const otherPublicApiRedirects = redirects.filter((block) => /from\s*=\s*"\/api\//.test(block) && !/from\s*=\s*"\/api\/internal-clinical\/\*"/.test(block) && !/from\s*=\s*"\/api\/courses/.test(block));
+  assert.deepEqual(otherPublicApiRedirects, [], 'new anonymous /api edge route must be explicitly reconciled');
   assert.match(config, /from\s*=\s*"\/\*"[\s\S]*?to\s*=\s*"\/index\.html"[\s\S]*?status\s*=\s*200/);
 });
 
