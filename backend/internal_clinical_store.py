@@ -93,8 +93,6 @@ class InternalClinicalStore:
         tenant = self._tenant(tenant_id); return self.clean(await self.workers.find_one_and_update({"tenant_id": tenant, "id": worker_id}, {"$inc": {"auth_version": 1}}, return_document=ReturnDocument.AFTER))
 
     async def set_privilege(self, worker_id: str, privilege: str, grant: bool) -> Optional[Dict[str, Any]]:
-        # Privilege changes alter authorization. Rotate auth_version atomically so
-        # every previously issued session is revoked instead of retaining stale rights.
         update = {"$addToSet": {"delegated_privileges": privilege}, "$inc": {"auth_version": 1}} if grant else {"$pull": {"delegated_privileges": privilege}, "$inc": {"auth_version": 1}}
         return self.clean(await self.workers.find_one_and_update({"id": worker_id}, update, return_document=ReturnDocument.AFTER))
 
@@ -106,6 +104,10 @@ class InternalClinicalStore:
     async def append_audit(self, event: Dict[str, Any]) -> None: await self.audit.insert_one(dict(event))
     async def list_audit(self, limit: int = 1000) -> List[Dict[str, Any]]:
         cursor = self.audit.find({}).sort("at", -1).limit(limit); return [self.clean(row) async for row in cursor]
+    async def list_audit_for_tenant(self, tenant_id: str, limit: int = 1000) -> List[Dict[str, Any]]:
+        tenant = self._tenant(tenant_id)
+        cursor = self.audit.find({"tenant_id": tenant}).sort("at", -1).limit(limit)
+        return [self.clean(row) async for row in cursor]
     async def seed_master(self, master_id: str, display_name: str, password_hash: str) -> None:
         await self.workers.update_one({"id": master_id}, {"$set": {"password_hash": password_hash}, "$setOnInsert": {"id": master_id, "role": "admin", "display_name": display_name, "centers": [], "active": True, "auth_version": 1, "delegated_privileges": []}}, upsert=True)
     async def export_recovery_snapshot(self) -> Dict[str, Any]:
