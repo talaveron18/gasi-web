@@ -31,7 +31,7 @@ const SaludLaboral = () => {
             GASI puede organizar servicios de enfermería presencial y acciones de formación sanitaria. La configuración concreta se revisa para cada necesidad antes de confirmar la prestación.
           </p>
           <p className="text-lg text-[#64748B] leading-relaxed">
-            Esta oferta no incluye vigilancia de la salud, reconocimientos médicos laborales, evaluación de riesgos ni gestión de bajas. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.
+            La oferta pública se limita a los servicios descritos en esta web. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.
           </p>
         </div>
       </section>
