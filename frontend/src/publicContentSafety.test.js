@@ -7,11 +7,13 @@ const PUBLIC_COPY_FILES = [
   'pages/FormacionSanitaria.jsx',
   'pages/Contacto.jsx',
   'pages/Servicios.jsx',
+  'pages/SaludLaboral.jsx',
   'pages/Sectores.jsx',
   'pages/QuienesSomos.jsx',
   'components/Navbar.jsx',
   'components/Footer.jsx',
   'components/Chatbot.jsx',
+  '../public/index.html',
 ];
 
 const readPublicCopy = () => PUBLIC_COPY_FILES.map((relativePath) => {
@@ -21,7 +23,7 @@ const readPublicCopy = () => PUBLIC_COPY_FILES.map((relativePath) => {
 });
 
 describe('public content safety contract', () => {
-  test('does not advertise medical examinations anywhere in public copy', () => {
+  test('does not advertise medical examinations anywhere in public copy or SEO metadata', () => {
     for (const { relativePath, content } of readPublicCopy()) {
       expect({ relativePath, content: content.toLowerCase() }).not.toEqual(
         expect.objectContaining({ content: expect.stringContaining('reconocimientos médicos') })
@@ -36,12 +38,15 @@ describe('public content safety contract', () => {
     const home = fs.readFileSync(path.join(__dirname, 'pages/Home.jsx'), 'utf8');
     const footer = fs.readFileSync(path.join(__dirname, 'components/Footer.jsx'), 'utf8');
     const chatbot = fs.readFileSync(path.join(__dirname, 'components/Chatbot.jsx'), 'utf8');
+    const seo = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
 
     expect(home).toContain('Enfermería Presencial en Empresas');
     expect(home).toContain('Formación Sanitaria');
     expect(footer).toContain('Enfermería presencial para organizaciones');
     expect(footer).toContain('Formación Sanitaria');
     expect(chatbot).toContain("const SERVICES = ['Enfermería presencial', 'Formación sanitaria', 'Otro']");
+    expect(seo).toContain('Enfermería presencial y formación sanitaria para organizaciones');
+    expect(seo).toContain('<title>GASI | Enfermería presencial y formación sanitaria</title>');
   });
 
   test('public chatbot explicitly rejects clinical and emergency use', () => {
