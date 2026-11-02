@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import test from "node:test";
-import {appendAuditEventForTenant,auditTenantId,auditTenantLockKey,lockAuditTenant,previousAuditHashForTenant,restoreAuditRowsByTenant,validAuditChainsByTenant,ZERO_HASH} from "../functions/internal-audit-tenant-chain.mts";
+import {appendAuditEventForTenant,auditTenantId,auditTenantLockKey,lockAuditTenant,previousAuditHashForTenant,restoreAuditRowsByTenant,validAuditChainsByTenant,ZERO_HASH,LEGACY_TENANT} from "../functions/internal-audit-tenant-chain.mts";
 
 const canonical=(value)=>{if(value===null||typeof value!=="object")return JSON.stringify(value);if(Array.isArray(value))return "["+value.map(canonical).join(",")+"]";return "{"+Object.keys(value).sort().map(k=>JSON.stringify(k)+":"+canonical(value[k])).join(",")+"}";};
 function row(tenant,seq,previous,action){const payload={at:`2026-10-29T15:00:0${seq}.000Z`,actor_id:`${tenant}-USER`,actor_role:"admin",action,episode_id:null,metadata:{actor_tenant_id:tenant}};const event_hash=crypto.createHash("sha256").update(previous+":"+canonical(payload)).digest("hex");return {tenant_id:tenant,seq,previous_hash:previous,event_hash,...payload};}
+function legacyRow(seq,previous,action){const payload={at:`2026-10-20T15:00:0${seq}.000Z`,actor_id:"LEGACY-USER",actor_role:"admin",action,episode_id:null,metadata:{}};const event_hash=crypto.createHash("sha256").update(previous+":"+canonical(payload)).digest("hex");return {tenant_id:LEGACY_TENANT,seq,previous_hash:previous,event_hash,...payload};}
 
 test("tenant audit chain fails closed without authenticated tenant",()=>{
   assert.throws(()=>auditTenantId({tenant_id:""}),/audit_tenant_required/);
@@ -67,6 +68,12 @@ test("snapshot verification accepts independent interleaved tenant chains",()=>{
   assert.equal(validAuditChainsByTenant([a1,b1,a2,b2],canonical),true);
 });
 
+test("snapshot verification preserves the historical GASI-LEGACY chain separately",()=>{
+  const legacy1=legacyRow(1,ZERO_HASH,"LOGIN"),legacy2=legacyRow(3,legacy1.event_hash,"READ"),current=row("TENANT-A",2,ZERO_HASH,"LOGIN");
+  assert.equal(validAuditChainsByTenant([legacy1,current,legacy2],canonical),true);
+  assert.equal(validAuditChainsByTenant([{...legacy1,metadata:{actor_tenant_id:"TENANT-A"}}],canonical),false);
+});
+
 test("snapshot verification fails closed for missing, mismatched or cross-tenant identity",()=>{
   const a1=row("TENANT-A",1,ZERO_HASH,"LOGIN"),b1=row("TENANT-B",2,ZERO_HASH,"LOGIN");
   assert.equal(validAuditChainsByTenant([{...a1,tenant_id:""}],canonical),false);
@@ -85,6 +92,15 @@ test("restore validates all tenant chains before writing and lets storage regene
   assert.equal(calls[0][1][6].actor_tenant_id,"TENANT-A");
   assert.equal(calls[1][1][0],2);
   assert.equal(calls[1][1][6].actor_tenant_id,"TENANT-B");
+});
+
+test("restore preserves legacy rows without manufacturing authenticated tenant metadata",async()=>{
+  const legacy=legacyRow(1,ZERO_HASH,"LOGIN"),calls=[];
+  const client={query:async(sql,args)=>{calls.push([sql,args]);return {rows:[]};}};
+  await restoreAuditRowsByTenant(client,[legacy],canonical);
+  assert.equal(calls.length,1);
+  assert.deepEqual(calls[0][1][6],{});
+  assert.doesNotMatch(calls[0][0],/tenant_id/);
 });
 
 test("restore fails closed before writing when snapshot tenant identity is forged",async()=>{
