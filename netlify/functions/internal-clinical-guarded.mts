@@ -30,12 +30,18 @@ async function tenantBoundSession(req:Request){
  if(String(p.tenant_id)===MASTER_TENANT&&String(rows[0].tenant_id)!==MASTER_TENANT)throw new Error("session_expired_or_revoked");
  return p;
 }
+function delegatedRequest(req:Request){
+ const incoming=new URL(req.url);const suffix=incoming.searchParams.get("original_path");
+ if(suffix===null)return req;
+ const target=new URL(req.url);target.pathname=`/api/internal-clinical/${suffix.replace(/^\/+/,"")}`;target.searchParams.delete("original_path");
+ return new Request(target,req);
+}
 
 const guardedInternalClinical=async(req:Request,context:Context)=>{
- const path=new URL(req.url).pathname;
- if(req.method==="GET"&&path==="/api/internal-clinical/health")return internalClinical(req,context);
- if(req.method==="POST"&&(path==="/api/internal-clinical/login"||path==="/api/internal-clinical/master-recovery")){
-  const response=await internalClinical(req,context);
+ const delegated=delegatedRequest(req);const path=new URL(delegated.url).pathname;
+ if(delegated.method==="GET"&&path==="/api/internal-clinical/health")return internalClinical(delegated,context);
+ if(delegated.method==="POST"&&(path==="/api/internal-clinical/login"||path==="/api/internal-clinical/master-recovery")){
+  const response=await internalClinical(delegated,context);
   if(path!=="/api/internal-clinical/login"||!response.ok)return response;
   const body=await response.json() as any;
   const tenantId=String(body?.profile?.tenant_id||"");
@@ -44,8 +50,8 @@ const guardedInternalClinical=async(req:Request,context:Context)=>{
   const headers=new Headers(response.headers);
   return new Response(JSON.stringify({...body,token:sign({...payload,tenant_id:tenantId})}),{status:response.status,headers});
  }
- try{await tenantBoundSession(req);}catch{return json({detail:"session_expired_or_revoked"},401);}
- return internalClinical(req,context);
+ try{await tenantBoundSession(delegated);}catch{return json({detail:"session_expired_or_revoked"},401);}
+ return internalClinical(delegated,context);
 };
 
 export default guardedInternalClinical;
