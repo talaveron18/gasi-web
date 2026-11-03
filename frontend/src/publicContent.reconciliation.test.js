@@ -25,6 +25,9 @@ const PUBLIC_SURFACE_FILES = [
 const read = relativePath => fs.readFileSync(path.join(__dirname, relativePath), 'utf8');
 const publicSource = PUBLIC_SURFACE_FILES.map(file => `\n/* ${file} */\n${read(file)}`).join('\n');
 const metadata = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+const netlifyChatbot = fs.readFileSync(path.join(__dirname, '../../netlify/functions/chatbot.js'), 'utf8');
+const legacyFrontendChatbot = fs.readFileSync(path.join(__dirname, '../functions/chatbot.js'), 'utf8');
+const publicRuntimeSource = `${netlifyChatbot}\n${legacyFrontendChatbot}`;
 
 // Claims that are outside the currently approved public offer. Keep this list explicit so
 // future copy changes fail CI instead of silently reintroducing obsolete promises.
@@ -43,6 +46,7 @@ describe('reconciliación del contenido público GASI', () => {
   test.each(FORBIDDEN_PUBLIC_CLAIMS)('no publica la promesa obsoleta %s', pattern => {
     expect(publicSource).not.toMatch(pattern);
     expect(metadata).not.toMatch(pattern);
+    expect(publicRuntimeSource).not.toMatch(pattern);
   });
 
   test('el inventario de auditoría cubre el router y el layout público además de cada página pública activa', () => {
@@ -92,6 +96,15 @@ describe('reconciliación del contenido público GASI', () => {
     const chatbot = read('components/Chatbot.jsx');
     expect(chatbot).toContain('Este asistente sirve únicamente para contacto comercial e información general. No es un canal clínico ni de urgencias.');
     expect(chatbot).toContain("const SERVICES = ['Enfermería presencial', 'Formación sanitaria', 'Otro'];");
+  });
+
+  test('los runtimes del chatbot no amplían la oferta ni aceptan categorías obsoletas', () => {
+    expect(netlifyChatbot).toContain('El asistente público no admite contenido clínico ni datos de salud.');
+    expect(legacyFrontendChatbot).toContain("'Enfermería presencial'");
+    expect(legacyFrontendChatbot).toContain("'Formación sanitaria'");
+    expect(legacyFrontendChatbot).toContain("'Otro'");
+    expect(legacyFrontendChatbot).toContain('if (!ALLOWED_SERVICES.has(service))');
+    expect(legacyFrontendChatbot).toContain('Canal exclusivamente comercial. No admite contenido clínico ni urgencias.');
   });
 
   test('el WhatsApp flotante es inequívocamente comercial y desaconseja datos de salud', () => {
