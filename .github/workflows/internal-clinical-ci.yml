@@ -80,7 +80,7 @@ jobs:
       - name: Install Netlify function dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Typecheck clinical function
-        run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-clinical.mts
+        run: npx tsc --noEmit --allowImportingTsExtensions --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-clinical.mts
       - name: Typecheck personal inbox function
         run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-personal-inbox.mts
       - name: Typecheck public API function
