@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PUBLIC_SURFACE_FILES = [
+  'App.js',
   'pages/Home.jsx',
   'pages/QuienesSomos.jsx',
   'pages/Servicios.jsx',
@@ -15,6 +16,7 @@ const PUBLIC_SURFACE_FILES = [
   'pages/StudentAccess.jsx',
   'pages/InternalAccess.jsx',
   'pages/NotFound.jsx',
+  'components/Layout.jsx',
   'components/Navbar.jsx',
   'components/Footer.jsx',
   'components/Chatbot.jsx',
@@ -43,6 +45,38 @@ describe('reconciliación del contenido público GASI', () => {
     expect(metadata).not.toMatch(pattern);
   });
 
+  test('el inventario de auditoría cubre el router y el layout público además de cada página pública activa', () => {
+    const app = read('App.js');
+    const requiredAuditFiles = [
+      'App.js',
+      'components/Layout.jsx',
+      'components/Navbar.jsx',
+      'components/Footer.jsx',
+      'components/Chatbot.jsx',
+      'pages/Home.jsx',
+      'pages/QuienesSomos.jsx',
+      'pages/Servicios.jsx',
+      'pages/CoberturaSanitaria.jsx',
+      'pages/FormacionSanitaria.jsx',
+      'pages/SaludLaboral.jsx',
+      'pages/Sectores.jsx',
+      'pages/Contacto.jsx',
+      'pages/PoliticaPrivacidad.jsx',
+      'pages/AccessPortal.jsx',
+      'pages/StudentAccess.jsx',
+      'pages/InternalAccess.jsx',
+      'pages/NotFound.jsx',
+    ];
+    requiredAuditFiles.forEach(file => expect(PUBLIC_SURFACE_FILES).toContain(file));
+    expect(app).toContain('<Route path="/" element={<Home/>}/>');
+    expect(app).toContain('<Route path="/servicios" element={<Servicios/>}/>');
+    expect(app).toContain('<Route path="/cobertura-sanitaria" element={<CoberturaSanitaria/>}/>');
+    expect(app).toContain('<Route path="/formacion-sanitaria" element={<FormacionSanitaria/>}/>');
+    expect(app).toContain('<Route path="/servicios-sanitarios-organizaciones" element={<SaludLaboral/>}/>');
+    expect(app).toContain('<Route path="/sectores" element={<Sectores/>}/>');
+    expect(app).toContain('<Route path="/contacto" element={<Contacto/>}/>');
+  });
+
   test('la ruta de organizaciones delimita positivamente el alcance público actual', () => {
     const organisations = read('pages/SaludLaboral.jsx');
     expect(organisations).toContain('La oferta pública se limita a los servicios descritos en esta web. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.');
@@ -58,5 +92,11 @@ describe('reconciliación del contenido público GASI', () => {
     const chatbot = read('components/Chatbot.jsx');
     expect(chatbot).toContain('Este asistente sirve únicamente para contacto comercial e información general. No es un canal clínico ni de urgencias.');
     expect(chatbot).toContain("const SERVICES = ['Enfermería presencial', 'Formación sanitaria', 'Otro'];");
+  });
+
+  test('el WhatsApp flotante es inequívocamente comercial y desaconseja datos de salud', () => {
+    const layout = read('components/Layout.jsx');
+    expect(layout).toContain('consulta%20comercial%20sobre%20GASI.%20No%20incluyo%20datos%20de%20salud');
+    expect(layout).toContain('WhatsApp comercial · no es un canal clínico ni de urgencias');
   });
 });
