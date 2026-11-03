@@ -33,7 +33,12 @@ const publicRuntimeSource = `${netlifyChatbot}\n${legacyFrontendChatbot}`;
 // future copy changes fail CI instead of silently reintroducing obsolete promises.
 const FORBIDDEN_PUBLIC_CLAIMS = [
   /reconocimientos?\s+m[eé]dicos?/i,
+  /chequeos?\s+m[eé]dicos?/i,
+  /ex[aá]menes?\s+de\s+salud\s+laboral/i,
+  /certificados?\s+de\s+aptitud\s+(?:m[eé]dica|laboral)/i,
+  /medicina\s+del\s+trabajo/i,
   /vigilancia\s+de\s+la\s+salud\s+(?:para|en|a)\s+(?:empresas|trabajadores|organizaciones)/i,
+  /prevenci[oó]n\s+de\s+riesgos\s+laborales\s+(?:para|en|a)\s+(?:empresas|trabajadores|organizaciones)/i,
   /evaluaci[oó]n\s+de\s+riesgos\s+(?:laborales|para empresas)/i,
   /gesti[oó]n\s+de\s+bajas\s+(?:laborales|m[eé]dicas)/i,
   /servicio\s+de\s+ambulancias/i,
