@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button';
 
 const QuienesSomos = () => {
   const values = [
-    { icon: <Heart className="w-8 h-8" />, title: 'Atención Sanitaria', desc: 'Cobertura sanitaria y enfermería presencial según las necesidades y el alcance aplicable a cada organización' },
+    { icon: <Heart className="w-8 h-8" />, title: 'Atención Sanitaria', desc: 'Enfermería presencial según las necesidades y el alcance aplicable a cada organización' },
     { icon: <Users className="w-8 h-8" />, title: 'Orientación al Cliente', desc: 'Configuraciones adaptadas a cada empresa dentro del alcance autorizado' },
     { icon: <Award className="w-8 h-8" />, title: 'Profesionalidad', desc: 'Profesionales sanitarios con los requisitos aplicables a cada servicio' },
     { icon: <ShieldCheck className="w-8 h-8" />, title: 'Seguridad Asistencial', desc: 'Protocolos, trazabilidad y límites de actuación definidos' },
-    { icon: <Stethoscope className="w-8 h-8" />, title: 'Prestación Delimitada', desc: 'La propuesta concreta define la cobertura sanitaria que puede prestarse antes de su inicio' },
+    { icon: <Stethoscope className="w-8 h-8" />, title: 'Prestación Delimitada', desc: 'La propuesta concreta define la prestación que puede realizarse antes de su inicio' },
     { icon: <Target className="w-8 h-8" />, title: 'Claridad de Alcance', desc: 'Cada servicio se presta conforme a la habilitación y autorización que corresponda' }
   ];
 
@@ -30,7 +30,7 @@ const QuienesSomos = () => {
           <div className="prose prose-lg max-w-none">
             <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Nuestra Empresa</h2>
             <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-              GASI organiza cobertura sanitaria y servicios de enfermería presencial para empresas y organizaciones, además de formación sanitaria, siempre según el alcance aplicable a cada servicio.
+              GASI organiza servicios de enfermería presencial para empresas y organizaciones, además de formación sanitaria, siempre según el alcance aplicable a cada servicio.
             </p>
             <p className="text-lg text-[#64748B] leading-relaxed mb-6">
               Cada servicio se define según las necesidades del cliente y queda condicionado a la habilitación profesional, autorización sanitaria y demás requisitos que resulten aplicables a la configuración concreta.
