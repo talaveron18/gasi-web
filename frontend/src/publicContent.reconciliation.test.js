@@ -92,7 +92,9 @@ describe('reconciliación del contenido público GASI', () => {
       [...app.matchAll(/import\s+(\w+)\s+from\s*['"]@\/pages\/([^'"]+)['"]/g)]
         .map(([, component, filename]) => [component, `pages/${filename}.jsx`])
     );
-    const publicRoutes = [...app.matchAll(/<Route\s+path="([^"]+)"\s+element=\{<([A-Z]\w*)\s*\/>\}/g)]
+    // Match the start of every route element, including multiline JSX and nested wrappers.
+    // Do not require a self-closing page component: that would silently skip new routes.
+    const publicRoutes = [...app.matchAll(/<Route\s+path="([^"]+)"\s+element=\{<([A-Z]\w*)\b/g)]
       .filter(([, route, component]) =>
         !route.startsWith('/interno') &&
         !route.startsWith('/dashboard') &&
