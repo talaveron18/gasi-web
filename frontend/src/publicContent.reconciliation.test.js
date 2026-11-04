@@ -138,6 +138,26 @@ describe('reconciliación del contenido público GASI', () => {
     expect(declaredRoutes.has('/cobertura-sanitaria')).toBe(true);
   });
 
+  test('no expone compra, precios ni certificados de cursos desde la ruta pública de detalle', () => {
+    const app = read('App.js');
+    expect(app).toContain('<Route path="/curso/:courseId" element={<Navigate to="/formacion-sanitaria" replace/>}/>');
+    expect(app).not.toMatch(/import\\s+CursoDetalle\\s+from/);
+    const training = read('pages/FormacionSanitaria.jsx');
+    expect(training).toContain('La publicación de esta página no implica disponibilidad de un curso concreto, certificación, precio ni fecha.');
+  });
+
+  test('las páginas comerciales no enlazan a inscripción ni pagos de cursos no confirmados', () => {
+    const commercial = [
+      'pages/Home.jsx', 'pages/Servicios.jsx', 'pages/FormacionSanitaria.jsx',
+      'pages/CoberturaSanitaria.jsx', 'pages/SaludLaboral.jsx',
+      'pages/Sectores.jsx', 'pages/QuienesSomos.jsx',
+      'components/Navbar.jsx', 'components/Footer.jsx',
+    ].map(read).join('\\n');
+    expect(commercial).not.toMatch(/to=["']\\/curso\\//);
+    expect(commercial).not.toMatch(/to=["']\\/dashboard\\/admin\\/cursos/);
+    expect(commercial).not.toMatch(/(?:Comprar por|Inscribirme gratis|Certificado de finalización)/i);
+  });
+
   test('la ruta de organizaciones delimita positivamente el alcance público actual', () => {
     const organisations = read('pages/SaludLaboral.jsx');
     expect(organisations).toContain('La oferta pública se limita a los servicios descritos en esta web. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.');
