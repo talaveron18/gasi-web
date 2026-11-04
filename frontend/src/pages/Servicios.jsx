@@ -44,7 +44,7 @@ const Servicios = () => {
                       <h3 className="font-bold text-[#0F172A] mb-4">Aspectos principales:</h3>
                       <ul className="space-y-2">{service.benefits.map((benefit) => (<li key={benefit} className="flex items-start gap-2"><span className="text-[#005EB8] mt-1" aria-hidden="true">✓</span><span className="text-[#64748B]">{benefit}</span></li>))}</ul>
                     </div>
-                    <Link to={service.link}><button className="bg-[#005EB8] hover:bg-[#004a92] text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all hover:-translate-y-0.5" data-testid={`service-cta-${index}`}>Ver más detalles <ArrowRight className="w-5 h-5" aria-hidden="true" /></button></Link>
+                    <Link to={service.link} className="inline-flex bg-[#005EB8] hover:bg-[#004a92] text-white px-6 py-3 rounded-lg font-semibold items-center gap-2 transition-all hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005EB8]" data-testid={`service-cta-${index}`}>Ver más detalles <ArrowRight className="w-5 h-5" aria-hidden="true" /></Link>
                   </div>
                   <div className="flex-1 w-full" aria-hidden="true"><div className="rounded-2xl shadow-xl w-full h-[400px] bg-gradient-to-br from-[#EAF4FC] to-[#D7EAF8] flex items-center justify-center"><ServiceIcon className="w-28 h-28 text-[#005EB8]" /></div></div>
                 </div>
@@ -58,7 +58,7 @@ const Servicios = () => {
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold mb-6">¿Necesita una configuración adaptada a su centro?</h2>
           <p className="text-xl mb-8 opacity-90">Cuéntenos sus necesidades y confirmaremos si encajan en los servicios actuales y qué alcance puede asumir GASI antes de cualquier prestación.</p>
-          <Link to="/contacto"><button className="bg-white text-[#005EB8] hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold text-lg" data-testid="cta-contact">Solicitar Información</button></Link>
+          <Link to="/contacto" className="inline-block bg-white text-[#005EB8] hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" data-testid="cta-contact">Solicitar Información</Link>
         </div>
       </section>
     </div>
