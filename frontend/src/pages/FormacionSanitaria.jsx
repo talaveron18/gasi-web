@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, CheckCircle, ClipboardCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 
 const FormacionSanitaria = () => (
   <div data-testid="formacion-page">
@@ -12,9 +11,7 @@ const FormacionSanitaria = () => (
         <p className="text-xl opacity-90 mb-8">
           Estudiamos necesidades de formación sanitaria y confirmamos previamente si podemos atenderlas, con qué contenido, formato y alcance.
         </p>
-        <Link to="/contacto">
-          <Button size="lg" className="bg-white text-[#005EB8] hover:bg-gray-100" data-testid="hero-contact-cta">Solicitar información</Button>
-        </Link>
+        <Link to="/contacto" className="inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium bg-white text-[#005EB8] hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" data-testid="hero-contact-cta">Solicitar información</Link>
       </div>
     </section>
 
@@ -38,7 +35,7 @@ const FormacionSanitaria = () => (
       <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
         <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Consulte su necesidad formativa</h2>
         <p className="text-lg text-[#64748B] mb-8">Cuéntenos qué necesita. Revisaremos la solicitud y confirmaremos si podemos atenderla y bajo qué alcance.</p>
-        <Link to="/contacto"><Button size="lg" className="bg-[#005EB8] hover:bg-[#004a92] text-white" data-testid="cta-contact">Solicitar información</Button></Link>
+        <Link to="/contacto" className="inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium bg-[#005EB8] hover:bg-[#004a92] text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005EB8]" data-testid="cta-contact">Solicitar información</Link>
       </div>
     </section>
   </div>
