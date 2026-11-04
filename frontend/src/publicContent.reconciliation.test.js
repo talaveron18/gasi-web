@@ -114,6 +114,30 @@ describe('reconciliación del contenido público GASI', () => {
     }
   });
 
+
+  test('los enlaces internos de navegación, footer y páginas comerciales tienen una ruta real', () => {
+    const app = read('App.js');
+    const declaredRoutes = new Set([...app.matchAll(/<Route\\s+path="([^"]+)"/g)].map(match => match[1]));
+    const sources = [
+      'pages/Home.jsx', 'pages/Servicios.jsx', 'pages/CoberturaSanitaria.jsx',
+      'pages/FormacionSanitaria.jsx', 'pages/SaludLaboral.jsx',
+      'pages/Sectores.jsx', 'pages/QuienesSomos.jsx', 'pages/Contacto.jsx',
+      'pages/PoliticaPrivacidad.jsx', 'pages/AccessPortal.jsx',
+      'pages/StudentAccess.jsx', 'pages/NotFound.jsx',
+      'components/Navbar.jsx', 'components/Footer.jsx', 'components/Chatbot.jsx',
+    ];
+    const missing = [];
+    for (const file of sources) {
+      for (const [, destination] of read(file).matchAll(/<Link\\b[^>]*\\bto="(\\/[^"]*)"/g)) {
+        if (!declaredRoutes.has(destination)) missing.push(file + ': ' + destination);
+      }
+    }
+    expect(missing).toEqual([]);
+    expect(declaredRoutes.has('/contacto')).toBe(true);
+    expect(declaredRoutes.has('/formacion-sanitaria')).toBe(true);
+    expect(declaredRoutes.has('/cobertura-sanitaria')).toBe(true);
+  });
+
   test('la ruta de organizaciones delimita positivamente el alcance público actual', () => {
     const organisations = read('pages/SaludLaboral.jsx');
     expect(organisations).toContain('La oferta pública se limita a los servicios descritos en esta web. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.');
