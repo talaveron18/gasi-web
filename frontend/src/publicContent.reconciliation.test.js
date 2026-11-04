@@ -14,6 +14,7 @@ const PUBLIC_SURFACE_FILES = [
   'pages/PoliticaPrivacidad.jsx',
   'pages/AccessPortal.jsx',
   'pages/StudentAccess.jsx',
+  'pages/Dashboard.jsx',
   'pages/InternalAccess.jsx',
   'pages/NotFound.jsx',
   'components/Layout.jsx',
@@ -76,6 +77,7 @@ describe('reconciliación del contenido público GASI', () => {
       'pages/PoliticaPrivacidad.jsx',
       'pages/AccessPortal.jsx',
       'pages/StudentAccess.jsx',
+      'pages/Dashboard.jsx',
       'pages/InternalAccess.jsx',
       'pages/NotFound.jsx',
     ];
@@ -156,6 +158,19 @@ describe('reconciliación del contenido público GASI', () => {
     expect(commercial).not.toMatch(/to=["']\/curso\//);
     expect(commercial).not.toMatch(/to=["']\/dashboard\/admin\/cursos/);
     expect(commercial).not.toMatch(/(?:Comprar por|Inscribirme gratis|Certificado de finalización)/i);
+  });
+
+  test('el panel de alumnado no promete cursos disponibles ni enlaces de acceso inactivos', () => {
+    const dashboard = read('pages/Dashboard.jsx');
+    const app = read('App.js');
+    expect(app).toContain('<Route path="/dashboard" element={<StudentAuthenticated><Dashboard/></StudentAuthenticated>}/>');
+    expect(dashboard).not.toContain('Continuar curso');
+    expect(dashboard).not.toContain('Ver cursos disponibles');
+    expect(dashboard).not.toContain('Explorar más cursos');
+    expect(dashboard).not.toContain('to={`/curso/');
+    expect(dashboard).not.toContain('to="/dashboard/admin/cursos"');
+    expect(dashboard).toContain('La disponibilidad de cada actividad se confirma previamente.');
+    expect(dashboard).toContain('Consulta con GASI la disponibilidad del acceso al contenido de este curso.');
   });
 
   test('la ruta de organizaciones delimita positivamente el alcance público actual', () => {
