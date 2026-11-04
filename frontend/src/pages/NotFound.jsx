@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const NotFound = () => {
   return (
-    <main className="min-h-[60vh] flex items-center justify-center px-6 py-16" aria-labelledby="not-found-title">
+    <section className="min-h-[60vh] flex items-center justify-center px-6 py-16" aria-labelledby="not-found-title">
       <div className="max-w-xl text-center">
         <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Error 404</p>
         <h1 id="not-found-title" className="mt-3 text-4xl font-bold text-slate-900">
@@ -27,7 +27,7 @@ const NotFound = () => {
           </Link>
         </div>
       </div>
-    </main>
+    </section>
   );
 };
 
