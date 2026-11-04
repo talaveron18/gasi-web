@@ -141,7 +141,7 @@ describe('reconciliación del contenido público GASI', () => {
   test('no expone compra, precios ni certificados de cursos desde la ruta pública de detalle', () => {
     const app = read('App.js');
     expect(app).toContain('<Route path="/curso/:courseId" element={<Navigate to="/formacion-sanitaria" replace/>}/>');
-    expect(app).not.toMatch(/import\\s+CursoDetalle\\s+from/);
+    expect(app).not.toMatch(/import\s+CursoDetalle\s+from/);
     const training = read('pages/FormacionSanitaria.jsx');
     expect(training).toContain('La publicación de esta página no implica disponibilidad de un curso concreto, certificación, precio ni fecha.');
   });
@@ -152,9 +152,9 @@ describe('reconciliación del contenido público GASI', () => {
       'pages/CoberturaSanitaria.jsx', 'pages/SaludLaboral.jsx',
       'pages/Sectores.jsx', 'pages/QuienesSomos.jsx',
       'components/Navbar.jsx', 'components/Footer.jsx',
-    ].map(read).join('\\n');
-    expect(commercial).not.toMatch(/to=["']\\/curso\\//);
-    expect(commercial).not.toMatch(/to=["']\\/dashboard\\/admin\\/cursos/);
+    ].map(read).join('\n');
+    expect(commercial).not.toMatch(/to=["']\/curso\//);
+    expect(commercial).not.toMatch(/to=["']\/dashboard\/admin\/cursos/);
     expect(commercial).not.toMatch(/(?:Comprar por|Inscribirme gratis|Certificado de finalización)/i);
   });
 
