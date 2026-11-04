@@ -65,6 +65,16 @@ describe('public content safety contract', () => {
     expect(home).not.toContain("import { Button } from '@/components/ui/button'");
   });
 
+  test('desktop and mobile navigation links never nest buttons', () => {
+    const navbar = fs.readFileSync(path.join(__dirname, 'components/Navbar.jsx'), 'utf8');
+    expect(navbar).not.toMatch(/<Link\\b[^>]*>\\s*<Button\\b/);
+    for (const destination of ['/', '/quienes-somos', '/servicios', '/sectores', '/contacto', '/acceso']) {
+      expect(navbar).toContain('to="' + destination + '"');
+    }
+    expect(navbar).toContain('nav-services-dropdown');
+    expect(navbar).toContain('mobile-menu-button');
+  });
+
   test('public chatbot explicitly rejects clinical and emergency use', () => {
     const chatbot = fs.readFileSync(path.join(__dirname, 'components/Chatbot.jsx'), 'utf8').toLowerCase();
     expect(chatbot).toContain('no es un canal clínico ni de urgencias');
