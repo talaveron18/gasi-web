@@ -117,7 +117,7 @@ describe('reconciliación del contenido público GASI', () => {
 
   test('los enlaces internos de navegación, footer y páginas comerciales tienen una ruta real', () => {
     const app = read('App.js');
-    const declaredRoutes = new Set([...app.matchAll(/<Route\\s+path="([^"]+)"/g)].map(match => match[1]));
+    const declaredRoutes = new Set([...app.matchAll(/<Route\s+path="([^"]+)"/g)].map(match => match[1]));
     const sources = [
       'pages/Home.jsx', 'pages/Servicios.jsx', 'pages/CoberturaSanitaria.jsx',
       'pages/FormacionSanitaria.jsx', 'pages/SaludLaboral.jsx',
@@ -128,7 +128,7 @@ describe('reconciliación del contenido público GASI', () => {
     ];
     const missing = [];
     for (const file of sources) {
-      for (const [, destination] of read(file).matchAll(/<Link\\b[^>]*\\bto="(\\/[^"]*)"/g)) {
+      for (const [, destination] of read(file).matchAll(/<Link\b[^>]*\bto="(\/[^"]*)"/g)) {
         if (!declaredRoutes.has(destination)) missing.push(file + ': ' + destination);
       }
     }
