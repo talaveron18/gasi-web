@@ -140,6 +140,28 @@ describe('reconciliación del contenido público GASI', () => {
     expect(declaredRoutes.has('/cobertura-sanitaria')).toBe(true);
   });
 
+  test('los CTA públicos no utilizan destinos vacíos ni marcadores de posición', () => {
+    const sources = [
+      'pages/Home.jsx', 'pages/Servicios.jsx', 'pages/CoberturaSanitaria.jsx',
+      'pages/FormacionSanitaria.jsx', 'pages/SaludLaboral.jsx',
+      'pages/Sectores.jsx', 'pages/QuienesSomos.jsx', 'pages/Contacto.jsx',
+      'pages/PoliticaPrivacidad.jsx', 'pages/AccessPortal.jsx',
+      'pages/StudentAccess.jsx', 'pages/NotFound.jsx',
+      'components/Navbar.jsx', 'components/Footer.jsx', 'components/Chatbot.jsx',
+      'components/Layout.jsx',
+    ];
+    const invalid = [];
+    for (const file of sources) {
+      const source = read(file);
+      for (const [, tag, destination] of source.matchAll(/<(Link|a)\\b[^>]*?\\b(?:to|href)=["']([^"']*)["'][^>]*>/g)) {
+        if (!destination.trim() || destination === '#' || destination.startsWith('javascript:')) {
+          invalid.push(file + ': ' + tag + ' -> ' + destination);
+        }
+      }
+    }
+    expect(invalid).toEqual([]);
+  });
+
   test('no expone compra, precios ni certificados de cursos desde la ruta pública de detalle', () => {
     const app = read('App.js');
     expect(app).toContain('<Route path="/curso/:courseId" element={<Navigate to="/formacion-sanitaria" replace/>}/>');
