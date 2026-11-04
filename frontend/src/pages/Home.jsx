@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Building2, GraduationCap, CheckCircle, Users, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 const Home = () => {
@@ -43,8 +42,8 @@ const Home = () => {
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 animate-fade-in" data-testid="hero-title">Enfermería Presencial y Formación Sanitaria</h1>
           <p className="text-lg sm:text-xl mb-8 text-white/90 max-w-2xl mx-auto">GASI estudia servicios de enfermería presencial y formación sanitaria para organizaciones. Cada solicitud se revisa y se confirma de acuerdo con el alcance y los requisitos aplicables antes de iniciar cualquier prestación.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/contacto"><Button size="lg" className="bg-white text-[#005EB8] hover:bg-gray-100 text-lg px-8" data-testid="hero-cta-contact">Solicitar Información <ArrowRight className="ml-2 w-5 h-5" /></Button></Link>
-            <Link to="/servicios"><Button size="lg" variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#005EB8] text-lg px-8" data-testid="hero-cta-services">Ver Servicios</Button></Link>
+            <Link to="/contacto" className="inline-flex items-center justify-center rounded-md bg-white text-[#005EB8] hover:bg-gray-100 text-lg px-8 h-11 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#005EB8]" data-testid="hero-cta-contact">Solicitar Información <ArrowRight className="ml-2 w-5 h-5" /></Link>
+            <Link to="/servicios" className="inline-flex items-center justify-center rounded-md bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#005EB8] text-lg px-8 h-11 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#005EB8]" data-testid="hero-cta-services">Ver Servicios</Link>
           </div>
         </div>
       </section>
@@ -58,11 +57,11 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="py-20 lg:py-24 bg-[#F8FAFC]"><div className="max-w-7xl mx-auto px-6 lg:px-8"><div className="text-center mb-16"><h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4">Sectores</h2><p className="text-lg text-[#64748B]">Podemos estudiar necesidades de organizaciones de distintos sectores, sin que ello implique disponibilidad o contratación automática.</p></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">{sectors.map((sector, index) => (<Card key={index} className="text-center p-8 hover-lift" data-testid={`sector-card-${index}`}><div className="text-5xl mb-4">{sector.icon}</div><h3 className="font-semibold text-[#0F172A]">{sector.name}</h3></Card>))}</div><div className="text-center mt-12"><Link to="/sectores"><Button size="lg" className="bg-[#005EB8] hover:bg-[#004a92] text-white" data-testid="sectors-cta">Consultar sectores</Button></Link></div></div></section>
+      <section className="py-20 lg:py-24 bg-[#F8FAFC]"><div className="max-w-7xl mx-auto px-6 lg:px-8"><div className="text-center mb-16"><h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4">Sectores</h2><p className="text-lg text-[#64748B]">Podemos estudiar necesidades de organizaciones de distintos sectores, sin que ello implique disponibilidad o contratación automática.</p></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">{sectors.map((sector, index) => (<Card key={index} className="text-center p-8 hover-lift" data-testid={`sector-card-${index}`}><div className="text-5xl mb-4">{sector.icon}</div><h3 className="font-semibold text-[#0F172A]">{sector.name}</h3></Card>))}</div><div className="text-center mt-12"><Link to="/sectores" className="inline-flex items-center justify-center rounded-md bg-[#005EB8] hover:bg-[#004a92] text-white px-8 h-11 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#005EB8]" data-testid="sectors-cta">Consultar sectores</Link></div></div></section>
 
       <section className="py-20 lg:py-24 bg-white"><div className="max-w-7xl mx-auto px-6 lg:px-8"><div className="text-center mb-16"><h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4">Cómo trabajamos</h2><p className="text-lg text-[#64748B]">Primero delimitamos la necesidad y el alcance que puede prestarse.</p></div><div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">{advantages.map((adv, index) => (<div key={index} className="text-center" data-testid={`advantage-${index}`}><div className="inline-flex items-center justify-center w-16 h-16 bg-[#005EB8]/10 rounded-full text-[#005EB8] mb-4">{adv.icon}</div><h3 className="font-bold text-[#0F172A] mb-2">{adv.title}</h3><p className="text-[#64748B] text-sm">{adv.desc}</p></div>))}</div></div></section>
 
-      <section className="py-20 bg-gradient-to-r from-[#005EB8] to-[#327BBD] text-white"><div className="max-w-4xl mx-auto px-6 text-center"><h2 className="text-3xl lg:text-4xl font-bold mb-6">¿Quiere plantearnos una necesidad?</h2><p className="text-xl mb-8 opacity-90">Envíenos la información y confirmaremos si encaja en los servicios actuales y bajo qué alcance.</p><Link to="/contacto"><Button size="lg" className="bg-white text-[#005EB8] hover:bg-gray-100 text-lg px-8" data-testid="cta-contact-bottom">Solicitar información</Button></Link></div></section>
+      <section className="py-20 bg-gradient-to-r from-[#005EB8] to-[#327BBD] text-white"><div className="max-w-4xl mx-auto px-6 text-center"><h2 className="text-3xl lg:text-4xl font-bold mb-6">¿Quiere plantearnos una necesidad?</h2><p className="text-xl mb-8 opacity-90">Envíenos la información y confirmaremos si encaja en los servicios actuales y bajo qué alcance.</p><Link to="/contacto" className="inline-flex items-center justify-center rounded-md bg-white text-[#005EB8] hover:bg-gray-100 text-lg px-8 h-11 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#005EB8]" data-testid="cta-contact-bottom">Solicitar información</Link></div></section>
     </div>
   );
 };
