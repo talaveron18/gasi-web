@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Target, Heart, Users, Award, ShieldCheck, Stethoscope } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 
 const QuienesSomos = () => {
   const values = [
@@ -93,9 +92,7 @@ const QuienesSomos = () => {
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold mb-6">Hablemos de su necesidad sanitaria</h2>
           <p className="text-xl mb-8 opacity-90">Podemos estudiar una configuración adecuada a su empresa y al alcance sanitario aplicable.</p>
-          <Link to="/contacto">
-            <Button size="lg" className="bg-white text-[#005EB8] hover:bg-gray-100 text-lg px-8" data-testid="cta-contact">Contactar</Button>
-          </Link>
+          <Link to="/contacto" className="inline-flex items-center justify-center rounded-md px-8 py-3 text-lg font-medium bg-white text-[#005EB8] hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" data-testid="cta-contact">Contactar</Link>
         </div>
       </section>
     </div>
