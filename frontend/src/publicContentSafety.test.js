@@ -49,6 +49,21 @@ describe('public content safety contract', () => {
     expect(seo).toContain('<title>GASI | Enfermería presencial y formación sanitaria</title>');
   });
 
+
+  test('home commercial CTAs are semantic links without nested buttons', () => {
+    const home = fs.readFileSync(path.join(__dirname, 'pages/Home.jsx'), 'utf8');
+    for (const [testId, destination] of [
+      ['hero-cta-contact', '/contacto'],
+      ['hero-cta-services', '/servicios'],
+      ['sectors-cta', '/sectores'],
+      ['cta-contact-bottom', '/contacto'],
+    ]) {
+      expect(home).toMatch(new RegExp('<Link\\\\s+to="' + destination + '"[^>]*data-testid="' + testId + '"'));
+    }
+    expect(home).not.toMatch(/<Link\\b[^>]*>\\s*<Button\\b/);
+    expect(home).not.toContain("import { Button } from '@/components/ui/button'");
+  });
+
   test('public chatbot explicitly rejects clinical and emergency use', () => {
     const chatbot = fs.readFileSync(path.join(__dirname, 'components/Chatbot.jsx'), 'utf8').toLowerCase();
     expect(chatbot).toContain('no es un canal clínico ni de urgencias');
