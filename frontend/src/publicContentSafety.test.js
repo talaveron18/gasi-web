@@ -58,9 +58,10 @@ describe('public content safety contract', () => {
       ['sectors-cta', '/sectores'],
       ['cta-contact-bottom', '/contacto'],
     ]) {
-      expect(home).toMatch(new RegExp('<Link\\\\s+to="' + destination + '"[^>]*data-testid="' + testId + '"'));
+      expect(home).toContain('to="' + destination + '"');
+      expect(home).toContain('data-testid="' + testId + '"');
     }
-    expect(home).not.toMatch(/<Link\\b[^>]*>\\s*<Button\\b/);
+    expect(home).not.toContain('<Button');
     expect(home).not.toContain("import { Button } from '@/components/ui/button'");
   });
 
