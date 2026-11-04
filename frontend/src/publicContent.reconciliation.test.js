@@ -153,7 +153,7 @@ describe('reconciliación del contenido público GASI', () => {
     const invalid = [];
     for (const file of sources) {
       const source = read(file);
-      for (const [, tag, destination] of source.matchAll(/<(Link|a)\\b[^>]*?\\b(?:to|href)=["']([^"']*)["'][^>]*>/g)) {
+      for (const [, tag, destination] of source.matchAll(/<(Link|a)\b[^>]*?\b(?:to|href)=["']([^"']*)["'][^>]*>/g)) {
         if (!destination.trim() || destination === '#' || destination.startsWith('javascript:')) {
           invalid.push(file + ': ' + tag + ' -> ' + destination);
         }
