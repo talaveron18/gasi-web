@@ -27,7 +27,8 @@ const publicSource = PUBLIC_SURFACE_FILES.map(file => `\n/* ${file} */\n${read(f
 const metadata = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
 const netlifyChatbot = fs.readFileSync(path.join(__dirname, '../../netlify/functions/chatbot.js'), 'utf8');
 const legacyFrontendChatbot = fs.readFileSync(path.join(__dirname, '../functions/chatbot.js'), 'utf8');
-const publicRuntimeSource = `${netlifyChatbot}\n${legacyFrontendChatbot}`;
+const publicLeadUtils = fs.readFileSync(path.join(__dirname, '../../netlify/functions/public-lead-utils.js'), 'utf8');
+const publicRuntimeSource = `${netlifyChatbot}\n${legacyFrontendChatbot}\n${publicLeadUtils}`;
 
 // Claims that are outside the currently approved public offer. Keep this list explicit so
 // future copy changes fail CI instead of silently reintroducing obsolete promises.
@@ -130,6 +131,10 @@ describe('reconciliación del contenido público GASI', () => {
 
   test('los runtimes del chatbot no amplían la oferta ni aceptan categorías obsoletas', () => {
     expect(netlifyChatbot).toContain('El asistente público no admite contenido clínico ni datos de salud.');
+    expect(publicLeadUtils).toContain('"Enfermería presencial"');
+    expect(publicLeadUtils).toContain('"Formación sanitaria"');
+    expect(publicLeadUtils).toContain('"Otro"');
+    expect(publicLeadUtils).toContain('if(!SERVICES.has(lead.service))return{error:"invalid_service"}');
     expect(legacyFrontendChatbot).toContain("'Enfermería presencial'");
     expect(legacyFrontendChatbot).toContain("'Formación sanitaria'");
     expect(legacyFrontendChatbot).toContain("'Otro'");
