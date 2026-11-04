@@ -86,6 +86,26 @@ describe('reconciliación del contenido público GASI', () => {
     expect(app).toContain('<Route path="/contacto" element={<Contacto/>}/>');
   });
 
+  test('descubre automáticamente páginas públicas nuevas declaradas en el router', () => {
+    const app = read('App.js');
+    const imports = new Map(
+      [...app.matchAll(/import\s+(\w+)\s+from\s*['"]@\/pages\/([^'"]+)['"]/g)]
+        .map(([, component, filename]) => [component, `pages/${filename}.jsx`])
+    );
+    const publicRoutes = [...app.matchAll(/<Route\s+path="([^"]+)"\s+element=\{<([A-Z]\w*)\s*\/>\}/g)]
+      .filter(([, route, component]) =>
+        !route.startsWith('/interno') &&
+        !route.startsWith('/dashboard') &&
+        component !== 'Navigate'
+      );
+    expect(publicRoutes.length).toBeGreaterThan(0);
+    for (const [, route, component] of publicRoutes) {
+      const file = imports.get(component);
+      expect(file).toBeDefined();
+      expect(PUBLIC_SURFACE_FILES).toContain(file);
+    }
+  });
+
   test('la ruta de organizaciones delimita positivamente el alcance público actual', () => {
     const organisations = read('pages/SaludLaboral.jsx');
     expect(organisations).toContain('La oferta pública se limita a los servicios descritos en esta web. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.');
