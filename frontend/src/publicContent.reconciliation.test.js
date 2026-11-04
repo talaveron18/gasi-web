@@ -92,19 +92,22 @@ describe('reconciliación del contenido público GASI', () => {
       [...app.matchAll(/import\s+(\w+)\s+from\s*['"]@\/pages\/([^'"]+)['"]/g)]
         .map(([, component, filename]) => [component, `pages/${filename}.jsx`])
     );
-    // Match the start of every route element, including multiline JSX and nested wrappers.
-    // Do not require a self-closing page component: that would silently skip new routes.
-    const publicRoutes = [...app.matchAll(/<Route\s+path="([^"]+)"\s+element=\{<([A-Z]\w*)\b/g)]
-      .filter(([, route, component]) =>
-        !route.startsWith('/interno') &&
-        !route.startsWith('/dashboard') &&
-        component !== 'Navigate'
-      );
+    // Inspect each route's complete element, including authentication wrappers.
+    // A new public route must not escape the inventory because its first JSX tag is a guard.
+    const routeElements = [...app.matchAll(/<Route\s+path="([^"]+)"\s+element=\{([\s\S]*?)\}\s*\/>/g)];
+    const publicRoutes = routeElements.filter(([, route]) =>
+      !route.startsWith('/interno') && !route.startsWith('/dashboard')
+    );
     expect(publicRoutes.length).toBeGreaterThan(0);
-    for (const [, route, component] of publicRoutes) {
-      const file = imports.get(component);
-      expect(file).toBeDefined();
-      expect(PUBLIC_SURFACE_FILES).toContain(file);
+    for (const [, route, element] of publicRoutes) {
+      if (/^<Navigate\b/.test(element)) continue;
+      const pageComponents = [...element.matchAll(/<([A-Z]\w*)\b/g)]
+        .map(([, component]) => component)
+        .filter(component => imports.has(component));
+      expect(pageComponents.length).toBeGreaterThan(0);
+      for (const component of pageComponents) {
+        expect(PUBLIC_SURFACE_FILES).toContain(imports.get(component));
+      }
     }
   });
 
