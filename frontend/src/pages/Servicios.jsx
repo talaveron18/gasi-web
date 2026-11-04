@@ -14,7 +14,7 @@ const Servicios = () => {
     {
       icon: GraduationCap,
       title: 'Formación Sanitaria',
-      description: 'Formación sanitaria para empresas y profesionales, adaptada al contexto y a las necesidades definidas para cada actividad.',
+      description: 'Formación sanitaria para organizaciones, adaptada al contexto y a las necesidades definidas para cada actividad, previa confirmación del alcance aplicable.',
       benefits: ['Formación sanitaria', 'Modalidades según actividad', 'Contenido adaptado', 'Alcance confirmado antes de la prestación'],
       link: '/formacion-sanitaria'
     }
