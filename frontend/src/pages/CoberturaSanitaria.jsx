@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Shield, Users, Clock, Building, CheckCircle, FileText } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 
 const CoberturaSanitaria = () => {
   const features = [
@@ -86,12 +85,8 @@ const CoberturaSanitaria = () => {
           <h2 className="text-3xl lg:text-4xl font-bold mb-6">¿Necesita valorar una cobertura sanitaria?</h2>
           <p className="text-xl mb-8 opacity-90">Cuéntenos la necesidad. Confirmaremos primero si podemos atenderla y bajo qué alcance.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/contacto">
-              <Button size="lg" className="bg-white text-[#005EB8] hover:bg-gray-100" data-testid="cta-contact">Solicitar información</Button>
-            </Link>
-            <a href="tel:622822101">
-              <Button size="lg" variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#005EB8]" data-testid="cta-call">Llamar: 622 822 101</Button>
-            </a>
+            <Link to="/contacto" className="inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium bg-white text-[#005EB8] hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" data-testid="cta-contact">Solicitar información</Link>
+            <a href="tel:622822101" className="inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#005EB8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" data-testid="cta-call">Llamar: 622 822 101</a>
           </div>
         </div>
       </section>
