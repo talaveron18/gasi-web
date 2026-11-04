@@ -27,8 +27,10 @@ const publicSource = PUBLIC_SURFACE_FILES.map(file => `\n/* ${file} */\n${read(f
 const metadata = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
 const netlifyChatbot = fs.readFileSync(path.join(__dirname, '../../netlify/functions/chatbot.js'), 'utf8');
 const legacyFrontendChatbot = fs.readFileSync(path.join(__dirname, '../functions/chatbot.js'), 'utf8');
+const netlifyContact = fs.readFileSync(path.join(__dirname, '../../netlify/functions/contact.js'), 'utf8');
+const legacyFrontendContact = fs.readFileSync(path.join(__dirname, '../functions/contact.js'), 'utf8');
 const publicLeadUtils = fs.readFileSync(path.join(__dirname, '../../netlify/functions/public-lead-utils.js'), 'utf8');
-const publicRuntimeSource = `${netlifyChatbot}\n${legacyFrontendChatbot}\n${publicLeadUtils}`;
+const publicRuntimeSource = `${netlifyChatbot}\n${legacyFrontendChatbot}\n${netlifyContact}\n${legacyFrontendContact}\n${publicLeadUtils}`;
 
 // Claims that are outside the currently approved public offer. Keep this list explicit so
 // future copy changes fail CI instead of silently reintroducing obsolete promises.
@@ -140,6 +142,8 @@ describe('reconciliación del contenido público GASI', () => {
     expect(legacyFrontendChatbot).toContain("'Otro'");
     expect(legacyFrontendChatbot).toContain('if (!ALLOWED_SERVICES.has(service))');
     expect(legacyFrontendChatbot).toContain('Canal exclusivamente comercial. No admite contenido clínico ni urgencias.');
+    expect(legacyFrontendContact).toContain('if (!ALLOWED_SERVICES.has(serviceType))');
+    expect(netlifyContact).toContain('validateBaseLead(parsed.data,{requireCompany:true,requireMessage:true})');
   });
 
   test('el WhatsApp flotante es inequívocamente comercial y desaconseja datos de salud', () => {
