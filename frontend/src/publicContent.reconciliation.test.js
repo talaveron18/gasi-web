@@ -154,12 +154,19 @@ describe('reconciliación del contenido público GASI', () => {
     for (const file of sources) {
       const source = read(file);
       for (const [, tag, destination] of source.matchAll(/<(Link|a)\b[^>]*?\b(?:to|href)=["']([^"']*)["'][^>]*>/g)) {
-        if (!destination.trim() || destination === '#' || destination.startsWith('javascript:')) {
+        if (destination === '#main-content') {
+          // Enlace de salto accesible: debe apuntar a un destino real del layout.
+          if (file !== 'components/Layout.jsx' || !source.includes('id="main-content"')) {
+            invalid.push(file + ': ' + tag + ' -> ' + destination);
+          }
+        } else if (!destination.trim() || destination.startsWith('#') || /^javascript:/i.test(destination.trim())) {
           invalid.push(file + ': ' + tag + ' -> ' + destination);
         }
       }
     }
     expect(invalid).toEqual([]);
+    expect(read('components/Layout.jsx')).toContain('href="#main-content"');
+    expect(read('components/Layout.jsx')).toContain('id="main-content"');
   });
 
   test('no expone compra, precios ni certificados de cursos desde la ruta pública de detalle', () => {
