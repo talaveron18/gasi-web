@@ -144,7 +144,7 @@ describe('reconciliación del contenido público GASI', () => {
     const home = read('pages/Home.jsx');
     const app = read('App.js');
     const routes = new Set([...app.matchAll(/<Route\s+path="([^"]+)"/g)].map(match => match[1]));
-    const serviceSection = home.match(/const services = \\[([\s\S]*?)\\];/);
+    const serviceSection = home.match(/const services = \[([\s\S]*?)\];/);
     expect(serviceSection).not.toBeNull();
     expect(home).toContain('services.map((service, index) => (<Link to={service.link}');
     const destinations = [...serviceSection[1].matchAll(/\blink:\s*['"]([^'"]+)['"]/g)].map(match => match[1]);
