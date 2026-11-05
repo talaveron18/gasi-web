@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 
 const Sectores = () => {
@@ -83,11 +84,9 @@ const Sectores = () => {
           <p className="text-lg text-[#64748B] mb-8">
             Cuéntenos la necesidad. Antes de asumir cualquier prestación, confirmaremos si GASI puede atenderla y el alcance aplicable.
           </p>
-          <a href="/contacto">
-            <button className="bg-[#005EB8] hover:bg-[#004a92] text-white px-8 py-3 rounded-lg font-semibold text-lg" data-testid="cta-contact">
-              Solicitar información
-            </button>
-          </a>
+          <Link to="/contacto" className="inline-flex items-center justify-center bg-[#005EB8] hover:bg-[#004a92] text-white px-8 py-3 rounded-lg font-semibold text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005EB8]" data-testid="cta-contact">
+            Solicitar información
+          </Link>
         </div>
       </section>
     </div>
