@@ -149,6 +149,15 @@ describe('reconciliación del contenido público GASI', () => {
     expect(sectors).not.toContain('<button');
   });
 
+  test('el CTA de organizaciones usa un enlace semántico sin botón anidado', () => {
+    const organisations = read('pages/SaludLaboral.jsx');
+    expect(organisations).toContain('<Link to="/contacto"');
+    expect(organisations).toContain('data-testid="cta-contact"');
+    expect(organisations).toContain('focus-visible:outline');
+    expect(organisations).not.toContain('<Button');
+    expect(organisations).not.toContain("import { Button } from '@/components/ui/button';");
+  });
+
   test('las tarjetas de servicios de Inicio resuelven destinos dinámicos válidos', () => {
     const home = read('pages/Home.jsx');
     const app = read('App.js');
