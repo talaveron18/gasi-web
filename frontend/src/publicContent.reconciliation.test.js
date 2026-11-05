@@ -305,8 +305,10 @@ describe('reconciliación del contenido público GASI', () => {
     expect(footer).toContain(email);
     for (const source of [contact, footer, coverage, layout]) {
       const phoneLinks = [...source.matchAll(/href="tel:([^"]+)"/g)].map(match => match[1]);
+      if ([contact, footer, coverage].includes(source)) expect(phoneLinks.length).toBeGreaterThan(0);
       expect(phoneLinks.every(number => number === '622822101')).toBe(true);
       const whatsappLinks = [...source.matchAll(/(?:href="https:\/\/wa\.me\/|wa\.me\/)(\d+)/g)].map(match => match[1]);
+      if ([contact, footer, layout].includes(source)) expect(whatsappLinks.length).toBeGreaterThan(0);
       expect(whatsappLinks.every(number => number === '34634029865')).toBe(true);
     }
   });
