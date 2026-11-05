@@ -140,6 +140,13 @@ describe('reconciliación del contenido público GASI', () => {
     expect(declaredRoutes.has('/cobertura-sanitaria')).toBe(true);
   });
 
+  test('el CTA de Sectores es un enlace accesible sin botones anidados', () => {
+    const sectors = read('pages/Sectores.jsx');
+    expect(sectors).toContain('import { Link } from \'react-router-dom\';');
+    expect(sectors).toMatch(/<Link\\s+to="\\/contacto"[^>]*data-testid="cta-contact"/);
+    expect(sectors).not.toMatch(/<a\\b[^>]*>\\s*<button\\b/);
+  });
+
   test('las tarjetas de servicios de Inicio resuelven destinos dinámicos válidos', () => {
     const home = read('pages/Home.jsx');
     const app = read('App.js');
