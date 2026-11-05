@@ -140,6 +140,18 @@ describe('reconciliación del contenido público GASI', () => {
     expect(declaredRoutes.has('/cobertura-sanitaria')).toBe(true);
   });
 
+  test('los enlaces HTML internos de páginas públicas apuntan a rutas existentes', () => {
+    const routes = new Set([...read('App.js').matchAll(/<Route\\s+path="([^"]+)"/g)].map(match => match[1]));
+    const invalid = [];
+    for (const file of PUBLIC_SURFACE_FILES.filter(file => file !== 'App.js')) {
+      const source = read(file);
+      for (const [, destination] of source.matchAll(/<a\\b[^>]*\\bhref=["'](\\/[^"'?#]*)(?:[?#][^"']*)?["']/g)) {
+        if (!routes.has(destination)) invalid.push(file + ': ' + destination);
+      }
+    }
+    expect(invalid).toEqual([]);
+  });
+
   test('los CTA públicos no utilizan destinos vacíos ni marcadores de posición', () => {
     const sources = [
       'pages/Home.jsx', 'pages/Servicios.jsx', 'pages/CoberturaSanitaria.jsx',
