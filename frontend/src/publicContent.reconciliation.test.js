@@ -287,4 +287,28 @@ describe('reconciliación del contenido público GASI', () => {
     expect(layout).toContain('consulta%20comercial%20sobre%20GASI.%20No%20incluyo%20datos%20de%20salud');
     expect(layout).toContain('WhatsApp comercial · no es un canal clínico ni de urgencias');
   });
+  test('los canales comerciales publicados son coherentes entre contacto, footer y cobertura', () => {
+    const contact = read('pages/Contacto.jsx');
+    const footer = read('components/Footer.jsx');
+    const coverage = read('pages/CoberturaSanitaria.jsx');
+    const layout = read('components/Layout.jsx');
+    const phone = 'tel:622822101';
+    const whatsapp = 'https://wa.me/34634029865';
+    const email = 'mailto:coordinacion@gasisalud.com';
+    expect(contact).toContain(phone);
+    expect(footer).toContain(phone);
+    expect(coverage).toContain(phone);
+    expect(contact).toContain(whatsapp);
+    expect(footer).toContain(whatsapp);
+    expect(layout).toContain('34634029865');
+    expect(contact).toContain(email);
+    expect(footer).toContain(email);
+    for (const source of [contact, footer, coverage, layout]) {
+      const phoneLinks = [...source.matchAll(/href="tel:([^"]+)"/g)].map(match => match[1]);
+      expect(phoneLinks.every(number => number === '622822101')).toBe(true);
+      const whatsappLinks = [...source.matchAll(/(?:href="https:\/\/wa\.me\/|wa\.me\/)(\d+)/g)].map(match => match[1]);
+      expect(whatsappLinks.every(number => number === '34634029865')).toBe(true);
+    }
+  });
+
 });
