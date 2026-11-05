@@ -234,6 +234,18 @@ describe('reconciliación del contenido público GASI', () => {
     expect(netlifyContact).toContain('validateBaseLead(parsed.data,{requireCompany:true,requireMessage:true})');
   });
 
+  test('el formulario comercial advierte sobre datos de salud y no confirma prestaciones', () => {
+    const contacto = read('pages/Contacto.jsx');
+    expect(contacto).toContain('Este formulario es solo para consultas comerciales.');
+    expect(contacto).toContain('No incluya información clínica, datos de pacientes ni datos de salud.');
+    expect(contacto).toContain('No es un canal de urgencias.');
+    expect(contacto).toContain('El envío de este formulario no confirma disponibilidad, contratación ni prestación sanitaria.');
+    expect(contacto).toContain('placeholder="Describa únicamente su necesidad comercial, sin datos clínicos ni de salud"');
+    expect(contacto).toContain('value="Enfermería presencial"');
+    expect(contacto).toContain('value="Formación sanitaria"');
+    expect(contacto).not.toMatch(/value=["'](?:Reconocimientos médicos|Vigilancia de la salud)["']/i);
+  });
+
   test('el WhatsApp flotante es inequívocamente comercial y desaconseja datos de salud', () => {
     const layout = read('components/Layout.jsx');
     expect(layout).toContain('consulta%20comercial%20sobre%20GASI.%20No%20incluyo%20datos%20de%20salud');
