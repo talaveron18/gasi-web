@@ -142,9 +142,11 @@ describe('reconciliación del contenido público GASI', () => {
 
   test('el CTA de Sectores es un enlace accesible sin botones anidados', () => {
     const sectors = read('pages/Sectores.jsx');
-    expect(sectors).toContain('import { Link } from \'react-router-dom\';');
-    expect(sectors).toMatch(/<Link\\s+to="\\/contacto"[^>]*data-testid="cta-contact"/);
-    expect(sectors).not.toMatch(/<a\\b[^>]*>\\s*<button\\b/);
+    expect(sectors).toContain("import { Link } from 'react-router-dom';");
+    expect(sectors).toContain('<Link to="/contacto"');
+    expect(sectors).toContain('data-testid="cta-contact"');
+    expect(sectors).not.toContain('<a href="/contacto">');
+    expect(sectors).not.toContain('<button');
   });
 
   test('las tarjetas de servicios de Inicio resuelven destinos dinámicos válidos', () => {
