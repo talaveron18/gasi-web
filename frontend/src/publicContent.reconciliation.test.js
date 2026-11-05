@@ -140,6 +140,18 @@ describe('reconciliación del contenido público GASI', () => {
     expect(declaredRoutes.has('/cobertura-sanitaria')).toBe(true);
   });
 
+  test('las tarjetas de servicios de Inicio resuelven destinos dinámicos válidos', () => {
+    const home = read('pages/Home.jsx');
+    const app = read('App.js');
+    const routes = new Set([...app.matchAll(/<Route\\s+path="([^"]+)"/g)].map(match => match[1]));
+    const serviceSection = home.match(/const services = \\[([\\s\\S]*?)\\];/);
+    expect(serviceSection).not.toBeNull();
+    expect(home).toContain('services.map((service, index) => (<Link to={service.link}');
+    const destinations = [...serviceSection[1].matchAll(/\\blink:\\s*['"]([^'"]+)['"]/g)].map(match => match[1]);
+    expect(destinations).toEqual(['/cobertura-sanitaria', '/formacion-sanitaria']);
+    destinations.forEach(destination => expect(routes.has(destination)).toBe(true));
+  });
+
   test('los enlaces HTML internos de páginas públicas apuntan a rutas existentes', () => {
     const routes = new Set([...read('App.js').matchAll(/<Route\s+path="([^"]+)"/g)].map(match => match[1]));
     const invalid = [];
