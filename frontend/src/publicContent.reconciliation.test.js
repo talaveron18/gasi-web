@@ -155,11 +155,11 @@ describe('reconciliación del contenido público GASI', () => {
   test('los CTA dinámicos de Servicios resuelven únicamente las dos rutas comerciales aprobadas', () => {
     const services = read('pages/Servicios.jsx');
     const app = read('App.js');
-    const routes = new Set([...app.matchAll(/<Route\\s+path="([^"]+)"/g)].map(match => match[1]));
-    const section = services.match(/const services = \\[([\\s\\S]*?)\\];/);
+    const routes = new Set([...app.matchAll(/<Route\s+path="([^"]+)"/g)].map(match => match[1]));
+    const section = services.match(/const services = \[([\s\S]*?)\];/);
     expect(section).not.toBeNull();
     expect(services).toContain('<Link to={service.link}');
-    const destinations = [...section[1].matchAll(/\\blink:\\s*['"]([^'"]+)['"]/g)].map(match => match[1]);
+    const destinations = [...section[1].matchAll(/\blink:\s*['"]([^'"]+)['"]/g)].map(match => match[1]);
     expect(destinations).toEqual(['/cobertura-sanitaria', '/formacion-sanitaria']);
     destinations.forEach(destination => expect(routes.has(destination)).toBe(true));
   });
