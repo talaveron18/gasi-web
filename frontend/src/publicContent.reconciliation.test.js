@@ -320,7 +320,7 @@ describe('reconciliación del contenido público GASI', () => {
       'components/Footer.jsx',
     ];
     const assets = graphicSources.flatMap(file =>
-      [...read(file).matchAll(/https:\/\/customer-assets\.emergentagent\.com\/[^\\s'"\\)]+/g)]
+      [...read(file).matchAll(/https:\/\/customer-assets\.emergentagent\.com\/[^\s'"\)]+/g)]
         .map(match => ({ file, url: match[0] }))
     );
     const distinctUrls = [...new Set(assets.map(asset => asset.url))];
