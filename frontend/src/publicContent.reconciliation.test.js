@@ -313,4 +313,25 @@ describe('reconciliación del contenido público GASI', () => {
     }
   });
 
+  test('inventaría las dependencias gráficas externas de las superficies comerciales', () => {
+    const graphicSources = [
+      'pages/Home.jsx',
+      'components/Navbar.jsx',
+      'components/Footer.jsx',
+    ];
+    const assets = graphicSources.flatMap(file =>
+      [...read(file).matchAll(/https:\/\/customer-assets\.emergentagent\.com\/[^\\s'"\\)]+/g)]
+        .map(match => ({ file, url: match[0] }))
+    );
+    const distinctUrls = [...new Set(assets.map(asset => asset.url))];
+    // These dependencies are not proof of ownership, availability or permission.
+    // Keep the inventory explicit until the assets can be verified or migrated.
+    expect(assets.map(asset => asset.file)).toEqual([
+      'pages/Home.jsx', 'pages/Home.jsx', 'pages/Home.jsx',
+      'components/Navbar.jsx', 'components/Footer.jsx',
+    ]);
+    expect(distinctUrls).toHaveLength(3);
+    expect(distinctUrls.every(url => url.startsWith('https://customer-assets.emergentagent.com/'))).toBe(true);
+  });
+
 });
