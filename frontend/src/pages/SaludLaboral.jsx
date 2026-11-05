@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, GraduationCap, ClipboardCheck } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 
 const SaludLaboral = () => {
   const services = [
@@ -61,10 +60,8 @@ const SaludLaboral = () => {
           <p className="text-lg text-[#64748B] mb-8">
             Revisaremos la necesidad y confirmaremos si GASI puede atenderla y bajo qué alcance antes de cualquier prestación.
           </p>
-          <Link to="/contacto">
-            <Button size="lg" className="bg-[#005EB8] text-white hover:bg-[#004A92]" data-testid="cta-contact">
-              Solicitar información
-            </Button>
+          <Link to="/contacto" className="inline-flex items-center justify-center rounded-md bg-[#005EB8] px-6 py-3 text-white font-medium hover:bg-[#004A92] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005EB8]" data-testid="cta-contact">
+            Solicitar información
           </Link>
         </div>
       </section>
