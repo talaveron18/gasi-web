@@ -195,3 +195,9 @@ test('public contact surfaces explicitly delimit non-clinical channels', () => {
   assert.match(read('frontend/functions/chatbot.js'), /Canal exclusivamente comercial\. No admite contenido clínico ni urgencias/i);
   assert.match(read('netlify/functions/chatbot.js'), /no admite contenido clínico ni datos de salud/i);
 });
+
+
+test('public-facing pages do not depend on temporary Emergent customer assets', () => {
+  const offenders = publicSurfaces.filter((file) => /customer-assets\\.emergentagent\\.com/i.test(read(file)));
+  assert.deepEqual(offenders, [], 'third-party temporary assets must not appear in public surfaces');
+});
