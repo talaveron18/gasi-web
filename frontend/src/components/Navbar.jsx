@@ -19,7 +19,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <Link to="/" className="flex items-center" data-testid="logo-link">
-            <img src="https://customer-assets.emergentagent.com/job_f98f3724-6c7c-43ce-a711-d735c45e5317/artifacts/9tonzp4x_Dise%C3%B1o%20sin%20t%C3%ADtulo%20%281%29.png" alt="GASI Logo" className="h-16 max-w-[180px] w-auto object-contain" />
+            <span className="text-2xl font-bold tracking-wide text-[#005EB8]" aria-label="GASI - Grupo de Asistencia Sanitaria Integral">GASI</span>
           </Link>
 
           <div className="hidden lg:flex items-center space-x-1">
