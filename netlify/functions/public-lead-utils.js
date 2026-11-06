@@ -55,18 +55,18 @@ function validateBaseLead(raw,{requireCompany=false,requireMessage=false}={}){
 }
 
 async function sendLeadEmail({subject,html}){
-  const apiKey=process.env.MAILERSEND_API_KEY||"";
+  const apiKey=process.env.RESEND_API_KEY||"";
   const sender=process.env.GASI_LEAD_SENDER_EMAIL||"coordinacion@gasisalud.com";
   const recipient=process.env.GASI_LEAD_RECIPIENT_EMAIL||"coordinacion@gasisalud.com";
   if(!apiKey)return{ok:false,code:"service_unavailable"};
   let upstream;
   try{
-    upstream=await fetch("https://api.mailersend.com/v1/email",{
+    upstream=await fetch("https://api.resend.com/emails",{
       method:"POST",
       headers:{"content-type":"application/json","authorization":`Bearer ${apiKey}`},
       body:JSON.stringify({
-        from:{email:sender,name:"Web GASI"},
-        to:[{email:recipient,name:"GASI Coordinación"}],
+        from:`Web GASI <${sender}>`,
+        to:[recipient],
         subject,
         html
       })
@@ -75,7 +75,7 @@ async function sendLeadEmail({subject,html}){
     return{ok:false,code:"delivery_failed"};
   }
   if(!upstream.ok){
-    console.error("lead_delivery_failed",{provider:"mailersend",status:upstream.status});
+    console.error("lead_delivery_failed",{provider:"resend",status:upstream.status});
     return{ok:false,code:"delivery_failed"};
   }
   return{ok:true};
