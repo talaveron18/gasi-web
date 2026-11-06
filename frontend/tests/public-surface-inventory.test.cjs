@@ -85,3 +85,10 @@ test('navegación y CTA comerciales no enlazan a compra, inscripción o servicio
   }
   assert.match(app, /path="\/curso\/:courseId"[^\n]*<Navigate to="\/formacion-sanitaria" replace\/>/);
 });
+
+
+test('la portada no depende de imágenes externas no verificadas', () => {
+  const home = read('src/pages/Home.jsx');
+  assert.doesNotMatch(home, /customer-assets\.emergentagent\.com|service\.image|<img\b/i);
+  assert.match(home, /bg-gradient-to-br/);
+});
