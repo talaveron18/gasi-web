@@ -92,3 +92,10 @@ test('la portada no depende de imágenes externas no verificadas', () => {
   assert.doesNotMatch(home, /customer-assets\.emergentagent\.com|service\.image|<img\b/i);
   assert.match(home, /bg-gradient-to-br/);
 });
+
+
+test('el pie de página no depende de un logo alojado fuera de GASI', () => {
+  const footer = read('src/components/Footer.jsx');
+  assert.doesNotMatch(footer, /customer-assets\.emergentagent\.com|<img\b/i);
+  assert.match(footer, /aria-label="GASI - Grupo de Asistencia Sanitaria Integral"/);
+});
