@@ -116,6 +116,10 @@ jobs:
           CI: 'true'
           GENERATE_SOURCEMAP: 'false'
         run: yarn --cwd frontend build
+      - name: Prepare isolated commercial functions
+        run: node scripts/prepare-commercial-functions.cjs
+      - name: Verify commercial-only function package
+        run: node --test scripts/commercial-package.test.cjs
       - name: Netlify HTTP header smoke
         run: node scripts/netlify-http-smoke.mjs
       - name: Rehearse release artifact restore
