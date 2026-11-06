@@ -34,7 +34,7 @@ const Contacto = () => {
       }
       toast.success('Formulario enviado. Revisaremos su solicitud y nos pondremos en contacto.');
       setFormData({ name: '', company: '', email: '', phone: '', employee_count: '', service_type: '', message: '', website: '', accepts_privacy: false });
-    } catch (error) { toast.error(error?.message || 'Error al enviar el formulario. Inténtelo de nuevo.'); }
+    } catch (error) { toast.error(`${error?.message || 'Error al enviar el formulario.'} Como alternativa, escriba a coordinacion@gasisalud.com sin incluir datos clínicos ni de salud.`); }
     finally { setLoading(false); }
   };
 
