@@ -140,6 +140,15 @@ describe('reconciliación del contenido público GASI', () => {
     expect(declaredRoutes.has('/cobertura-sanitaria')).toBe(true);
   });
 
+  test('el logotipo público no desborda la navegación ni el footer', () => {
+    const navbar = read('components/Navbar.jsx');
+    const footer = read('components/Footer.jsx');
+    expect(navbar).toContain('className="h-16 max-w-[180px] w-auto object-contain"');
+    expect(footer).toContain('className="h-20 max-w-full w-auto object-contain mb-4 brightness-0 invert"');
+    expect(navbar).not.toContain('className="h-80 w-auto"');
+    expect(footer).not.toContain('className="h-80 w-auto');
+  });
+
   test('el CTA de Sectores es un enlace accesible sin botones anidados', () => {
     const sectors = read('pages/Sectores.jsx');
     expect(sectors).toContain("import { Link } from 'react-router-dom';");
