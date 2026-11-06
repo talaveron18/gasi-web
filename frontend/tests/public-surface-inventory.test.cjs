@@ -61,3 +61,27 @@ test('metadatos públicos limitados a la oferta prudente', () => {
   assert.match(html, /Enfermería presencial y formación sanitaria/i);
   assert.match(html, /confirmación previa de alcance/i);
 });
+
+test('navegación y CTA comerciales no enlazan a compra, inscripción o servicios heredados', () => {
+  const app = read('src/App.js');
+  const sources = [
+    'src/pages/Home.jsx',
+    'src/pages/Servicios.jsx',
+    'src/pages/CoberturaSanitaria.jsx',
+    'src/pages/FormacionSanitaria.jsx',
+    'src/pages/SaludLaboral.jsx',
+    'src/pages/Sectores.jsx',
+    'src/components/Navbar.jsx',
+    'src/components/Footer.jsx'
+  ];
+  const forbidden = /\\/(?:curso\\/|checkout|pago|pagos|inscripcion|inscripciones|reconocimientos-medicos)(?:[\\/"'?]|$)/i;
+  for (const file of sources) {
+    const source = read(file);
+    assert.doesNotMatch(source, forbidden, `${file}: enlace comercial heredado`);
+    for (const match of source.matchAll(/<Link\\b[^>]*\\bto="(\\/[^"]*)"/g)) {
+      const route = match[1];
+      assert.ok(app.includes(`path="${route}"`), `${file}: CTA apunta a ruta sin registrar ${route}`);
+    }
+  }
+  assert.match(app, /path="\\/curso\\/:courseId"[^\\n]*<Navigate to="\\/formacion-sanitaria" replace\\/>/);
+});
