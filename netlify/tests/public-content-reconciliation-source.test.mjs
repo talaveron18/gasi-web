@@ -205,6 +205,7 @@ test('public-facing pages do not depend on temporary Emergent customer assets', 
 
 test('el catálogo anónimo de cursos queda bloqueado también dentro de la función API', () => {
   const source = read('netlify/functions/public-api.mts');
-  assert.match(source, /if\(req\.method==="GET"&&\(path==="\/api\/courses\/"\|\|\/\^\\\/api\\\/courses\\\/\[\^\/\]\+\$\/\.test\(path\)\)\)return json\(\{detail:"not_found"\},404\)/);
-  assert.ok(source.indexOf('return json({detail:"not_found"},404)') < source.indexOf('const db=database();'), 'el bloqueo debe preceder a la conexión a base de datos');
+  const guard = 'if(req.method==="GET"&&(path==="/api/courses/"||/^\\/api\\/courses\\/[^/]+$/.test(path)))return json({detail:"not_found"},404);';
+  assert.ok(source.includes(guard), 'falta bloqueo de catálogo y detalle en la función API');
+  assert.ok(source.indexOf(guard) < source.indexOf('const db=database();'), 'el bloqueo debe preceder a la conexión a base de datos');
 });
