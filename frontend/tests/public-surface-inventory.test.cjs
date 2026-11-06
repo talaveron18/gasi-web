@@ -99,3 +99,10 @@ test('el pie de página no depende de un logo alojado fuera de GASI', () => {
   assert.doesNotMatch(footer, /customer-assets\.emergentagent\.com|<img\b/i);
   assert.match(footer, /aria-label="GASI - Grupo de Asistencia Sanitaria Integral"/);
 });
+
+
+test('la navegación no depende de un logotipo alojado en terceros', () => {
+  const navbar = read('src/components/Navbar.jsx');
+  assert.doesNotMatch(navbar, /customer-assets\.emergentagent\.com|<img\b/i);
+  assert.match(navbar, /aria-label="GASI - Grupo de Asistencia Sanitaria Integral"/);
+});
