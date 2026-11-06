@@ -106,3 +106,11 @@ test('la navegación no depende de un logotipo alojado en terceros', () => {
   assert.doesNotMatch(navbar, /customer-assets\.emergentagent\.com|<img\b/i);
   assert.match(navbar, /aria-label="GASI - Grupo de Asistencia Sanitaria Integral"/);
 });
+
+
+test('el chatbot comprueba el consentimiento vigente al enviar, sin fijarlo artificialmente', () => {
+  const chatbot = read('src/components/Chatbot.jsx');
+  assert.match(chatbot, /if\(!acceptsPrivacy\)\{addBot\('Debes aceptar la política de protección de datos antes de enviar la solicitud\.'\);return;\}/);
+  assert.match(chatbot, /accepts_privacy:acceptsPrivacy/);
+  assert.doesNotMatch(chatbot, /accepts_privacy:true/);
+});
