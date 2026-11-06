@@ -52,6 +52,15 @@ const FORBIDDEN_PUBLIC_CLAIMS = [
 ];
 
 describe('reconciliación del contenido público GASI', () => {
+  test('robots.txt desalienta la indexación de accesos privados sin bloquear la portada', () => {
+    const robots = fs.readFileSync(path.join(__dirname, '../public/robots.txt'), 'utf8');
+    expect(robots).toMatch(/^User-agent: \*$/m);
+    for (const route of ['/interno', '/interno/', '/dashboard', '/dashboard/', '/alumnado/acceso', '/acceso']) {
+      expect(robots).toContain('Disallow: ' + route + '\\n');
+    }
+    expect(robots).toMatch(/^Allow: \/$/m);
+  });
+
   test.each(FORBIDDEN_PUBLIC_CLAIMS)('no publica la promesa obsoleta %s', pattern => {
     expect(publicSource).not.toMatch(pattern);
     expect(metadata).not.toMatch(pattern);
