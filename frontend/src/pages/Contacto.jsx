@@ -32,7 +32,7 @@ const Contacto = () => {
         };
         throw new Error(friendlyErrors[result.message] || 'No se pudo enviar el formulario.');
       }
-      toast.success('Formulario enviado. Revisaremos su solicitud y nos pondremos en contacto.');
+      toast.success('Solicitud enviada al servicio de recepción. Esto no confirma su entrega al buzón ni la aceptación del servicio. Si no recibe respuesta, escriba a coordinacion@gasisalud.com sin incluir datos clínicos o de salud.');
       setFormData({ name: '', company: '', email: '', phone: '', employee_count: '', service_type: '', message: '', website: '', accepts_privacy: false });
     } catch (error) { toast.error(`${error?.message || 'Error al enviar el formulario.'} Como alternativa, escriba a coordinacion@gasisalud.com sin incluir datos clínicos ni de salud.`); }
     finally { setLoading(false); }
