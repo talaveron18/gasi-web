@@ -56,7 +56,7 @@ describe('reconciliación del contenido público GASI', () => {
     const robots = fs.readFileSync(path.join(__dirname, '../public/robots.txt'), 'utf8');
     expect(robots).toMatch(/^User-agent: \*$/m);
     for (const route of ['/interno', '/interno/', '/dashboard', '/dashboard/', '/alumnado/acceso', '/acceso']) {
-      expect(robots).toContain('Disallow: ' + route + '\\n');
+      expect(robots).toContain('Disallow: ' + route + '\n');
     }
     expect(robots).toMatch(/^Allow: \/$/m);
   });
