@@ -307,6 +307,13 @@ describe('reconciliación del contenido público GASI', () => {
     expect(contacto).not.toMatch(/value=["'](?:Reconocimientos médicos|Vigilancia de la salud)["']/i);
   });
 
+  test('Contacto muestra una alternativa comercial segura si falla el envío', () => {
+    const contacto = read('pages/Contacto.jsx');
+    expect(contacto).toContain("error?.message || 'Error al enviar el formulario.'");
+    expect(contacto).toContain('Como alternativa, escriba a coordinacion@gasisalud.com sin incluir datos clínicos ni de salud.');
+    expect(contacto).toContain("toast.success('Formulario enviado.");
+  });
+
   test('el WhatsApp flotante es inequívocamente comercial y desaconseja datos de salud', () => {
     const layout = read('components/Layout.jsx');
     expect(layout).toContain('consulta%20comercial%20sobre%20GASI.%20No%20incluyo%20datos%20de%20salud');
