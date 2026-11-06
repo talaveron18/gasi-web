@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /interno
+Disallow: /interno/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /alumnado/acceso
+Disallow: /acceso
+Allow: /
