@@ -201,3 +201,10 @@ test('public-facing pages do not depend on temporary Emergent customer assets', 
   const offenders = publicSurfaces.filter((file) => /customer-assets\\.emergentagent\\.com/i.test(read(file)));
   assert.deepEqual(offenders, [], 'third-party temporary assets must not appear in public surfaces');
 });
+
+
+test('el catálogo anónimo de cursos queda bloqueado también dentro de la función API', () => {
+  const source = read('netlify/functions/public-api.mts');
+  assert.match(source, /if\(req\.method==="GET"&&\(path==="\/api\/courses\/"\|\|\/\^\\\/api\\\/courses\\\/\[\^\/\]\+\$\/\.test\(path\)\)\)return json\(\{detail:"not_found"\},404\)/);
+  assert.ok(source.indexOf('return json({detail:"not_found"},404)') < source.indexOf('const db=database();'), 'el bloqueo debe preceder a la conexión a base de datos');
+});
