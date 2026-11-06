@@ -273,6 +273,13 @@ describe('reconciliación del contenido público GASI', () => {
     expect(chatbot).toContain("const SERVICES = ['Enfermería presencial', 'Formación sanitaria', 'Otro'];");
   });
 
+  test('el chatbot ofrece correo alternativo y advierte sobre datos de salud incluso si falla el envío', () => {
+    const chatbot = read('components/Chatbot.jsx');
+    expect(chatbot).toContain("throw new Error(friendlyErrors[result.message]||'No se pudo enviar la solicitud.');");
+    expect(chatbot).toContain("error?.message || 'No hemos podido enviar tus datos.'");
+    expect(chatbot).toContain('Como alternativa, puedes escribir a coordinacion@gasisalud.com sin incluir datos clínicos ni de salud.');
+  });
+
   test('los runtimes del chatbot no amplían la oferta ni aceptan categorías obsoletas', () => {
     expect(netlifyChatbot).toContain('El asistente público no admite contenido clínico ni datos de salud.');
     expect(publicLeadUtils).toContain('"Enfermería presencial"');
