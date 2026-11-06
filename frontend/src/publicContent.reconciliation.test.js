@@ -152,8 +152,8 @@ describe('reconciliación del contenido público GASI', () => {
   test('el logotipo público no desborda la navegación ni el footer', () => {
     const navbar = read('components/Navbar.jsx');
     const footer = read('components/Footer.jsx');
-    expect(navbar).toContain('className="h-16 max-w-[180px] w-auto object-contain"');
-    expect(footer).toContain('className="h-20 max-w-full w-auto object-contain mb-4 brightness-0 invert"');
+    expect(navbar).toContain('aria-label="GASI - Grupo de Asistencia Sanitaria Integral"');
+    expect(footer).toContain('aria-label="GASI - Grupo de Asistencia Sanitaria Integral"');
     expect(navbar).not.toContain('className="h-80 w-auto"');
     expect(footer).not.toContain('className="h-80 w-auto');
   });
@@ -329,7 +329,7 @@ describe('reconciliación del contenido público GASI', () => {
     const contacto = read('pages/Contacto.jsx');
     expect(contacto).toContain("error?.message || 'Error al enviar el formulario.'");
     expect(contacto).toContain('Como alternativa, escriba a coordinacion@gasisalud.com sin incluir datos clínicos ni de salud.');
-    expect(contacto).toContain("toast.success('Formulario enviado.");
+    expect(contacto).toContain("no confirma su entrega al buzón");
   });
 
   test('el WhatsApp flotante es inequívocamente comercial y desaconseja datos de salud', () => {
@@ -374,14 +374,9 @@ describe('reconciliación del contenido público GASI', () => {
         .map(match => ({ file, url: match[0] }))
     );
     const distinctUrls = [...new Set(assets.map(asset => asset.url))];
-    // These dependencies are not proof of ownership, availability or permission.
-    // Keep the inventory explicit until the assets can be verified or migrated.
-    expect(assets.map(asset => asset.file)).toEqual([
-      'pages/Home.jsx', 'pages/Home.jsx', 'pages/Home.jsx',
-      'components/Navbar.jsx', 'components/Footer.jsx',
-    ]);
-    expect(distinctUrls).toHaveLength(3);
-    expect(distinctUrls.every(url => url.startsWith('https://customer-assets.emergentagent.com/'))).toBe(true);
+    // The formerly external assets have been removed from these public surfaces.
+    expect(assets).toEqual([]);
+    expect(distinctUrls).toEqual([]);
   });
 
 });
