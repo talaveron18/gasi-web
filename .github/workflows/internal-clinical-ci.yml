@@ -35,6 +35,8 @@ jobs:
         env:
           CI: 'true'
         run: yarn test --watchAll=false --passWithNoTests
+      - name: Public commercial source and contact regression
+        run: node --test tests/public-*.test.cjs
       - name: Browser E2E access and accessibility
         run: node e2e/browser-access.mjs
       - name: Browser E2E public route accessibility
