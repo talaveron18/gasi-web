@@ -52,6 +52,7 @@ test("contact validates, escapes HTML and sends only normalized fields",async()=
   assert.equal(upstream.body.from,"Web GASI <sender@gasisalud.com>");
   assert.deepEqual(upstream.body.to,["recipient@gasisalud.com"]);
   assert.equal(upstream.options.headers.authorization,"Bearer synthetic-resend-key");
+  assert.equal(upstream.body.reply_to,"ana@example.com");
   assert.match(upstream.body.html,/&lt;script&gt;alert\(1\)&lt;\/script&gt; Ana/);
   assert.match(upstream.body.html,/Empresa &lt;b&gt;X&lt;\/b&gt;/);
   assert.match(upstream.body.html,/&lt;img src=x onerror=alert\(1\)&gt;/);
@@ -114,7 +115,8 @@ test("contact rejects oversized body before parsing",async()=>{
 test("chatbot endpoint enforces privacy and only accepts a currently advertised service",async()=>{
   resetEnv();
   let calls=0;
-  global.fetch=async()=>{calls++;return {ok:true,status:202};};
+  let chatbotPayload;
+  global.fetch=async(_url,options)=>{calls++;chatbotPayload=JSON.parse(options.body);return {ok:true,status:202};};
 
   let response=await chatbot.handler({
     httpMethod:"POST",
@@ -137,6 +139,7 @@ test("chatbot endpoint enforces privacy and only accepts a currently advertised 
   assert.equal(response.statusCode,200);
   assert.equal(JSON.parse(response.body).message,"sent");
   assert.equal(calls,1);
+  assert.equal(chatbotPayload.reply_to,"ana@example.com");
 
   response=await chatbot.handler({
     httpMethod:"POST",
