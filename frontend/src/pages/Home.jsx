@@ -9,15 +9,13 @@ const Home = () => {
       icon: <Building2 className="w-12 h-12 text-[#005EB8]" />,
       title: 'Enfermería Presencial en Empresas',
       description: 'Enfermería presencial en instalaciones, cuando el alcance acordado y los requisitos aplicables lo permitan.',
-      link: '/cobertura-sanitaria',
-      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/c29a6c5d_1.png'
+      link: '/cobertura-sanitaria'
     },
     {
       icon: <GraduationCap className="w-12 h-12 text-[#005EB8]" />,
       title: 'Formación Sanitaria',
       description: 'Formación sanitaria para organizaciones, definida según las necesidades y el alcance aplicable en cada caso.',
-      link: '/formacion-sanitaria',
-      image: 'https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/np9q6v5h_2.png'
+      link: '/formacion-sanitaria'
     }
   ];
 
@@ -37,7 +35,7 @@ const Home = () => {
   return (
     <div data-testid="home-page">
       <section className="relative h-[600px] flex items-center justify-center bg-gradient-to-br from-[#005EB8] to-[#327BBD] text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'url(https://customer-assets.emergentagent.com/job_gasi-laboral/artifacts/c29a6c5d_1.png)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <div className="absolute inset-0 opacity-20 bg-gradient-to-r from-[#0F172A] to-[#327BBD]" aria-hidden="true" />
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 animate-fade-in" data-testid="hero-title">Enfermería Presencial y Formación Sanitaria</h1>
           <p className="text-lg sm:text-xl mb-8 text-white/90 max-w-2xl mx-auto">GASI estudia servicios de enfermería presencial y formación sanitaria para organizaciones. Cada solicitud se revisa y se confirma de acuerdo con el alcance y los requisitos aplicables antes de iniciar cualquier prestación.</p>
@@ -52,7 +50,7 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16"><h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4" data-testid="services-section-title">Servicios actuales</h2><p className="text-lg text-[#64748B] max-w-2xl mx-auto">Enfermería presencial y formación sanitaria para organizaciones, siempre sujetas a confirmación previa de alcance y requisitos aplicables.</p></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {services.map((service, index) => (<Link to={service.link} key={index} className="group" data-testid={`service-card-${index}`}><Card className="h-full hover-lift border-2 border-transparent hover:border-[#005EB8] transition-all"><div className="h-48 overflow-hidden rounded-t-lg"><img src={service.image} alt={service.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /></div><CardContent className="p-6"><div className="mb-4">{service.icon}</div><h3 className="text-xl font-bold text-[#0F172A] mb-3 group-hover:text-[#005EB8] transition-colors">{service.title}</h3><p className="text-[#64748B] mb-4">{service.description}</p><div className="flex items-center text-[#005EB8] font-semibold group-hover:translate-x-2 transition-transform">Más información <ArrowRight className="ml-2 w-4 h-4" /></div></CardContent></Card></Link>))}
+            {services.map((service, index) => (<Link to={service.link} key={index} className="group" data-testid={`service-card-${index}`}><Card className="h-full hover-lift border-2 border-transparent hover:border-[#005EB8] transition-all"><div className="h-48 rounded-t-lg bg-gradient-to-br from-[#EAF4FC] to-[#D7EAF8] flex items-center justify-center" aria-hidden="true"><div className="scale-[2]">{service.icon}</div></div><CardContent className="p-6"><div className="mb-4">{service.icon}</div><h3 className="text-xl font-bold text-[#0F172A] mb-3 group-hover:text-[#005EB8] transition-colors">{service.title}</h3><p className="text-[#64748B] mb-4">{service.description}</p><div className="flex items-center text-[#005EB8] font-semibold group-hover:translate-x-2 transition-transform">Más información <ArrowRight className="ml-2 w-4 h-4" /></div></CardContent></Card></Link>))}
           </div>
         </div>
       </section>
