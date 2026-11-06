@@ -24,7 +24,8 @@ exports.handler=async event=>{
 
   const delivery=await sendLeadEmail({
     subject:`Nuevo contacto web: ${lead.name} - ${lead.company}`,
-    html
+    html,
+    replyTo:lead.email
   });
   if(!delivery.ok)return response(delivery.code==="service_unavailable"?503:502,delivery.code);
   return response(200,"sent");
