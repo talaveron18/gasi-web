@@ -8,7 +8,7 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <img src="https://customer-assets.emergentagent.com/job_f98f3724-6c7c-43ce-a711-d735c45e5317/artifacts/9tonzp4x_Dise%C3%B1o%20sin%20t%C3%ADtulo%20%281%29.png" alt="GASI Logo" className="h-80 w-auto mb-4 brightness-0 invert" />
+            <img src="https://customer-assets.emergentagent.com/job_f98f3724-6c7c-43ce-a711-d735c45e5317/artifacts/9tonzp4x_Dise%C3%B1o%20sin%20t%C3%ADtulo%20%281%29.png" alt="GASI Logo" className="h-20 max-w-full w-auto object-contain mb-4 brightness-0 invert" />
             <p className="text-gray-400 text-sm">Grupo de Asistencia Sanitaria Integral. Servicios sanitarios para organizaciones, sujetos a validación previa del alcance aplicable.</p>
           </div>
           <div>
