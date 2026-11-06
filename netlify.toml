@@ -1,6 +1,6 @@
 [build]
   base = "/"
-  command = "yarn --cwd frontend install --non-interactive --frozen-lockfile && yarn --cwd frontend build"
+  command = "node scripts/prepare-commercial-functions.cjs && yarn --cwd frontend install --non-interactive --frozen-lockfile && yarn --cwd frontend build"
   publish = "frontend/build"
 
 [build.environment]
@@ -8,15 +8,13 @@
   GENERATE_SOURCEMAP = "false"
 
 [functions]
-  directory = "netlify/functions"
+  directory = "netlify/commercial-functions-build"
 
-# The production clinical API is routed through a tenant-bound gateway. The
-# legacy handler remains the implementation behind this guard, but is not the
-# public entry point.
+# Internal clinical endpoints are excluded from the commercial deployment.
 [[redirects]]
   from = "/api/internal-clinical/*"
-  to = "/.netlify/functions/internal-clinical-guarded?original_path=:splat"
-  status = 200
+  to = "/404.html"
+  status = 404
   force = true
 
 # The public training catalogue is intentionally unavailable until the
