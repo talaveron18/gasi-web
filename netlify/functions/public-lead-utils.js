@@ -54,7 +54,7 @@ function validateBaseLead(raw,{requireCompany=false,requireMessage=false}={}){
   return{lead};
 }
 
-async function sendLeadEmail({subject,html}){
+async function sendLeadEmail({subject,html,replyTo}){
   const apiKey=process.env.RESEND_API_KEY||"";
   const sender=process.env.GASI_LEAD_SENDER_EMAIL||"coordinacion@gasisalud.com";
   const recipient=process.env.GASI_LEAD_RECIPIENT_EMAIL||"coordinacion@gasisalud.com";
@@ -68,7 +68,8 @@ async function sendLeadEmail({subject,html}){
         from:`Web GASI <${sender}>`,
         to:[recipient],
         subject,
-        html
+        html,
+        reply_to:replyTo
       })
     });
   }catch{
