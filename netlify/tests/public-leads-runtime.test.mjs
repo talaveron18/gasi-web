@@ -7,19 +7,19 @@ const contact=require("../functions/contact.js");
 const chatbot=require("../functions/chatbot.js");
 
 const originalFetch=global.fetch;
-const originalApiKey=process.env.MAILERSEND_API_KEY;
+const originalApiKey=process.env.RESEND_API_KEY;
 const originalSender=process.env.GASI_LEAD_SENDER_EMAIL;
 const originalRecipient=process.env.GASI_LEAD_RECIPIENT_EMAIL;
 
 function resetEnv(){
-  process.env.MAILERSEND_API_KEY="synthetic-mailersend-key";
+  process.env.RESEND_API_KEY="synthetic-resend-key";
   process.env.GASI_LEAD_SENDER_EMAIL="sender@gasisalud.com";
   process.env.GASI_LEAD_RECIPIENT_EMAIL="recipient@gasisalud.com";
 }
 
 test.afterEach(()=>{
   global.fetch=originalFetch;
-  if(originalApiKey===undefined)delete process.env.MAILERSEND_API_KEY;else process.env.MAILERSEND_API_KEY=originalApiKey;
+  if(originalApiKey===undefined)delete process.env.RESEND_API_KEY;else process.env.RESEND_API_KEY=originalApiKey;
   if(originalSender===undefined)delete process.env.GASI_LEAD_SENDER_EMAIL;else process.env.GASI_LEAD_SENDER_EMAIL=originalSender;
   if(originalRecipient===undefined)delete process.env.GASI_LEAD_RECIPIENT_EMAIL;else process.env.GASI_LEAD_RECIPIENT_EMAIL=originalRecipient;
 });
@@ -48,7 +48,10 @@ test("contact validates, escapes HTML and sends only normalized fields",async()=
   const response=await contact.handler(event);
   assert.equal(response.statusCode,200);
   assert.equal(JSON.parse(response.body).message,"sent");
-  assert.equal(upstream.url,"https://api.mailersend.com/v1/email");
+  assert.equal(upstream.url,"https://api.resend.com/emails");
+  assert.equal(upstream.body.from,"Web GASI <sender@gasisalud.com>");
+  assert.deepEqual(upstream.body.to,["recipient@gasisalud.com"]);
+  assert.equal(upstream.options.headers.authorization,"Bearer synthetic-resend-key");
   assert.match(upstream.body.html,/&lt;script&gt;alert\(1\)&lt;\/script&gt; Ana/);
   assert.match(upstream.body.html,/Empresa &lt;b&gt;X&lt;\/b&gt;/);
   assert.match(upstream.body.html,/&lt;img src=x onerror=alert\(1\)&gt;/);
@@ -148,7 +151,7 @@ test("chatbot endpoint enforces privacy and only accepts a currently advertised 
 });
 
 test("lead endpoints fail closed when mail provider secret is absent",async()=>{
-  delete process.env.MAILERSEND_API_KEY;
+  delete process.env.RESEND_API_KEY;
   global.fetch=async()=>{throw new Error("must not call upstream");};
   const response=await chatbot.handler({
     httpMethod:"POST",
