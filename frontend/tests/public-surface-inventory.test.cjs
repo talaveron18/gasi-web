@@ -74,7 +74,7 @@ test('navegación y CTA comerciales no enlazan a compra, inscripción o servicio
     'src/components/Navbar.jsx',
     'src/components/Footer.jsx'
   ];
-  const forbidden = /\/(?:curso\/|checkout|pago|pagos|inscripcion|inscripciones|reconocimientos-medicos)(?:[\/"'?]|$)/i;
+  const forbidden = /\/(?:curso\/|checkout\b|pagos?\b|inscripciones?\b|reconocimientos-medicos\b)/i;
   for (const file of sources) {
     const source = read(file);
     assert.doesNotMatch(source, forbidden, `${file}: enlace comercial heredado`);
