@@ -129,7 +129,7 @@ test('páginas comerciales mantienen asistencia integral, formación empresarial
   const training = read('src/pages/FormacionSanitaria.jsx');
   const labor = read('src/pages/SaludLaboral.jsx');
   const bot = read('src/components/Chatbot.jsx');
-  assert.match(about, /asistencia integral, flexible/);
+  assert.match(about, /Estudiamos necesidades de enfermería presencial/);
   assert.match(about, /formación sanitaria para empresas/);
   assert.match(services, /Asistencia Sanitaria Integral para Empresas/);
   assert.match(healthcare, /Asistencia Sanitaria Integral en Empresas/);
@@ -182,4 +182,15 @@ test('el logotipo concatena nueve fragmentos y tiene cabecera y cierre PNG váli
   assert.equal(image.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
   assert.equal(image.subarray(-8).toString('hex'), '49454e44ae426082');
   assert.ok(logo.includes('export const GASI_LOGO = `data:image/png;base64,' + fragments.map((_, i) => '${P' + i + '}').join('') + '`;'));
+});
+
+test('quiénes somos y sectores no anuncian coordinación integral o cobertura indiscriminada', () => {
+  const about = read('src/pages/QuienesSomos.jsx');
+  const sectors = read('src/pages/Sectores.jsx');
+  assert.match(about, /sujetos a valoración y acuerdo previo/);
+  assert.match(about, /requisitos aplicables antes de acordar una prestación/);
+  assert.match(sectors, /sin presuponer disponibilidad ni capacidad para atender todos los sectores/);
+  assert.match(sectors, /enfermería presencial o formación sanitaria/);
+  assert.doesNotMatch(about, /trabajamos para diseñar servicios que integren atención sanitaria, coordinación profesional/i);
+  assert.doesNotMatch(sectors, /En GASI diseñamos soluciones de asistencia sanitaria adaptadas/i);
 });
