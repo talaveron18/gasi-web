@@ -3,6 +3,7 @@ import {Link,Navigate,useParams} from 'react-router-dom';
 import {useAula,AULA_PREVIEW_DEMO} from './AulaAuthContext';
 import AulaReaderView from './AulaReaderView';
 import AulaAssessment from './AulaAssessment';
+import AulaCommunity from './AulaCommunity';
 
 export default function AulaReader(){
   const{courseId}=useParams(),{user,loading:authLoading,request}=useAula();
@@ -82,7 +83,8 @@ export default function AulaReader(){
         done:units.filter(u=>u.completed).length,total:units.length,seconds:units.reduce((acc,u)=>acc+Number(u.viewed_seconds||0),0),
         today:Number(units[0]?.new_units_today||0),dailyMax:course.max_units_per_day}:null}
       assessmentPanel={!AULA_PREVIEW_DEMO&&user.role==='student'&&unit&&(unit.requires_test||unit.requires_practice)&&!loading?
-        <AulaAssessment key={unit.id} courseId={courseId} unitId={unit.id} onStatus={onStatus}/>:null}/>:
+        <AulaAssessment key={unit.id} courseId={courseId} unitId={unit.id} onStatus={onStatus}/>:null}/>
+      {!AULA_PREVIEW_DEMO&&<AulaCommunity courseId={courseId} role={user.role} units={units}/>}</>:
       <main className="mx-auto max-w-4xl px-5 py-16">{loading?<p role="status">Cargando curso…</p>:<p role="alert">{error||'Curso no disponible.'}</p>}</main>}
   </div>;
 }
