@@ -1,16 +1,15 @@
 import React from 'react';
-import { publicImage } from '@/utils/publicImage';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 
 const QuienesSomos = () => {
   const values = [
-    { image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesional sanitario prestando atención', title: 'Atención Sanitaria', desc: 'Estudio de necesidades de enfermería presencial para cada organización, sujeto a valoración previa' },
-    { image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Espacio de trabajo empresarial', title: 'Orientación al Cliente', desc: 'Configuraciones adaptadas a cada empresa dentro del alcance autorizado' },
-    { image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesional sanitaria', title: 'Profesionalidad', desc: 'Profesionales sanitarios con los requisitos aplicables a cada servicio' },
-    { image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesionales en un entorno sanitario', title: 'Seguridad Asistencial', desc: 'Definición previa de funciones y requisitos aplicables a cada propuesta' },
-    { image: 'https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Equipo de atención sanitaria', title: 'Prestación Delimitada', desc: 'La propuesta concreta define la prestación que puede realizarse antes de su inicio' },
-    { image: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Entorno de trabajo organizado', title: 'Claridad de Alcance', desc: 'Cada servicio se presta conforme a la habilitación y autorización que corresponda' }
+    { image: '/images/photo-1576091160550-2173dba999ef.jpg', imageAlt: 'Profesional sanitario prestando atención', title: 'Atención Sanitaria', desc: 'Estudio de necesidades de enfermería presencial para cada organización, sujeto a valoración previa' },
+    { image: '/images/photo-1497366754035-f200968a6e72.jpg', imageAlt: 'Espacio de trabajo empresarial', title: 'Orientación al Cliente', desc: 'Configuraciones adaptadas a cada empresa dentro del alcance autorizado' },
+    { image: '/images/photo-1559839734-2b71ea197ec2.jpg', imageAlt: 'Profesional sanitaria', title: 'Profesionalidad', desc: 'Profesionales sanitarios con los requisitos aplicables a cada servicio' },
+    { image: '/images/photo-1576091160399-112ba8d25d1d.jpg', imageAlt: 'Profesionales en un entorno sanitario', title: 'Seguridad Asistencial', desc: 'Definición previa de funciones y requisitos aplicables a cada propuesta' },
+    { image: '/images/photo-1584982751601-97dcc096659c.jpg', imageAlt: 'Equipo de atención sanitaria', title: 'Prestación Delimitada', desc: 'La propuesta concreta define la prestación que puede realizarse antes de su inicio' },
+    { image: '/images/photo-1497366811353-6870744d04b2.jpg', imageAlt: 'Entorno de trabajo organizado', title: 'Claridad de Alcance', desc: 'Cada servicio se presta conforme a la habilitación y autorización que corresponda' }
   ];
 
   return (
@@ -26,7 +25,7 @@ const QuienesSomos = () => {
 
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
-          <img src={publicImage("https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1400&q=85")} alt="Entorno de trabajo empresarial" loading="lazy" className="w-full h-64 sm:h-80 object-cover rounded-2xl mb-10" /><div className="prose prose-lg max-w-none">
+          <img src="/images/photo-1497366811353-6870744d04b2.jpg" alt="Entorno de trabajo empresarial" loading="lazy" className="w-full h-64 sm:h-80 object-cover rounded-2xl mb-10" /><div className="prose prose-lg max-w-none">
             <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Nuestra Empresa</h2>
             <p className="text-lg text-[#64748B] leading-relaxed mb-6">
               GASI — Grupo de Asistencia Sanitaria Integral es una empresa orientada al desarrollo de soluciones sanitarias para empresas y organizaciones. Estudiamos necesidades de enfermería presencial para centros de trabajo y planteamos propuestas con funciones, horarios y recursos sujetos a valoración y acuerdo previo.
@@ -58,7 +57,7 @@ const QuienesSomos = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {values.map((value, index) => (
               <Card key={index} className="overflow-hidden h-full hover-lift" data-testid={`value-card-${index}`}>
-                <div className="h-48 overflow-hidden bg-[#EAF4FC]"><img src={publicImage(value.image)} alt={value.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
+                <div className="h-48 overflow-hidden bg-[#EAF4FC]"><img src={value.image} alt={value.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
                 <div className="p-8 text-center">
                 <h3 className="font-bold text-[#0F172A] text-xl mb-3">{value.title}</h3>
                 <p className="text-[#64748B]">{value.desc}</p>
