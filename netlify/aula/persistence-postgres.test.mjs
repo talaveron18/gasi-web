@@ -103,9 +103,13 @@ test("private Aula: real Postgres auth, roles, unit zero, enrolment, locking, an
   const audit=await query("SELECT action FROM aula_audit WHERE actor_id=$1",[student.id]);
   assert.ok(audit.some(row=>row.action==="UNIT_COMPLETED"));
 
-  const tutorLogin=await call("/auth/login",{method:"POST",body:{email:tutorEmail,password}});
+  let tutorLogin=await call("/auth/login",{method:"POST",body:{email:tutorEmail,password}});
   expectStatus(tutorLogin,200);
   assert.equal(tutorLogin.data.user.role,"tutor");
+  expectStatus(await call("/courses/"+course.id,{cookie:tutorLogin.cookie}),403);
+  expectStatus(await call("/auth/password",{method:"POST",cookie:tutorLogin.cookie,body:{current_password:password,new_password:nextPassword}}),200);
+  tutorLogin=await call("/auth/login",{method:"POST",body:{email:tutorEmail,password:nextPassword}});
+  expectStatus(tutorLogin,200);
   expectStatus(await call("/courses/"+course.id,{cookie:tutorLogin.cookie}),200);
   expectStatus(await call("/admin/users",{cookie:tutorLogin.cookie}),403);
 });
