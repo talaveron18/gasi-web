@@ -5,6 +5,7 @@ on:
     branches:
       - 'automation/web-internal-clinical-*'
       - 'automation/public-reconcile-*'
+      - 'feature/internal-auth-postgres-dashboard-*'
       - 'work/web-infra-v1-*'
   workflow_dispatch:
 
@@ -129,6 +130,8 @@ jobs:
         run: node scripts/prepare-commercial-functions.cjs
       - name: Verify commercial-only function package
         run: node --test scripts/commercial-package.test.cjs
+      - name: Verify separate tenant-guarded private function package
+        run: node --test scripts/private-clinical-build.test.cjs
       - name: Netlify HTTP header smoke
         run: node scripts/netlify-http-smoke.mjs
       - name: Rehearse release artifact restore
@@ -189,7 +192,7 @@ jobs:
   # GitHub's legacy status endpoint does not expose Actions check-runs. Publish
   # each completed job conclusion on the same preview commit for auditability.
   report-ci-statuses:
-    if: ${{ always() && (github.ref == 'refs/heads/automation/public-reconcile-20261023' || github.ref == 'refs/heads/automation/public-reconcile-access-chat-20261107') }}
+    if: ${{ always() && (github.ref == 'refs/heads/automation/public-reconcile-20261023' || github.ref == 'refs/heads/automation/public-reconcile-access-chat-20261107' || github.ref == 'refs/heads/feature/internal-auth-postgres-dashboard-20261107') }}
     needs: [frontend, netlify-build, backend-clinical, netlify-clinical, netlify-runtime-integration]
     runs-on: ubuntu-latest
     permissions:
