@@ -3,7 +3,7 @@
 'use strict';
 const fs=require('node:fs');
 const path=require('node:path');
-if(process.env.CONTEXT!=='deploy-preview' || process.env.BRANCH!=='automation/public-reconcile-aula-f1f2-20261107'){
+if(process.env.CONTEXT!=='deploy-preview' || (process.env.BRANCH!=='automation/public-reconcile-aula-f1f2-20261107' && process.env.HEAD!=='automation/public-reconcile-aula-f1f2-20261107')){
   throw new Error('Refusing to package the synthetic Aula API outside the dedicated pull-request preview');
 }
 require('./prepare-commercial-functions.cjs');
