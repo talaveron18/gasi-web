@@ -1,4 +1,5 @@
 import React from 'react';
+import { publicImage } from '@/utils/publicImage';
 import { Link } from 'react-router-dom';
 import { Building2, GraduationCap, ArrowRight } from 'lucide-react';
 
@@ -48,7 +49,7 @@ const Servicios = () => {
                     </div>
                     <Link to={service.link} className="inline-flex bg-[#005EB8] hover:bg-[#004a92] text-white px-6 py-3 rounded-lg font-semibold items-center gap-2 transition-all hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005EB8]" data-testid={`service-cta-${index}`}>Ver más detalles <ArrowRight className="w-5 h-5" aria-hidden="true" /></Link>
                   </div>
-                  <div className="flex-1 w-full"><img src={service.image} alt={service.title} loading="lazy" className="rounded-2xl shadow-xl w-full h-[400px] object-cover" /></div>
+                  <div className="flex-1 w-full"><img src={publicImage(service.image)} alt={service.title} loading="lazy" className="rounded-2xl shadow-xl w-full h-[400px] object-cover" /></div>
                 </div>
               );
             })}
