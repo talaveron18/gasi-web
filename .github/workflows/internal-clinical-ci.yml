@@ -195,7 +195,7 @@ jobs:
             exit 1
           fi
           unset AULA_BOOTSTRAP_PASSWORD AULA_BOOTSTRAP_EMAIL AULA_BOOTSTRAP_NAME AULA_BOOTSTRAP_CONFIRM
-          node --test aula/persistence-postgres.test.mjs aula/persistence-f3.test.mjs aula/persistence-f4.test.mjs
+          node --test aula/persistence-postgres.test.mjs aula/persistence-f3.test.mjs aula/persistence-f4.test.mjs aula/persistence-f5.test.mjs
       - name: PostgreSQL attendance and recovery integration
         env:
           GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
