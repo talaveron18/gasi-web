@@ -129,6 +129,10 @@ jobs:
         run: node scripts/prepare-commercial-functions.cjs
       - name: Verify commercial-only function package
         run: node --test scripts/commercial-package.test.cjs
+      - name: Verify Aula function isolation
+        run: node --test scripts/aula-package.test.cjs
+      - name: Test Aula progression and synthetic preview endpoints
+        run: node --test netlify/aula/access-policy.test.mjs netlify/aula/aula-demo.test.mjs
       - name: Netlify HTTP header smoke
         run: node scripts/netlify-http-smoke.mjs
       - name: Rehearse release artifact restore
@@ -173,6 +177,12 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - name: Install Netlify function dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: PostgreSQL Aula F1 and F2 integration
+        env:
+          GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
+        run: |
+          psql "$GASI_INTEGRATION_DB_URL" -v ON_ERROR_STOP=1 -f aula/schema.sql
+          node --test aula/persistence-postgres.test.mjs
       - name: PostgreSQL attendance and recovery integration
         env:
           GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
@@ -189,7 +199,7 @@ jobs:
   # GitHub's legacy status endpoint does not expose Actions check-runs. Publish
   # each completed job conclusion on the same preview commit for auditability.
   report-ci-statuses:
-    if: ${{ always() && (github.ref == 'refs/heads/automation/public-reconcile-20261023' || github.ref == 'refs/heads/automation/public-reconcile-access-chat-20261107') }}
+    if: ${{ always() && (github.ref == 'refs/heads/automation/public-reconcile-20261023' || github.ref == 'refs/heads/automation/public-reconcile-access-chat-20261107' || github.ref == 'refs/heads/automation/public-reconcile-aula-f1f2-20261107') }}
     needs: [frontend, netlify-build, backend-clinical, netlify-clinical, netlify-runtime-integration]
     runs-on: ubuntu-latest
     permissions:
