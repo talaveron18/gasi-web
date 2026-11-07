@@ -32,9 +32,9 @@ describe('fotografías públicas locales', () => {
 
   test.each(sourcePages)('%s no contiene enlaces ni proxy de imágenes de Unsplash', name => {
     const source = fs.readFileSync(path.join(__dirname, 'pages', name), 'utf8');
-    expect(source).not.toMatch(/https:\/\/images\\.unsplash\\.com/);
-    expect(source).not.toMatch(/publicImage\\(/);
-    const used = [...source.matchAll(/\/images\/(photo-[0-9a-z-]+\\.jpg)/g)].map(m => m[1]);
+    expect(source).not.toContain('https://images.unsplash.com/');
+    expect(source).not.toContain('publicImage(');
+    const used = [...source.matchAll(new RegExp('/images/(photo-[0-9a-z-]+[.]jpg)', 'g'))].map(m => m[1]);
     expect(used.length).toBeGreaterThan(0);
     used.forEach(filename => expect(fs.existsSync(path.join(dir, filename))).toBe(true));
   });
