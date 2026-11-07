@@ -2,6 +2,8 @@ import React,{useCallback,useEffect,useState} from 'react';
 import {Link,Navigate} from 'react-router-dom';
 import {BookOpen,CheckCircle2,GraduationCap,Plus,ShieldCheck,Users} from 'lucide-react';
 import {useAula,AULA_PREVIEW_DEMO} from './AulaAuthContext';
+import AulaTutor from './AulaTutor';
+import AulaAssessmentEditor from './AulaAssessmentEditor';
 
 const input="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus-visible:ring-2 focus-visible:ring-[#005EB8]";
 const primary="rounded-lg bg-[#005EB8] px-4 py-2.5 font-semibold text-white disabled:opacity-50";
@@ -98,10 +100,12 @@ function CourseEditor({courseId,request,users,role,onSaved}){
       <h4 className="font-semibold">Resultados de aprendizaje</h4>
       {(draft.learning_outcomes||[]).map((o,i)=><div key={i} className="grid gap-2 sm:grid-cols-[90px_1fr]"><input aria-label={'Código del RA '+(i+1)} value={o.id} onChange={e=>setDraft(p=>({...p,learning_outcomes:p.learning_outcomes.map((x,j)=>i===j?{...x,id:e.target.value}:x)}))} className={input} placeholder="RA1"/><input aria-label={'Descripción del RA '+(i+1)} value={o.text} onChange={e=>setDraft(p=>({...p,learning_outcomes:p.learning_outcomes.map((x,j)=>i===j?{...x,text:e.target.value}:x)}))} className={input} placeholder="Al finalizar podrá…"/></div>)}
       <button type="button" onClick={()=>setDraft(p=>({...p,learning_outcomes:[...p.learning_outcomes,{id:'RA'+(p.learning_outcomes.length+1),text:''}]}))} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">Añadir RA</button>
-      <p className="text-sm text-slate-600">Las pruebas de evaluación y las prácticas obligatorias estarán disponibles en F3. Una unidad que las requiera no se podrá completar ni saltar.</p>
+      <p className="text-sm text-slate-600">Tras guardar la unidad puedes configurar un banco de 15 preguntas y una práctica con rúbrica. La activación del curso exigirá que las evaluaciones obligatorias estén completas.</p>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.requires_test===true} onChange={e=>setDraft(p=>({...p,requires_test:e.target.checked}))}/> Requiere superar un test</label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.requires_practice===true} onChange={e=>setDraft(p=>({...p,requires_practice:e.target.checked}))}/> Requiere práctica evaluada</label>
       <button disabled={busy} type="button" onClick={save} className={primary}>{busy?'Guardando…':'Guardar unidad'}</button>
+      {selected&&(draft.requires_test||draft.requires_practice)&&<AulaAssessmentEditor key={selected} courseId={courseId} unitId={selected}
+        requiresTest={draft.requires_test} requiresPractice={draft.requires_practice} request={request}/>}
     </div>}
     {editable&&<div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
       <p className="text-sm text-amber-900">Antes de activar: incluye contenido en la Unidad 0 y al menos una unidad con resultados de aprendizaje. Al activar el curso se congela su estructura.</p>
@@ -176,6 +180,9 @@ export default function AulaAuthor(){
           <label className="text-sm font-semibold">Contraseña provisional (12 caracteres mínimo)<input type="password" autoComplete="new-password" minLength={12} className={input} value={createUser.temporary_password} onChange={e=>setCreateUser(p=>({...p,temporary_password:e.target.value}))}/></label>
         </div>
         <button disabled={busy} type="button" onClick={provision} className={primary+' mt-4'}>Crear cuenta</button>
+        <div className="mt-5"><h3 className="font-semibold">Usuarios existentes</h3>
+          <ul className="mt-2 space-y-1 text-sm">{users.map(u=><li key={u.id}>{u.name} · {u.email} · {u.role}{u.active===false?' (inactivo)':''}</li>)}</ul>
+        </div>
       </details>}
       {user.role!=='tutor'&&<details open={!active} className="rounded-2xl border border-slate-200 bg-white p-5"><summary className="cursor-pointer font-bold">Crear curso</summary>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -195,8 +202,9 @@ export default function AulaAuthor(){
         </button>)}</div>
       </section>
       {active&&user.role!=='tutor'&&<CourseEditor key={active} courseId={active} request={request} users={users} role={user.role} onSaved={refresh}/>}
+      {user.role==='tutor'&&<AulaTutor/>}
       {active&&user.role==='tutor'&&<Link className="inline-flex items-center gap-2 rounded-lg bg-[#005EB8] p-3 text-white" to={'/aula/curso/'+active}><BookOpen size={18}/> Consultar contenido asignado</Link>}
-      <p className="flex items-center gap-2 text-xs text-slate-500"><ShieldCheck size={16}/> La estructura de un curso activo no se modifica. F3 incorporará el banco de preguntas y la corrección de prácticas.</p>
+      <p className="flex items-center gap-2 text-xs text-slate-500"><ShieldCheck size={16}/> La estructura de un curso activo no se modifica. F3 incorpora el banco de preguntas y la corrección de prácticas con permisos independientes.</p>
     </div>
   </main>;
 }
