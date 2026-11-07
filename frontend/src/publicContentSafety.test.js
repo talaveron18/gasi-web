@@ -40,7 +40,10 @@ describe('public content safety contract', () => {
     const chatbot = fs.readFileSync(path.join(__dirname, 'components/Chatbot.jsx'), 'utf8');
     const seo = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
 
-    expect(home).toContain('Enfermería Presencial en Empresas');
+    expect(home).toContain('Asistencia Sanitaria Integral para Empresas');
+    expect(home).toContain("title: 'Asistencia Sanitaria Integral'");
+    expect(home).toContain("link: '/cobertura-sanitaria'");
+    expect(home).toContain("link: '/formacion-sanitaria'");
     expect(home).toContain('Formación Sanitaria');
     expect(footer).toContain('Enfermería presencial para organizaciones');
     expect(footer).toContain('Formación Sanitaria');
