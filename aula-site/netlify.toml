@@ -1,0 +1,44 @@
+# Dedicated private Aula Virtual site; NOT the commercial GASI site.
+# Use this file as the Netlify package-directory config for the separate
+# authenticated LMS. No clinical functions or demo credentials are included.
+[build]
+  base = "/"
+  command = "npm --prefix netlify ci --ignore-scripts --no-audit --no-fund && node scripts/prepare-private-aula-functions.cjs && yarn --cwd frontend install --non-interactive --frozen-lockfile && REACT_APP_AULA_ENABLED=true REACT_APP_AULA_PREVIEW_DEMO=false yarn --cwd frontend build"
+  publish = "frontend/build"
+
+[build.environment]
+  NODE_VERSION = "24"
+  GENERATE_SOURCEMAP = "false"
+
+[functions]
+  directory = "netlify/private-aula-functions-build"
+  node_bundler = "esbuild"
+
+# The standalone function handles routing under /api/aula and validates auth.
+[[redirects]]
+  from = "/api/aula/*"
+  to = "/.netlify/functions/aula?original_path=:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/*"
+  to = "/api-unavailable.json"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:;"
