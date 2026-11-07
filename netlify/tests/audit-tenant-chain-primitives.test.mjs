@@ -75,6 +75,12 @@ test("snapshot verification accepts independent interleaved tenant chains",()=>{
   assert.equal(validAuditChainsByTenant([a1,b1,a2,b2],canonical),true);
 });
 
+test("legacy tenant accepts only matching explicit tenant metadata",()=>{
+  const activeLegacy=row(LEGACY_TENANT,1,ZERO_HASH,"LOGIN");
+  assert.equal(validAuditChainsByTenant([activeLegacy],canonical),true);
+  assert.equal(validAuditChainsByTenant([{...activeLegacy,tenant_id:"TENANT-A"}],canonical),false);
+});
+
 test("snapshot verification preserves the historical GASI-LEGACY chain separately",()=>{
   const legacy1=legacyRow(1,ZERO_HASH,"LOGIN"),legacy2=legacyRow(3,legacy1.event_hash,"READ"),current=row("TENANT-A",2,ZERO_HASH,"LOGIN");
   assert.equal(validAuditChainsByTenant([legacy1,current,legacy2],canonical),true);
