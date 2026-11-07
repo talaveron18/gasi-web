@@ -33,10 +33,11 @@ export default function AulaSurveyEditor({courseId,status,units,request}){
      <p className="text-sm text-slate-600">{s.kind==='final'?'Finalización':'Seguimiento'} · {s.questions?.length} preguntas · {s.responses||0} respuestas</p>
      {status==='draft'&&<button className="mt-2 text-sm font-semibold text-rose-700 underline" onClick={()=>remove(s.id)} disabled={saving}>Eliminar encuesta</button>}
    </article>)}
-   {status==='draft'&&<div className="space-y-3 rounded-lg bg-slate-50 p-4">
-     <h4 className="font-bold">Nueva encuesta</h4>
-     <label className="block text-sm">Tipo<select className={cls} value={draft.kind} onChange={e=>setDraft(p=>({...p,kind:e.target.value}))}>
-       <option value="final">Finalización</option><option value="followup">Seguimiento</option></select></label>
+   {(status==='draft'||status==='active'&&!surveys.some(s=>s.kind==='final'))&&<div className="space-y-3 rounded-lg bg-slate-50 p-4">
+     <h4 className="font-bold">{status==='active'?'Añadir encuesta final pendiente de configurar':'Nueva encuesta'}</h4>
+     {status==='active'&&<p className="text-sm text-amber-800">El curso ya está activo: únicamente puedes añadir su encuesta final, sin modificar las unidades.</p>}
+     {status==='draft'&&<label className="block text-sm">Tipo<select className={cls} value={draft.kind} onChange={e=>setDraft(p=>({...p,kind:e.target.value}))}>
+       <option value="final">Finalización</option><option value="followup">Seguimiento</option></select></label>}
      <label className="block text-sm">Título<input className={cls} value={draft.title} maxLength={180} onChange={e=>setDraft(p=>({...p,title:e.target.value}))}/></label>
      {draft.kind==='followup'&&<label className="block text-sm">Unidad relacionada (opcional)<select className={cls} value={draft.unit_id} onChange={e=>setDraft(p=>({...p,unit_id:e.target.value}))}>
        <option value="">Todo el curso</option>{units.map(u=><option key={u.id} value={u.id}>Unidad {u.unit_no}: {u.title}</option>)}</select></label>}
