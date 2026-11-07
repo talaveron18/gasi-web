@@ -1,7 +1,7 @@
 import React,{useState} from 'react';
 import {Link,Navigate} from 'react-router-dom';
 import {GraduationCap,LockKeyhole} from 'lucide-react';
-import {AULA_ENABLED,useAula} from './AulaAuthContext';
+import {AULA_ENABLED,AULA_PREVIEW_DEMO,useAula} from './AulaAuthContext';
 
 export default function AulaLogin(){
   const{user,loading,login,changePassword}=useAula();
@@ -18,7 +18,7 @@ export default function AulaLogin(){
   };
   return <main className="min-h-[70vh] bg-slate-50 px-5 py-16 text-slate-900" data-testid="aula-login">
     <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
-      <GraduationCap className="h-9 w-9 text-[#005EB8]" aria-hidden="true"/>
+      {AULA_PREVIEW_DEMO&&<p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-950">Demostración con cuentas y cursos ficticios. No utilices contraseñas reales ni datos personales.</p>}<GraduationCap className="h-9 w-9 text-[#005EB8]" aria-hidden="true"/>
       <h1 className="mt-4 text-3xl font-bold">{user?'Cambiar contraseña inicial':'Acceso al Aula Virtual GASI'}</h1>
       <p className="mt-2 text-sm text-slate-600">{user?'Por seguridad debes establecer una contraseña propia antes de acceder.':'Solo para alumnado, tutores y autores dados de alta por GASI. No existe registro público.'}</p>
       <form onSubmit={submit} className="mt-7 space-y-5">
