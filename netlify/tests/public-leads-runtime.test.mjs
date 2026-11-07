@@ -121,7 +121,7 @@ test("chatbot endpoint enforces privacy and only accepts a currently advertised 
   let response=await chatbot.handler({
     httpMethod:"POST",
     body:JSON.stringify({
-      service:"Enfermería presencial",name:"Ana",email:"ana@example.com",phone:"+34 600 000 004",
+      service:"Enfermería presencial",name:"Ana",company:"Empresa Prueba",email:"ana@example.com",phone:"+34 600 000 004",
       website:"",accepts_privacy:false
     })
   });
@@ -132,7 +132,7 @@ test("chatbot endpoint enforces privacy and only accepts a currently advertised 
   response=await chatbot.handler({
     httpMethod:"POST",
     body:JSON.stringify({
-      service:"Enfermería presencial",name:"Ana",email:"ana@example.com",phone:"+34 600 000 004",
+      service:"Enfermería presencial",name:"Ana",company:"Empresa Prueba",email:"ana@example.com",phone:"+34 600 000 004",
       website:"",accepts_privacy:true
     })
   });
@@ -144,7 +144,7 @@ test("chatbot endpoint enforces privacy and only accepts a currently advertised 
   response=await chatbot.handler({
     httpMethod:"POST",
     body:JSON.stringify({
-      service:"Psicología",name:"Ana",email:"ana@example.com",phone:"+34 600 000 004",
+      service:"Psicología",name:"Ana",company:"Empresa Prueba",email:"ana@example.com",phone:"+34 600 000 004",
       website:"",accepts_privacy:true
     })
   });
@@ -159,7 +159,7 @@ test("lead endpoints fail closed when mail provider secret is absent",async()=>{
   const response=await chatbot.handler({
     httpMethod:"POST",
     body:JSON.stringify({
-      service:"Otro",name:"Ana",email:"ana@example.com",phone:"+34 600 000 005",
+      service:"Otro",name:"Ana",company:"Empresa Prueba",email:"ana@example.com",phone:"+34 600 000 005",
       website:"",accepts_privacy:true
     })
   });
