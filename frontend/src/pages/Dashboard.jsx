@@ -10,11 +10,12 @@ const Dashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [enrollments, setEnrollments] = useState([]);
+  const [loadError, setLoadError] = useState('');
   const [loadingCourses, setLoadingCourses] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate('/formacion-sanitaria');
+      navigate('/alumnado/acceso');
     }
   }, [user, loading, navigate]);
 
@@ -29,9 +30,14 @@ const Dashboard = () => {
       const response = await axios.get(`${API}/courses/enrollments/my`, {
         withCredentials: true
       });
-      setEnrollments(response.data);
+      if (!String(response.headers?.['content-type'] || '').includes('application/json') || !Array.isArray(response.data)) {
+        throw new Error('invalid_enrollments_response');
+      }
+      setEnrollments(response.data.filter(item => item && typeof item === 'object' && item.course && typeof item.course === 'object' && item.enrollment && typeof item.enrollment === 'object'));
+      setLoadError('');
     } catch (error) {
-      console.error('Error fetching enrollments:', error);
+      setEnrollments([]);
+      setLoadError('No se ha podido cargar el listado de cursos. El servicio de aula puede no estar disponible.');
     } finally {
       setLoadingCourses(false);
     }
@@ -66,6 +72,7 @@ const Dashboard = () => {
             <Link to="/formacion-sanitaria" className="inline-flex items-center rounded-md bg-[#005EB8] px-4 py-2 text-white hover:bg-[#004a92]" data-testid="explore-courses-button">Consultar formación sanitaria</Link>
           </div>
 
+          {loadError && <p role="alert" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">{loadError} <Link to="/contacto" className="font-semibold underline">Contactar con GASI</Link></p>}
           {loadingCourses ? (
             <div className="text-center py-12">
               <div className="w-12 h-12 border-4 border-[#005EB8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -98,12 +105,12 @@ const Dashboard = () => {
                     <div className="mb-4">
                       <div className="flex items-center justify-between text-sm mb-1">
                         <span className="text-[#64748B]">Progreso</span>
-                        <span className="font-semibold text-[#005EB8]">{item.enrollment.progress}%</span>
+                        <span className="font-semibold text-[#005EB8]">{Number.isFinite(Number(item.enrollment.progress)) ? Math.min(100, Math.max(0, Number(item.enrollment.progress))) : 0}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
                           className="bg-[#005EB8] h-2 rounded-full transition-all"
-                          style={{ width: `${item.enrollment.progress}%` }}
+                          style={{ width: `${Number.isFinite(Number(item.enrollment.progress)) ? Math.min(100, Math.max(0, Number(item.enrollment.progress))) : 0}%` }}
                         ></div>
                       </div>
                     </div>
