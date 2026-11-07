@@ -106,7 +106,9 @@ async function login(req:Request){
   return json({user:plainUser(found[0])},200,{"set-cookie":cookie(token,TTL_HOURS*3600)});
 }
 async function handle(req:Request){
-  const url=new URL(req.url),path=url.pathname.replace(/^\/api\/aula/,"")||"/";
+  const url=new URL(req.url);
+  const rewritten=url.searchParams.get("original_path");
+  const path=rewritten?"/"+rewritten.replace(/^\/+/, ""):url.pathname.replace(/^\/api\/aula/,"")||"/";
   originGuard(req);
   if(req.method==="GET"&&path==="/health"){await q("SELECT 1");return json({ok:true});}
   if(req.method==="POST"&&path==="/auth/login")return login(req);
