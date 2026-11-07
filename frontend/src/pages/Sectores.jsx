@@ -50,7 +50,7 @@ const Sectores = () => {
             Sectores empresariales
           </h1>
           <p className="text-xl opacity-90">
-            Estudiamos cada necesidad antes de confirmar el alcance de la prestación
+            Asistencia sanitaria y formación adaptadas a la realidad de cada empresa
           </p>
         </div>
       </section>
@@ -59,10 +59,10 @@ const Sectores = () => {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-[#0F172A] mb-4">
-              Ámbitos en los que podemos valorar necesidades
+              Soluciones sanitarias adaptadas a cada sector
             </h2>
             <p className="text-lg text-[#64748B] max-w-3xl mx-auto">
-              El sector no determina por sí solo la disponibilidad del servicio. GASI revisa la necesidad concreta y confirma previamente si puede atenderla, con qué profesionales y bajo qué alcance y requisitos aplicables.
+              Cada empresa tiene necesidades diferentes. En GASI diseñamos soluciones de asistencia sanitaria adaptadas a la actividad, los equipos y el funcionamiento de cada organización, combinando atención profesional, cercanía y flexibilidad.
             </p>
           </div>
 
@@ -87,10 +87,10 @@ const Sectores = () => {
       <section className="py-20 bg-[#F8FAFC]">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold text-[#0F172A] mb-6">
-            ¿Necesita valorar una cobertura concreta?
+            Hablemos de las necesidades de su empresa
           </h2>
           <p className="text-lg text-[#64748B] mb-8">
-            Cuéntenos la necesidad. Antes de asumir cualquier prestación, confirmaremos si GASI puede atenderla y el alcance aplicable.
+            Cuéntenos cómo trabaja su organización y qué atención sanitaria necesita. Estudiaremos una propuesta adaptada a su actividad y a los requisitos aplicables.
           </p>
           <Link to="/contacto" className="inline-flex items-center justify-center bg-[#005EB8] hover:bg-[#004a92] text-white px-8 py-3 rounded-lg font-semibold text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005EB8]" data-testid="cta-contact">
             Solicitar información
