@@ -2,9 +2,11 @@ import React,{createContext,useCallback,useContext,useEffect,useState} from 'rea
 
 const Context=createContext(null);
 export const AULA_ENABLED=process.env.REACT_APP_AULA_ENABLED==='true';
+export const AULA_PREVIEW_DEMO=process.env.REACT_APP_AULA_PREVIEW_DEMO==='true';
 const ROOT='/api/aula';
 export async function aulaRequest(path,options={}){
-  const response=await fetch(ROOT+path,{
+  const endpoint=AULA_PREVIEW_DEMO? '/.netlify/functions/aula-demo?path='+encodeURIComponent(path) : ROOT+path;
+  const response=await fetch(endpoint,{
     credentials:'same-origin',cache:'no-store',method:options.method||'GET',
     headers:{...(options.body?{'content-type':'application/json'}:{}),...(options.headers||{})},
     body:options.body?JSON.stringify(options.body):undefined
