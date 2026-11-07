@@ -41,7 +41,16 @@ jobs:
         run: node e2e/browser-access.mjs
       - name: Browser E2E public route accessibility
         run: node e2e/browser-public-accessibility.mjs
-      - name: Browser E2E authenticated clinical flow
+      # The commercial build deliberately disables private clinical login.
+      # Rebuild a separate, test-only bundle to exercise the authenticated UI
+      # against the synthetic browser backend. This artifact is never deployed.
+      - name: Build isolated clinical UI for mock-backed browser tests only
+        env:
+          CI: 'true'
+          GENERATE_SOURCEMAP: 'false'
+          REACT_APP_INTERNAL_PORTAL_ENABLED: 'true'
+        run: yarn build
+      - name: Browser E2E authenticated clinical flow (isolated test build)
         run: node e2e/browser-clinical.mjs
 
   backend-clinical:
