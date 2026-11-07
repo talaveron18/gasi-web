@@ -28,11 +28,12 @@ test("generic access gateway separates pre-authorised student and team destinati
  assert.doesNotMatch(portal,/to="\/formacion-sanitaria"/);
 });
 
-test("gateway auto-routes only already authenticated sessions without exposing public registration",()=>{
- assert.match(portal,/useAuth\(\)/);
- assert.match(portal,/useInternalPrototypeAuth\(\)/);
- assert.match(portal,/Navigate to="\/dashboard"/);
- assert.match(portal,/Navigate to="\/interno\/clinica"/);
+test("gateway never auto-redirects into a private dashboard and has no public registration",()=>{
+ assert.doesNotMatch(portal,/useAuth\(\)/);
+ assert.doesNotMatch(portal,/useInternalPrototypeAuth\(\)/);
+ assert.doesNotMatch(portal,/<Navigate\b/);
+ assert.match(portal,/data-testid="access-student"/);
+ assert.match(portal,/data-testid="access-team"/);
  assert.doesNotMatch(portal,/openAuth/);
  assert.doesNotMatch(portal,/REACT_APP_OAUTH_LOGIN_URL/);
  // Informational wording may state that public registration does not exist;
