@@ -184,7 +184,8 @@ test('public course catalogue and course detail stay blocked at edge routing', (
     assert.match(block, /force\s*=\s*true/);
   }
   const otherPublicApiRedirects = redirects.filter((block) => /from\s*=\s*"\/api\//.test(block) && !/from\s*=\s*"\/api\/internal-clinical\/\*"/.test(block) && !/from\s*=\s*"\/api\/courses/.test(block));
-  assert.deepEqual(otherPublicApiRedirects, [], 'new anonymous /api edge route must be explicitly reconciled');
+  assert.equal(otherPublicApiRedirects.length, 1, 'all unpublished /api endpoints must be blocked before SPA fallback');
+  assert.match(otherPublicApiRedirects[0], /to\s*=\s*"\/api-unavailable\.json"[\s\S]*?status\s*=\s*404[\s\S]*?force\s*=\s*true/);
   assert.match(config, /from\s*=\s*"\/\*"[\s\S]*?to\s*=\s*"\/index\.html"[\s\S]*?status\s*=\s*200/);
 });
 
