@@ -288,13 +288,14 @@ describe('reconciliación del contenido público GASI', () => {
   test('chatbot público sigue siendo comercial, no clínico y no de urgencias', () => {
     const chatbot = read('components/Chatbot.jsx');
     expect(chatbot).toContain('No es un canal clínico ni de urgencias.');
-    expect(chatbot).toContain("const SERVICES = ['Enfermería presencial', 'Formación sanitaria', 'Otro'];");
+    expect(chatbot).toContain("from '@/lib/chatbotGuidance';");
+    expect(read('lib/chatbotGuidance.js')).toContain("export const SERVICES = ['Enfermería presencial', 'Formación sanitaria', 'Otro'];");
   });
 
   test('el chatbot ofrece correo alternativo y advierte sobre datos de salud incluso si falla el envío', () => {
     const chatbot = read('components/Chatbot.jsx');
-    expect(chatbot).toContain("throw new Error(reasons[result.message] || 'No hemos podido registrar la consulta.');");
-    expect(chatbot).toContain("error?.message || 'No se ha podido contactar con el servicio.'");
+    expect(chatbot).toContain("throw new Error(reasons[result.message] || 'No se ha podido confirmar el envío.');");
+    expect(chatbot).toContain("cause?.message || 'No hay conexión con el servicio de envío.'");
     expect(chatbot).toContain('Puedes escribir a coordinacion@gasisalud.com sin incluir datos clínicos ni de salud.');
   });
 
