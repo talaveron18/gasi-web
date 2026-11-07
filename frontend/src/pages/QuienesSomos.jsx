@@ -4,10 +4,10 @@ import { Card } from '@/components/ui/card';
 
 const QuienesSomos = () => {
   const values = [
-    { image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesional sanitario prestando atención', title: 'Atención Sanitaria', desc: 'Atención sanitaria integral adaptada a las necesidades de cada organización' },
+    { image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesional sanitario prestando atención', title: 'Atención Sanitaria', desc: 'Estudio de necesidades de enfermería presencial para cada organización, sujeto a valoración previa' },
     { image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Espacio de trabajo empresarial', title: 'Orientación al Cliente', desc: 'Configuraciones adaptadas a cada empresa dentro del alcance autorizado' },
     { image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesional sanitaria', title: 'Profesionalidad', desc: 'Profesionales sanitarios con los requisitos aplicables a cada servicio' },
-    { image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesionales en un entorno sanitario', title: 'Seguridad Asistencial', desc: 'Protocolos, trazabilidad y límites de actuación definidos' },
+    { image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesionales en un entorno sanitario', title: 'Seguridad Asistencial', desc: 'Definición previa de funciones y requisitos aplicables a cada propuesta' },
     { image: 'https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Equipo de atención sanitaria', title: 'Prestación Delimitada', desc: 'La propuesta concreta define la prestación que puede realizarse antes de su inicio' },
     { image: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Entorno de trabajo organizado', title: 'Claridad de Alcance', desc: 'Cada servicio se presta conforme a la habilitación y autorización que corresponda' }
   ];
@@ -28,10 +28,10 @@ const QuienesSomos = () => {
           <img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1400&q=85" alt="Entorno de trabajo empresarial" loading="lazy" className="w-full h-64 sm:h-80 object-cover rounded-2xl mb-10" /><div className="prose prose-lg max-w-none">
             <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Nuestra Empresa</h2>
             <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-              GASI — Grupo de Asistencia Sanitaria Integral es una empresa orientada al desarrollo de soluciones sanitarias para empresas y organizaciones. Nuestro objetivo es acercar la atención sanitaria al entorno de trabajo mediante un modelo de asistencia integral, flexible y adaptado a las características de cada organización.
+              GASI — Grupo de Asistencia Sanitaria Integral es una empresa orientada al desarrollo de soluciones sanitarias para empresas y organizaciones. Estudiamos necesidades de enfermería presencial para centros de trabajo y planteamos propuestas con funciones, horarios y recursos sujetos a valoración y acuerdo previo.
             </p>
             <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-              Entendemos que cada empresa tiene necesidades diferentes. Por eso, trabajamos para diseñar servicios que integren atención sanitaria, coordinación profesional y una organización asistencial adecuada a cada centro.
+              Entendemos que cada empresa tiene necesidades diferentes. Por eso, estudiamos la viabilidad de la cobertura de enfermería presencial solicitada y delimitamos las actuaciones, los recursos y los requisitos aplicables antes de acordar una prestación.
             </p>
             <p className="text-lg text-[#64748B] leading-relaxed mb-6">
               Además de nuestra actividad asistencial, desarrollamos una línea de formación sanitaria para empresas, centrada en primeros auxilios, reanimación cardiopulmonar, soporte vital básico y utilización de desfibriladores. Nuestra propuesta combina cercanía, profesionalidad y capacidad de adaptación.
@@ -39,7 +39,7 @@ const QuienesSomos = () => {
 
             <h2 className="text-3xl font-bold text-[#0F172A] mb-6 mt-12">Nuestra Filosofía</h2>
             <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-              Nuestro enfoque parte de una asistencia sanitaria delimitada, trazable y coordinada, con funciones y circuitos definidos para cada profesional y servicio.
+              Nuestro enfoque consiste en concretar previamente el alcance, las funciones y los circuitos necesarios para cada propuesta, siempre sujeto a viabilidad y requisitos aplicables.
             </p>
             <p className="text-lg text-[#64748B] leading-relaxed">
               Priorizamos la seguridad asistencial, la claridad del alcance, la adaptación operativa y la mejora continua sin atribuir a los servicios resultados clínicos, laborales o económicos que no estén respaldados.
@@ -71,7 +71,7 @@ const QuienesSomos = () => {
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
           <h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-6 text-center">Nuestro Enfoque B2B</h2>
-          <p className="text-lg text-[#64748B] leading-relaxed mb-8 text-center">Configuramos la prestación sanitaria para integrarla de forma clara en la operativa del cliente.</p>
+          <p className="text-lg text-[#64748B] leading-relaxed mb-8 text-center">Estudiamos cómo podría encajar una propuesta de enfermería presencial en la operativa del cliente, antes de confirmar su viabilidad y alcance.</p>
           <div className="space-y-6">
             <Card className="p-6">
               <h3 className="font-bold text-xl text-[#0F172A] mb-3">Adaptación operativa</h3>
@@ -83,7 +83,7 @@ const QuienesSomos = () => {
             </Card>
             <Card className="p-6">
               <h3 className="font-bold text-xl text-[#0F172A] mb-3">Trazabilidad</h3>
-              <p className="text-[#64748B]">La actividad asistencial y operativa se apoya en protocolos y registros adecuados al servicio, sin prometer impactos no demostrados sobre productividad, bajas o absentismo.</p>
+              <p className="text-[#64748B]">Los registros y procedimientos necesarios se determinarán según la prestación efectivamente acordada y los requisitos aplicables, sin prometer impactos sobre productividad, bajas o absentismo.</p>
             </Card>
           </div>
         </div>
