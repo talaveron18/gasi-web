@@ -8,7 +8,7 @@ const Home = () => {
     {
       icon: <Building2 className="w-12 h-12 text-[#005EB8]" />,
       title: 'Asistencia Sanitaria Integral',
-      description: 'Soluciones de atención sanitaria y coordinación asistencial adaptadas a cada centro de trabajo.',
+      description: 'Propuestas de enfermería presencial para organizaciones, con funciones, horarios y recursos sujetos a valoración y acuerdo previo.',
       image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=900&q=85",
       link: '/cobertura-sanitaria'
     },
@@ -40,7 +40,7 @@ const Home = () => {
         <div className="absolute inset-0 bg-cover bg-center opacity-25" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1800&q=85)" }} aria-hidden="true" /><div className="absolute inset-0 bg-gradient-to-r from-[#073B71]/90 to-[#005EB8]/65" aria-hidden="true" />
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 animate-fade-in" data-testid="hero-title">Asistencia Sanitaria Integral para Empresas</h1>
-          <p className="text-lg sm:text-xl mb-8 text-white/90 max-w-2xl mx-auto">Acercamos la atención sanitaria al entorno empresarial mediante soluciones adaptadas a las necesidades de cada organización. Combinamos atención profesional, coordinación asistencial y un modelo flexible para ayudar a las empresas a cuidar de las personas que forman parte de ellas.</p>
+          <p className="text-lg sm:text-xl mb-8 text-white/90 max-w-2xl mx-auto">Estudiamos necesidades de enfermería presencial y formación sanitaria para organizaciones. Cada propuesta queda sujeta a la valoración del centro, la disponibilidad efectiva y la comprobación de los requisitos aplicables antes de acordar su alcance.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/contacto" className="inline-flex items-center justify-center rounded-md bg-white text-[#005EB8] hover:bg-gray-100 text-lg px-8 h-11 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#005EB8]" data-testid="hero-cta-contact">Solicitar Información <ArrowRight className="ml-2 w-5 h-5" /></Link>
             <Link to="/servicios" className="inline-flex items-center justify-center rounded-md bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#005EB8] text-lg px-8 h-11 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#005EB8]" data-testid="hero-cta-services">Ver Servicios</Link>
