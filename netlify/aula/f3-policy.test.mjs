@@ -33,3 +33,16 @@ test('rubric requires four criteria and minimum per criterion',()=>{
  assert.equal(gradePractice(rubric,[4,4,1,4]).approved,false);
  assert.throws(()=>gradePractice(rubric,[2,2,2]),/invalid_rubric_grades/);
 });
+
+import {makeOptionOrders,gradeWithOptionOrders} from './f3-policy.mjs';
+test('the server shuffles each question options and still grades the displayed indices',()=>{
+ const sample=selectTen(bank,()=>0.7);
+ const orders=makeOptionOrders(sample,()=>0);
+ assert.equal(Object.keys(orders).length,10);
+ assert.ok(Object.values(orders).every(a=>a.length===3&&new Set(a).size===3));
+ const answers=Object.fromEntries(sample.map(q=>[q.id,orders[q.id].indexOf(q.correct_index)]));
+ const grade=gradeWithOptionOrders(sample,answers,orders);
+ assert.equal(grade.score,10);
+ assert.ok(grade.review.every(r=>r.correct_index===answers[r.id]));
+ assert.throws(()=>gradeWithOptionOrders(sample,answers,{...orders,[sample[0].id]:[0,0,1]}),/invalid_answers/);
+});
