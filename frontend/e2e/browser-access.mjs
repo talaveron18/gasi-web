@@ -53,9 +53,20 @@ try{
  await value(send,"document.querySelector('[data-testid=chatbot-next-button]').click()");
  await waitFor(send,"document.querySelector('[data-testid=chatbot-city]')");
  assert.equal(await value(send,"document.querySelector('[data-testid=chatbot-city]').value"),"Madrid");
- await send("Emulation.setDeviceMetricsOverride",{width:390,height:740,deviceScaleFactor:1,mobile:true});
+ // Regression: at 495px viewport height the chatbot's footer must remain fully
+ // visible while its message/form region scrolls independently.
+ await send("Emulation.setDeviceMetricsOverride",{width:1180,height:495,deviceScaleFactor:1,mobile:false});
+ await sleep(100);
+ const shortFrame=JSON.parse(await value(send,"JSON.stringify((()=>{const root=document.querySelector('[data-testid=chatbot-window]');const content=document.querySelector('[data-testid=chatbot-messages]');const footer=document.querySelector('[data-testid=chatbot-footer]');const header=root.querySelector('header');const r=root.getBoundingClientRect(),c=content.getBoundingClientRect(),f=footer.getBoundingClientRect(),h=header.getBoundingClientRect();return {rootBottom:r.bottom,rootTop:r.top,contentTop:c.top,contentBottom:c.bottom,headerBottom:h.bottom,footerTop:f.top,footerBottom:f.bottom,viewportHeight:innerHeight,scrollable:content.scrollHeight>content.clientHeight,footerLinkVisible:!!footer.querySelector('a[href^=\"mailto:\"]')&&footer.querySelector('a[href^=\"mailto:\"]').getClientRects().length>0}})())"));
+ assert.ok(shortFrame.rootTop>=0&&shortFrame.rootBottom<=shortFrame.viewportHeight+1,"Short viewport: panel must fit vertically");
+ assert.ok(shortFrame.headerBottom<=shortFrame.contentTop+1&&shortFrame.contentBottom<=shortFrame.footerTop+1,"Short viewport: footer must never overlap the scroll region");
+ assert.ok(shortFrame.footerBottom<=shortFrame.rootBottom+1&&shortFrame.footerLinkVisible,"Short viewport: email contact must remain visible inside the panel");
+ assert.equal(shortFrame.scrollable,true,"Short viewport: conversation must scroll rather than push the footer off-screen");
+  await send("Emulation.setDeviceMetricsOverride",{width:390,height:740,deviceScaleFactor:1,mobile:true});
  const bounds=JSON.parse(await value(send,"JSON.stringify((()=>{const r=document.querySelector('[data-testid=chatbot-window]').getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,viewportWidth:window.innerWidth,viewportHeight:window.innerHeight}})())"));
  assert.ok(bounds.left>=0&&bounds.right<=bounds.viewportWidth+1&&bounds.top>=0&&bounds.bottom<=bounds.viewportHeight+1,"Assistant must fit mobile viewport");
+ const mobileFooter=JSON.parse(await value(send,"JSON.stringify((()=>{const root=document.querySelector('[data-testid=chatbot-window]').getBoundingClientRect();const content=document.querySelector('[data-testid=chatbot-messages]').getBoundingClientRect();const footer=document.querySelector('[data-testid=chatbot-footer]').getBoundingClientRect();return {rootBottom:root.bottom,contentBottom:content.bottom,footerTop:footer.top,footerBottom:footer.bottom,viewportHeight:innerHeight}})())"));
+ assert.ok(mobileFooter.contentBottom<=mobileFooter.footerTop+1&&mobileFooter.footerBottom<=mobileFooter.rootBottom+1&&mobileFooter.footerBottom<=mobileFooter.viewportHeight+1,"390px mobile: footer must remain visible without covering messages");
  await key(send,"Escape","Escape",27);
  await waitFor(send,"!document.querySelector('[data-testid=chatbot-window]')");
  assert.equal(await value(send,"document.activeElement?.getAttribute('data-testid')"),"chatbot-open-button","Closing with Escape must restore launcher focus");
