@@ -306,7 +306,7 @@ async function handle(req:Request){
 
   // F4: all community, tutor and transcript operations use the same
   // server-side course ownership, tutor assignment and student enrolment gate.
-  const community=path.match(/^\/courses\/([0-9a-f-]+)\/(forum|tutorials|record|ratings)(?:\/([0-9a-f-]+))?$/);
+  const community=path.match(/^\/courses\/([0-9a-f-]+)\/(forum|tutorials|record|ratings|learners)(?:\/([0-9a-f-]+))?$/);
   if(community){
     const course=await courseById(community[1]),e=await enrolment(user,course);
     const section=community[2],itemId=community[3];
@@ -387,6 +387,12 @@ async function handle(req:Request){
         return json({ok:true});
       }
       fail(405,"method_not_allowed");
+    }
+    if(section==="learners"){
+      requireRole(user,["admin","author","tutor"]);
+      if(req.method!=="GET"||itemId)fail(405,"method_not_allowed");
+      const learners=await q("SELECT e.student_id,u.name,e.status,e.deadline FROM aula_enrollments e JOIN aula_users u ON u.id=e.student_id WHERE e.course_id=$1 ORDER BY u.name",[course.id]);
+      return json({learners});
     }
     if(section==="record"){
       if(req.method!=="GET"||itemId)fail(405,"method_not_allowed");

@@ -75,12 +75,16 @@ test('F4 PostgreSQL forum/tutor/record/feedback: isolated courses and learners',
  assert.equal(ownRecord.units.length,2);
  const assigned=expect(await request('/courses/'+a.id+'/record?student_id='+profiles.alice.id,'GET',{},cookies.tutor),200);
  assert.equal(assigned.student_id,profiles.alice.id);
+ const learners=expect(await request('/courses/'+a.id+'/learners','GET',{},cookies.tutor),200).learners;
+ assert.equal(learners.length,1);
+ assert.equal(learners[0].student_id,profiles.alice.id);
+ assert.equal((await request('/courses/'+a.id+'/learners','GET',{},cookies.alice)).status,403);
  assert.equal((await request('/courses/'+a.id+'/record?student_id='+profiles.alice.id,'GET',{},cookies.outsider)).status,403);
  assert.equal((await request('/courses/'+a.id+'/ratings','POST',{unit_id:a.welcomeId,rating:5},cookies.alice)).status,403);
  expect(await request('/courses/'+a.id+'/units/'+a.welcomeId,'GET',{},cookies.alice),200);
  expect(await request('/courses/'+a.id+'/ratings','POST',{unit_id:a.welcomeId,rating:5,comment:'Contenido claro'},cookies.alice),200);
  const ratings=expect(await request('/courses/'+a.id+'/ratings','GET',{},cookies.admin),200).ratings;
  assert.equal(ratings.length,1);
- assert.equal(ratings[0].average_rating,5);
+ assert.equal(Number(ratings[0].average_rating),5);
  assert.equal((await request('/courses/'+b.id+'/ratings','POST',{unit_id:a.welcomeId,rating:5},cookies.bob)).status,403);
 });
