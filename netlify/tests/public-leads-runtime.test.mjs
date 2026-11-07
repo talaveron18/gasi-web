@@ -121,7 +121,7 @@ test("chatbot endpoint enforces privacy and only accepts a currently advertised 
   let response=await chatbot.handler({
     httpMethod:"POST",
     body:JSON.stringify({
-      service:"Enfermería presencial",name:"Ana",email:"ana@example.com",phone:"+34 600 000 004",
+      service:"Enfermería presencial",name:"Ana",company:"Empresa Prueba",email:"ana@example.com",phone:"+34 600 000 004",
       website:"",accepts_privacy:false
     })
   });
@@ -132,7 +132,7 @@ test("chatbot endpoint enforces privacy and only accepts a currently advertised 
   response=await chatbot.handler({
     httpMethod:"POST",
     body:JSON.stringify({
-      service:"Enfermería presencial",name:"Ana",email:"ana@example.com",phone:"+34 600 000 004",
+      service:"Enfermería presencial",name:"Ana",company:"Empresa Prueba",email:"ana@example.com",phone:"+34 600 000 004",
       website:"",accepts_privacy:true
     })
   });
@@ -144,7 +144,7 @@ test("chatbot endpoint enforces privacy and only accepts a currently advertised 
   response=await chatbot.handler({
     httpMethod:"POST",
     body:JSON.stringify({
-      service:"Psicología",name:"Ana",email:"ana@example.com",phone:"+34 600 000 004",
+      service:"Psicología",name:"Ana",company:"Empresa Prueba",email:"ana@example.com",phone:"+34 600 000 004",
       website:"",accepts_privacy:true
     })
   });
@@ -153,13 +153,35 @@ test("chatbot endpoint enforces privacy and only accepts a currently advertised 
   assert.equal(calls,1);
 });
 
+test("chatbot qualifies a company and accepts an optional phone without relaxing contact form rules",async()=>{
+  resetEnv();
+  let payload;
+  global.fetch=async(_url,options)=>{payload=JSON.parse(options.body);return {ok:true,status:202};};
+  let response=await chatbot.handler({httpMethod:"POST",body:JSON.stringify({
+    service:"Formación sanitaria",name:"Eva",company:"Centro <A> & Asociados",email:"eva@example.com",
+    phone:"",location:"Madrid",employee_count:"30 participantes",message:"Solicito información comercial",website:"",accepts_privacy:true
+  })});
+  assert.equal(response.statusCode,200);
+  assert.equal(JSON.parse(response.body).message,"sent");
+  assert.match(payload.html,/Centro &lt;A&gt; &amp; Asociados/);
+  assert.match(payload.html,/Madrid/);
+  assert.match(payload.html,/30 participantes/);
+  assert.equal(payload.reply_to,"eva@example.com");
+
+  response=await chatbot.handler({httpMethod:"POST",body:JSON.stringify({
+    service:"Otro",name:"Eva",company:"",email:"eva@example.com",phone:"",website:"",accepts_privacy:true
+  })});
+  assert.equal(response.statusCode,422);
+  assert.equal(JSON.parse(response.body).message,"missing_fields");
+});
+
 test("lead endpoints fail closed when mail provider secret is absent",async()=>{
   delete process.env.RESEND_API_KEY;
   global.fetch=async()=>{throw new Error("must not call upstream");};
   const response=await chatbot.handler({
     httpMethod:"POST",
     body:JSON.stringify({
-      service:"Otro",name:"Ana",email:"ana@example.com",phone:"+34 600 000 005",
+      service:"Otro",name:"Ana",company:"Empresa Prueba",email:"ana@example.com",phone:"+34 600 000 005",
       website:"",accepts_privacy:true
     })
   });

@@ -16,7 +16,7 @@ def test_commercial_deployment_blocks_internal_clinical_routes() -> None:
     route_start = config.index('from = "/api/internal-clinical/*"')
     route_end = config.index("[[redirects]]", route_start)
     restricted_route = config[route_start:route_end]
-    assert 'to = "/404.html"' in restricted_route
+    assert 'to = "/api-unavailable.json"' in restricted_route
     assert "status = 404" in restricted_route
     assert "force = true" in restricted_route
     assert route_start < config.index('from = "/*"')
