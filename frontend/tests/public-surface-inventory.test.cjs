@@ -150,3 +150,12 @@ test('salud laboral explica la propuesta con beneficios sin prometer disponibili
   assert.match(labor, /previa comprobación de su viabilidad y requisitos/);
   assert.doesNotMatch(labor, /(?:reconocimientos médicos|servicio de prevención ajeno|disponibilidad garantizada)/i);
 });
+
+
+test('hero y tarjeta sanitaria de portada describen únicamente la oferta evaluable', () => {
+  const home = read('src/pages/Home.jsx');
+  assert.match(home, /Propuestas de enfermería presencial para organizaciones/);
+  assert.match(home, /Estudiamos necesidades de enfermería presencial y formación sanitaria/);
+  assert.match(home, /comprobación de los requisitos aplicables/);
+  assert.doesNotMatch(home, /coordinación asistencial|Combinamos atención profesional/i);
+});
