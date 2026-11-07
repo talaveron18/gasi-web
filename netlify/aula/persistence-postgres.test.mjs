@@ -103,6 +103,38 @@ test("private Aula: real Postgres auth, roles, unit zero, enrolment, locking, an
   const audit=await query("SELECT action FROM aula_audit WHERE actor_id=$1",[student.id]);
   assert.ok(audit.some(row=>row.action==="UNIT_COMPLETED"));
 
+  // Recovery emails must use opaque, single-use tokens rather than reveal
+  // account existence or accept an old session after password rotation.
+  const beforeFetch=global.fetch;
+  process.env.GASI_AULA_RESEND_API_KEY="synthetic_test_provider_token";
+  process.env.GASI_AULA_SENDER_EMAIL="aula@example.invalid";
+  let sentEmail=null;
+  global.fetch=async(_uri,options)=>{
+    sentEmail=JSON.parse(options.body);
+    return new Response(JSON.stringify({id:"test-only"}),{status:202,headers:{"content-type":"application/json"}});
+  };
+  try{
+    const unknown=await call("/auth/reset-request",{method:"POST",body:{email:"unknown-"+email+"@example.invalid"}});
+    expectStatus(unknown,202);
+    assert.equal(sentEmail,null,"unknown accounts never receive a reset email");
+    const reset=await call("/auth/reset-request",{method:"POST",body:{email:studentEmail}});
+    expectStatus(reset,202);
+    assert.deepEqual(sentEmail.to,[studentEmail]);
+    assert.ok(!JSON.stringify(sentEmail).includes(nextPassword),"email never exposes existing credentials");
+    const token=sentEmail.text.match(/[?&]token=([A-Za-z0-9_-]+)/)?.[1];
+    assert.ok(token,"reset email must contain a one-time token");
+    const restored=expectStatus(await call("/auth/reset-confirm",{method:"POST",body:{token,new_password:password}}),200);
+    assert.equal(restored.ok,true);
+    expectStatus(await call("/auth/me",{cookie:studentCookie}),401);
+    expectStatus(await call("/auth/reset-confirm",{method:"POST",body:{token,new_password:nextPassword}}),410);
+    expectStatus(await call("/auth/login",{method:"POST",body:{email:studentEmail,password:nextPassword}}),401);
+    expectStatus(await call("/auth/login",{method:"POST",body:{email:studentEmail,password}}),200);
+  }finally{
+    global.fetch=beforeFetch;
+    delete process.env.GASI_AULA_RESEND_API_KEY;
+    delete process.env.GASI_AULA_SENDER_EMAIL;
+  }
+
   let tutorLogin=await call("/auth/login",{method:"POST",body:{email:tutorEmail,password}});
   expectStatus(tutorLogin,200);
   assert.equal(tutorLogin.data.user.role,"tutor");
