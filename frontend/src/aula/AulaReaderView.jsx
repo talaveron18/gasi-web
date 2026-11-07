@@ -10,7 +10,7 @@ function Block({block}){
   if(block.type==='video')return <figure><video controls preload="metadata" className="max-h-96 w-full rounded-xl" src={block.src}>Tu navegador no puede reproducir este vídeo.</video>{block.text&&<figcaption className="mt-2 text-sm text-slate-600">{block.text}</figcaption>}</figure>;
   return <p className="whitespace-pre-wrap leading-7 text-slate-800">{block.text}</p>;
 }
-export default function AulaReaderView({course,units=[],selected,unit,loading=false,error='',onOpen,onComplete,completing=false,demo=false}){
+export default function AulaReaderView({course,units=[],selected,unit,loading=false,error='',onOpen,onComplete,completing=false,demo=false,assessmentPanel=null,metrics=null}){
   const index=units.findIndex(x=>x.id===selected);
   const previous=units[index-1],next=units[index+1];
   const content=Array.isArray(unit?.content_blocks)?unit.content_blocks:[];
@@ -23,6 +23,11 @@ export default function AulaReaderView({course,units=[],selected,unit,loading=fa
         <h1 className="mt-2 text-3xl font-bold">{course.title}</h1>
         <p className="mt-3 max-w-3xl text-slate-600">{course.objective}</p>
         <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600"><span className="flex items-center gap-1"><Clock size={16}/> {course.duration_hours} horas</span><span>Acceso: {course.access_days||90} días</span>{course.max_units_per_day&&<span>Máximo {course.max_units_per_day} unidades nuevas/día</span>}</div>
+        {metrics&&<div className="mt-4 flex flex-wrap gap-3 text-sm" aria-label="Seguimiento del curso">
+          <span className="rounded-lg bg-slate-100 px-3 py-2">Progreso: {metrics.percent}% ({metrics.done}/{metrics.total} unidades)</span>
+          <span className="rounded-lg bg-slate-100 px-3 py-2">Conexión: {Math.floor(metrics.seconds/60)} min {metrics.seconds%60} s</span>
+          {metrics.dailyMax&&<span className="rounded-lg bg-slate-100 px-3 py-2">Hoy: {metrics.today}/{metrics.dailyMax} unidades nuevas</span>}
+        </div>}
       </div>
     </div>
     <div className="mx-auto grid max-w-7xl gap-6 px-4 py-7 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -45,13 +50,14 @@ export default function AulaReaderView({course,units=[],selected,unit,loading=fa
             {headings.length>0&&<aside className="rounded-xl bg-slate-50 p-4"><h3 className="text-sm font-bold">Índice de contenidos</h3><ul className="mt-2 space-y-1 text-sm text-slate-700">{headings.map((h,i)=><li key={i} className={h.level===3?'ml-4':''}>{h.text}</li>)}</ul></aside>}
             {content.map((block,i)=><Block block={block} key={i}/>)}
             {unit.learning_outcomes?.length>0&&<section className="rounded-xl bg-emerald-50 p-4"><h3 className="font-bold text-emerald-950">Resultados de aprendizaje</h3><ul className="mt-2 list-inside list-disc space-y-1 text-sm text-emerald-950">{unit.learning_outcomes.map(o=><li key={o.id}>{o.text}</li>)}</ul></section>}
+            {assessmentPanel}
             {(unit.requires_test||unit.requires_practice)&&<p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              Para completar esta unidad será necesario {unit.requires_test?'superar el test':''}{unit.requires_test&&unit.requires_practice?' y ':''}{unit.requires_practice?'obtener la evaluación de la práctica obligatoria':''}. Estas evaluaciones se incorporarán en F3; el sistema no permite saltárselas.
+              {unit.requires_test?(unit.test_passed?'Test superado. ':'Pendiente: superar el test. '):''}{unit.requires_practice?(unit.practice_approved?'Práctica aprobada por tutor.':unit.practice_status==='pending'?'Práctica enviada, pendiente de evaluar por el tutor.':'Pendiente: enviar y obtener la aprobación de la práctica obligatoria.'):''} El avance se bloquea hasta satisfacer todos los requisitos.
             </p>}
           </article>
           <div className="flex flex-wrap justify-between gap-3">
             <button className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold disabled:opacity-40" disabled={!previous?.open} onClick={()=>previous&&onOpen(previous.id)}><ArrowLeft size={16}/> Anterior</button>
-            {!units[index]?.completed&&<button type="button" data-testid="aula-complete-unit" disabled={completing||unit.requires_test||unit.requires_practice} onClick={()=>onComplete(unit.id)} className="rounded-lg bg-[#005EB8] px-4 py-3 font-semibold text-white disabled:opacity-50">{completing?'Guardando…':'Marcar como completada'}</button>}
+            {!units[index]?.completed&&<button type="button" data-testid="aula-complete-unit" disabled={completing||(unit.requires_test&&!unit.test_passed)||(unit.requires_practice&&!unit.practice_approved)} onClick={()=>onComplete(unit.id)} className="rounded-lg bg-[#005EB8] px-4 py-3 font-semibold text-white disabled:opacity-50">{completing?'Guardando…':'Marcar como completada'}</button>}
             <button className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold disabled:opacity-40" disabled={!next?.open} onClick={()=>next&&onOpen(next.id)}>Siguiente <ArrowRight size={16}/></button>
           </div>
         </>}
