@@ -149,6 +149,9 @@ export default function Chatbot() {
         })
       });
       const result = await response.json().catch(() => ({}));
+      if (response.status === 429) {
+        throw new Error('Se ha alcanzado temporalmente el límite de solicitudes. Inténtalo más tarde o utiliza el correo directo.');
+      }
       if (!response.ok || result.message !== 'sent') {
         const reasons = {
           missing_fields: 'Faltan datos obligatorios.',
