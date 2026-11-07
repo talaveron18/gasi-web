@@ -185,8 +185,8 @@ export default function Chatbot() {
     </button>
     {open && <section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true"
       aria-labelledby="assistant-heading" data-testid="chatbot-window"
-      className="fixed inset-x-2 bottom-2 top-2 z-50 flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl focus:outline-none sm:inset-auto sm:bottom-4 sm:right-4 sm:h-[min(680px,calc(100dvh-2rem))] sm:w-[min(440px,calc(100vw-2rem))]">
-      <header className="flex items-center justify-between bg-[#005EB8] px-4 py-3 text-white sm:px-5 sm:py-4">
+      className="fixed inset-x-2 bottom-2 top-2 z-50 flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl focus:outline-none sm:inset-auto sm:bottom-4 sm:right-4 sm:h-[min(680px,calc(100dvh-2rem))] sm:w-[min(440px,calc(100vw-2rem))]">
+      <header className="z-10 flex shrink-0 items-center justify-between bg-[#005EB8] px-4 py-3 text-white sm:px-5 sm:py-4">
         <div className="flex items-center gap-3"><span className="rounded-lg bg-white/15 p-2"><MessageCircle size={21} aria-hidden="true"/></span>
           <div><h2 id="assistant-heading" className="font-bold">Asistente GASI</h2>
             <p className="text-xs text-blue-100">Información comercial · Respuesta automática</p></div>
@@ -194,7 +194,7 @@ export default function Chatbot() {
         <button onClick={close} type="button" aria-label="Cerrar asistente GASI" className="rounded-lg p-2 hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white"><X size={20}/></button>
       </header>
 
-      <div ref={scrollRef} data-testid="chatbot-messages" className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-slate-50 p-4 sm:p-5" aria-live="polite" aria-relevant="additions text">
+      <div ref={scrollRef} data-testid="chatbot-messages" className="min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain bg-slate-50 p-4 sm:p-5" aria-live="polite" aria-relevant="additions text">
         {screen === 'home' && <>
           <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-800">
             Hola. Puedo orientarte sobre los servicios de GASI y recoger los datos para estudiar una propuesta adaptada a tu empresa.
@@ -299,13 +299,13 @@ export default function Chatbot() {
           <button onClick={goHome} type="button" className="text-sm font-semibold text-[#005EB8] underline">Hacer otra consulta</button>
         </div>}
       </div>
-      <footer className="space-y-2 border-t border-slate-200 bg-white px-4 py-3 sm:px-5">
+      <footer data-testid="chatbot-footer" className="z-10 shrink-0 space-y-2 border-t border-slate-200 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-600"><ShieldCheck size={14} className="text-[#005EB8]"/> Solo consultas comerciales</span>
           <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-[#005EB8]" data-testid="chatbot-human-handoff">
             Hablar con una persona <ArrowRight size={14}/></a>
         </div>
-        <a href={'mailto:' + EMAIL} className="inline-flex items-center gap-1 text-xs font-semibold text-[#005EB8]"><Mail size={14}/> Correo directo: {EMAIL}</a>
+        <a href={'mailto:' + EMAIL} className="inline-flex max-w-full flex-wrap items-center gap-1 break-all text-xs font-semibold text-[#005EB8]"><Mail size={14}/> Correo directo: {EMAIL}</a>
       </footer>
     </section>}
   </>;
