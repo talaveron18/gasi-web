@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Mail } from 'lucide-react';
+import { GASI_LOGO } from '@/assets/logo';
 
 const Footer = () => {
   return (
@@ -8,7 +9,7 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <div className="text-3xl font-bold tracking-wide mb-4" aria-label="GASI - Grupo de Asistencia Sanitaria Integral">GASI</div>
+            <img src={GASI_LOGO} alt="GASI - Grupo de Asistencia Sanitaria Integral" className="h-16 w-auto max-w-full object-contain bg-white rounded-sm p-1 mb-4" />
             <p className="text-gray-400 text-sm">Grupo de Asistencia Sanitaria Integral. Servicios sanitarios para organizaciones, sujetos a validación previa del alcance aplicable.</p>
           </div>
           <div>
