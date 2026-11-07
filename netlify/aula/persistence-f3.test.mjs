@@ -21,8 +21,8 @@ test('F3 full Postgres: 15 to 10 questions, server grading, tutor rubric and gat
  const suffix=crypto.randomBytes(6).toString('hex');
  const password=crypto.randomBytes(20).toString('base64url');
  const persons={};
- for(const role of ['admin','student','tutor','author','otherTutor']){
-   const storedRole=role==='otherTutor'?'tutor':role;
+ for(const role of ['admin','student','tutor','author','otherTutor','otherStudent']){
+   const storedRole=role==='otherTutor'?'tutor':role==='otherStudent'?'student':role;
    persons[role]=(await sql("INSERT INTO aula_users(name,email,role,password_hash,must_change_password) VALUES($1,$2,$3,$4,FALSE) RETURNING id,email",[
      'Prueba '+role,role.toLowerCase()+suffix+'@example.invalid',storedRole,await bcrypt.hash(password,12)]))[0];
  }
@@ -30,10 +30,16 @@ test('F3 full Postgres: 15 to 10 questions, server grading, tutor rubric and gat
  const adminAuth=await call('/auth/login','POST',{email:persons.admin.email,password}),studentAuth=await call('/auth/login','POST',{email:persons.student.email,password});
  const tutorAuth=await call('/auth/login','POST',{email:persons.tutor.email,password}),otherAuth=await call('/auth/login','POST',{email:persons.otherTutor.email,password});
  const authorAuth=await call('/auth/login','POST',{email:persons.author.email,password});
- for(const a of [adminAuth,studentAuth,tutorAuth,otherAuth,authorAuth])expected(a,200);
- const admin=adminAuth.cookie,student=studentAuth.cookie,tutor=tutorAuth.cookie,outsider=otherAuth.cookie,author=authorAuth.cookie;
+ const otherStudentAuth=await call('/auth/login','POST',{email:persons.otherStudent.email,password});
+ for(const a of [adminAuth,studentAuth,tutorAuth,otherAuth,authorAuth,otherStudentAuth])expected(a,200);
+ const admin=adminAuth.cookie,student=studentAuth.cookie,tutor=tutorAuth.cookie,outsider=otherAuth.cookie,author=authorAuth.cookie,otherStudent=otherStudentAuth.cookie;
  const course=expected(await call('/admin/courses','POST',{
   title:'Curso de prueba F3',objective:'Evaluación en servidor',duration_hours:8,access_days:90,max_units_per_day:2},admin),201).course;
+ // Each actor is isolated from courses they do not own or attend.
+ assert.equal((await call('/courses/'+course.id,'GET',{},otherStudent)).status,403);
+ assert.equal((await call('/courses/'+course.id,'GET',{},student)).status,403);
+ assert.equal((await call('/courses/'+course.id,'GET',{},outsider)).status,403);
+ assert.equal((await call('/courses/'+course.id,'GET',{},author)).status,403);
  const first=expected(await call('/courses/'+course.id,'GET',{},admin),200).units[0];
  expected(await call('/admin/courses/'+course.id+'/units/'+first.id,'PATCH',{
    title:'Unidad cero',content_blocks:[{type:'heading',level:1,text:'Bienvenida'}],learning_outcomes:[{id:'RA0',text:'Entender la metodología'}]},admin),200);
@@ -48,8 +54,18 @@ test('F3 full Postgres: 15 to 10 questions, server grading, tutor rubric and gat
  expected(await call('/admin/courses/'+course.id+'/units/'+next.id+'/assessment','PUT',{questions:bank.slice(0,14),practice},admin),422);
  expected(await call('/admin/courses/'+course.id+'/units/'+next.id+'/assessment','PUT',{questions:bank,practice},admin),200);
  expected(await call('/admin/courses/'+course.id+'/publish','POST',{},admin),200);
+ // Neither a different author nor an unassigned tutor may alter or read the assessment.
+ assert.equal((await call('/admin/courses/'+course.id+'/units/'+next.id+'/assessment','GET',{},author)).status,403);
+ assert.equal((await call('/admin/courses/'+course.id+'/units/'+next.id+'/assessment','PUT',{questions:bank,practice},author)).status,403);
+ assert.equal((await call('/courses/'+course.id,'GET',{},outsider)).status,403);
  expected(await call('/admin/tutors','POST',{course_id:course.id,tutor_id:persons.tutor.id},admin),201);
  expected(await call('/admin/enrollments','POST',{course_id:course.id,student_id:persons.student.id},admin),201);
+ assert.equal((await call('/courses/'+course.id,'GET',{},otherStudent)).status,403);
+ assert.equal((await call('/courses/'+course.id+'/units/'+next.id+'/assessment','GET',{},otherStudent)).status,403);
+ assert.equal((await call('/courses/'+course.id+'/units/'+next.id+'/assessment/test','POST',{attempt_id:'not-owned',answers:{}},otherStudent)).status,403);
+ assert.equal((await call('/admin/users','GET',{},tutor)).status,403);
+ assert.equal((await call('/admin/users','GET',{},student)).status,403);
+ assert.equal((await call('/admin/users','GET',{},author)).status,403);
  assert.equal((await call('/tutor/reviews','GET',{},author)).status,403);
  let listing=expected(await call('/courses/'+course.id,'GET',{},student),200);
  assert.deepEqual(listing.units.map(u=>u.open),[true,false]);

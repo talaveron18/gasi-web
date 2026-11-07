@@ -13,7 +13,12 @@ class HttpError extends Error{status:number;constructor(status:number,message:st
 const fail=(status:number,message:string):never=>{throw new HttpError(status,message);};
 const env=(name:string)=>String((globalThis as any).Netlify?.env?.get?.(name)||process.env[name]||"");
 const dbCache=new Map<string,any>();
-const conn=()=>{const url=env("GASI_AULA_DB_URL"),key=url||"__netlify_default__";if(!dbCache.has(key))dbCache.set(key,url?getDatabase({connectionString:url}):getDatabase());return dbCache.get(key);};
+const conn=()=>{
+  const url=env("GASI_AULA_DB_URL");
+  if(!/^postgres(?:ql)?:\/\//.test(url))fail(503,"private_aula_database_not_configured");
+  if(!dbCache.has(url))dbCache.set(url,getDatabase({connectionString:url}));
+  return dbCache.get(url);
+};
 async function q(text:string,values:any[]=[]){const db=conn(),client=await db.pool.connect();try{return (await client.query(text,values)).rows;}finally{client.release();}}
 const hash=(v:string)=>crypto.createHash("sha256").update(v).digest("hex");
 const normEmail=(v:unknown)=>{const e=String(v||"").trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)||e.length>254)fail(422,"invalid_email");return e;};

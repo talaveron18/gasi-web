@@ -15,12 +15,18 @@ if(!confirmed||!dbUrl||!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||name.l
 const db=getDatabase({connectionString:dbUrl});
 const client=await db.pool.connect();
 try{
-  const admins=await client.query("SELECT count(*)::int AS amount FROM aula_users WHERE role='admin'");
-  if(admins.rows[0].amount!==0)throw new Error("Bootstrap refused: an administrator account already exists.");
-  await client.query("INSERT INTO aula_users(email,name,role,password_hash,must_change_password) VALUES($1,$2,'admin',$3,TRUE)",[
-    email,name,await bcrypt.hash(password,12)
-  ]);
-  console.log("Private Aula administrator created. Change the bootstrap password at first login and remove AULA_BOOTSTRAP_PASSWORD from the environment.");
+  await client.query("BEGIN");
+  try{
+    // Prevent two concurrent bootstrap processes from both observing zero admins.
+    await client.query("SELECT pg_advisory_xact_lock(652117,49026)");
+    const admins=await client.query("SELECT count(*)::int AS amount FROM aula_users WHERE role='admin'");
+    if(admins.rows[0].amount!==0)throw new Error("Bootstrap refused: an administrator account already exists.");
+    await client.query("INSERT INTO aula_users(email,name,role,password_hash,must_change_password) VALUES($1,$2,'admin',$3,TRUE)",[
+      email,name,await bcrypt.hash(password,12)
+    ]);
+    await client.query("COMMIT");
+    console.log("Private Aula administrator created. Change the bootstrap password at first login and remove AULA_BOOTSTRAP_PASSWORD from the environment.");
+  }catch(error){await client.query("ROLLBACK");throw error;}
 }finally{
   client.release();await db.pool.end();
 }
