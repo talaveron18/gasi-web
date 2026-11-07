@@ -45,4 +45,5 @@ test('the server shuffles each question options and still grades the displayed i
  assert.equal(grade.score,10);
  assert.ok(grade.review.every(r=>r.correct_index===answers[r.id]));
  assert.throws(()=>gradeWithOptionOrders(sample,answers,{...orders,[sample[0].id]:[0,0,1]}),/invalid_answers/);
+ assert.throws(()=>gradeWithOptionOrders(sample,{...answers,injected:0},orders),/invalid_answers/);
 });
