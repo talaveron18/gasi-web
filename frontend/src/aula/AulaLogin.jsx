@@ -28,6 +28,11 @@ export default function AulaLogin(){
         {error&&<p role="alert" className="text-sm text-rose-800">{error}</p>}
         <button disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#005EB8] px-4 py-3 font-semibold text-white disabled:opacity-50"><LockKeyhole size={17} aria-hidden="true"/>{busy?'Comprobando…':user?'Establecer nueva contraseña':'Entrar al aula'}</button>
       </form>
+      {AULA_PREVIEW_DEMO&&<div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+        <p className="font-semibold">Revisión sin credenciales</p>
+        <p className="mt-1">Puedes examinar el lector, los cuatro perfiles y las unidades bloqueadas con un curso ficticio. No se utiliza una sesión real.</p>
+        <Link to="/aula/vista-previa" className="mt-2 inline-block font-semibold text-[#005EB8] underline" data-testid="aula-review-without-login">Abrir demostración visual del aula</Link>
+      </div>}
       {!user&&<Link to="/aula/recuperar" className="mt-4 inline-block text-sm font-semibold text-[#005EB8] underline">¿Has olvidado tu contraseña?</Link>}
       <p className="mt-6 text-xs leading-relaxed text-slate-500">GASI registra los accesos y el tiempo de conexión para el seguimiento académico. Consulta la <Link className="text-[#005EB8] underline" to="/politica-privacidad">información de privacidad</Link>. No compartas tus credenciales.</p>
     </div>
