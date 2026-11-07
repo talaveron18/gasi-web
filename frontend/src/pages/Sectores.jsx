@@ -50,7 +50,7 @@ const Sectores = () => {
             Sectores empresariales
           </h1>
           <p className="text-xl opacity-90">
-            Asistencia sanitaria y formación adaptadas a la realidad de cada empresa
+            Consultas sobre enfermería presencial y formación sanitaria para distintos sectores
           </p>
         </div>
       </section>
@@ -59,10 +59,10 @@ const Sectores = () => {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-[#0F172A] mb-4">
-              Soluciones sanitarias adaptadas a cada sector
+              Estudiamos necesidades de cada sector
             </h2>
             <p className="text-lg text-[#64748B] max-w-3xl mx-auto">
-              Cada empresa tiene necesidades diferentes. En GASI diseñamos soluciones de asistencia sanitaria adaptadas a la actividad, los equipos y el funcionamiento de cada organización, combinando atención profesional, cercanía y flexibilidad.
+              Cada organización tiene necesidades distintas. Podemos estudiar solicitudes de enfermería presencial y formación sanitaria, sin presuponer disponibilidad ni capacidad para atender todos los sectores. Cada propuesta depende de su viabilidad, los recursos y los requisitos aplicables.
             </p>
           </div>
 
@@ -90,7 +90,7 @@ const Sectores = () => {
             Hablemos de las necesidades de su empresa
           </h2>
           <p className="text-lg text-[#64748B] mb-8">
-            Cuéntenos cómo trabaja su organización y qué atención sanitaria necesita. Estudiaremos una propuesta adaptada a su actividad y a los requisitos aplicables.
+            Cuéntenos si necesita enfermería presencial o formación sanitaria. Revisaremos el encaje y los requisitos aplicables antes de confirmar cualquier propuesta.
           </p>
           <Link to="/contacto" className="inline-flex items-center justify-center bg-[#005EB8] hover:bg-[#004a92] text-white px-8 py-3 rounded-lg font-semibold text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005EB8]" data-testid="cta-contact">
             Solicitar información
