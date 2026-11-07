@@ -1,16 +1,15 @@
 import React from 'react';
-import { publicImage } from '@/utils/publicImage';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 
 const CoberturaSanitaria = () => {
   const features = [
-    { image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesional sanitario en consulta', title: 'Atención Sanitaria', desc: 'Asistencia profesional adaptada al entorno empresarial' },
-    { image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Instalaciones de una organización', title: 'Cobertura Planificada', desc: 'Horarios y presencia definidos previamente según las necesidades y el alcance aplicable' },
-    { image: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Espacio de trabajo empresarial', title: 'En Sus Instalaciones', desc: 'Prestación presencial en el centro acordado cuando el servicio resulte aplicable' },
-    { image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Equipo sanitario en un entorno clínico', title: 'Alcance Definido', desc: 'Las actuaciones incluidas se concretan antes del inicio del servicio' },
-    { image: 'https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesionales sanitarios', title: 'Registro Asistencial', desc: 'Documentación de la actividad conforme al servicio contratado y a los requisitos aplicables' },
-    { image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesional sanitaria', title: 'Validación Previa', desc: 'Confirmamos previamente que la cobertura solicitada puede prestarse dentro del alcance aplicable' }
+    { image: '/images/photo-1576091160550-2173dba999ef.jpg', imageAlt: 'Profesional sanitario en consulta', title: 'Atención Sanitaria', desc: 'Asistencia profesional adaptada al entorno empresarial' },
+    { image: '/images/photo-1497366754035-f200968a6e72.jpg', imageAlt: 'Instalaciones de una organización', title: 'Cobertura Planificada', desc: 'Horarios y presencia definidos previamente según las necesidades y el alcance aplicable' },
+    { image: '/images/photo-1497366811353-6870744d04b2.jpg', imageAlt: 'Espacio de trabajo empresarial', title: 'En Sus Instalaciones', desc: 'Prestación presencial en el centro acordado cuando el servicio resulte aplicable' },
+    { image: '/images/photo-1576091160399-112ba8d25d1d.jpg', imageAlt: 'Equipo sanitario en un entorno clínico', title: 'Alcance Definido', desc: 'Las actuaciones incluidas se concretan antes del inicio del servicio' },
+    { image: '/images/photo-1584982751601-97dcc096659c.jpg', imageAlt: 'Profesionales sanitarios', title: 'Registro Asistencial', desc: 'Documentación de la actividad conforme al servicio contratado y a los requisitos aplicables' },
+    { image: '/images/photo-1559839734-2b71ea197ec2.jpg', imageAlt: 'Profesional sanitaria', title: 'Validación Previa', desc: 'Confirmamos previamente que la cobertura solicitada puede prestarse dentro del alcance aplicable' }
   ];
 
   return (
@@ -26,7 +25,7 @@ const CoberturaSanitaria = () => {
         </div>
       </section>
 
-      <section className="py-20 bg-white"><div className="max-w-5xl mx-auto px-6 lg:px-8 mb-10"><img src={publicImage("https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1400&q=85")} alt="Profesional sanitario en un entorno asistencial" loading="lazy" className="w-full h-64 md:h-80 object-cover rounded-2xl" /></div>
+      <section className="py-20 bg-white"><div className="max-w-5xl mx-auto px-6 lg:px-8 mb-10"><img src="/images/photo-1576091160550-2173dba999ef.jpg" alt="Profesional sanitario en un entorno asistencial" loading="lazy" className="w-full h-64 md:h-80 object-cover rounded-2xl" /></div>
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Una solución sanitaria adaptada a su empresa</h2>
           <p className="text-lg text-[#64748B] leading-relaxed mb-6">
@@ -49,7 +48,7 @@ const CoberturaSanitaria = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
               <Card key={index} className="overflow-hidden h-full hover-lift" data-testid={`feature-${index}`}>
-                <div className="h-48 overflow-hidden bg-[#EAF4FC]"><img src={publicImage(feature.image)} alt={feature.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
+                <div className="h-48 overflow-hidden bg-[#EAF4FC]"><img src={feature.image} alt={feature.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
                 <div className="p-6">
                 <h3 className="font-bold text-[#0F172A] mb-2">{feature.title}</h3>
                 <p className="text-[#64748B] text-sm">{feature.desc}</p>
