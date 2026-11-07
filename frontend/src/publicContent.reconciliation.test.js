@@ -287,7 +287,7 @@ describe('reconciliación del contenido público GASI', () => {
 
   test('chatbot público sigue siendo comercial, no clínico y no de urgencias', () => {
     const chatbot = read('components/Chatbot.jsx');
-    expect(chatbot).toContain('No es un canal clínico ni de urgencias.');
+    expect(chatbot).toContain('Este asistente no es un canal clínico ni de urgencias.');
     expect(chatbot).toContain("from '@/lib/chatbotGuidance';");
     expect(read('lib/chatbotGuidance.js')).toContain("export const SERVICES = ['Enfermería presencial', 'Formación sanitaria', 'Otro'];");
   });
