@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, CheckCircle, ClipboardCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 const FormacionSanitaria = () => (
@@ -24,9 +23,9 @@ const FormacionSanitaria = () => (
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <Card><CardContent className="p-7"><ClipboardCheck className="w-9 h-9 text-[#005EB8] mb-4" aria-hidden="true" /><h3 className="font-bold text-lg mb-2">Necesidad</h3><p className="text-[#64748B]">Recogemos el objetivo, destinatarios y contexto de la organización.</p></CardContent></Card>
-          <Card><CardContent className="p-7"><BookOpen className="w-9 h-9 text-[#005EB8] mb-4" aria-hidden="true" /><h3 className="font-bold text-lg mb-2">Alcance</h3><p className="text-[#64748B]">Revisamos si GASI puede ofrecer la acción y qué contenido y formato resultan aplicables.</p></CardContent></Card>
-          <Card><CardContent className="p-7"><CheckCircle className="w-9 h-9 text-[#005EB8] mb-4" aria-hidden="true" /><h3 className="font-bold text-lg mb-2">Confirmación</h3><p className="text-[#64748B]">Solo tras esa revisión se confirman condiciones, disponibilidad y demás aspectos de la propuesta.</p></CardContent></Card>
+          <Card><CardContent className="p-7"><img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=85" alt="Espacio de trabajo para planificar formación" loading="lazy" className="w-full h-40 object-cover rounded-lg mb-5" /><h3 className="font-bold text-lg mb-2">Necesidad</h3><p className="text-[#64748B]">Recogemos el objetivo, destinatarios y contexto de la organización.</p></CardContent></Card>
+          <Card><CardContent className="p-7"><img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=900&q=85" alt="Entorno educativo" loading="lazy" className="w-full h-40 object-cover rounded-lg mb-5" /><h3 className="font-bold text-lg mb-2">Alcance</h3><p className="text-[#64748B]">Revisamos si GASI puede ofrecer la acción y qué contenido y formato resultan aplicables.</p></CardContent></Card>
+          <Card><CardContent className="p-7"><img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=900&q=85" alt="Profesional sanitaria" loading="lazy" className="w-full h-40 object-cover rounded-lg mb-5" /><h3 className="font-bold text-lg mb-2">Confirmación</h3><p className="text-[#64748B]">Solo tras esa revisión se confirman condiciones, disponibilidad y demás aspectos de la propuesta.</p></CardContent></Card>
         </div>
       </div>
     </section>
