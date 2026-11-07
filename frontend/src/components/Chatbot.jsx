@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+()\d\s.-]{7,20}$/;
-const SERVICES = ['Enfermería presencial', 'Formación sanitaria', 'Otro'];
+const SERVICES = ['Asistencia sanitaria integral para empresas', 'Formación sanitaria empresarial', 'Otro'];
 
 const Chatbot = () => {
   const [isOpen,setIsOpen]=useState(false), [messages,setMessages]=useState([]), [input,setInput]=useState(''), [loading,setLoading]=useState(false), [step,setStep]=useState('inicio'), [acceptsPrivacy,setAcceptsPrivacy]=useState(false);
