@@ -68,3 +68,13 @@
   for = "/static/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+
+# F1/F2 classroom review only: this PR preview uses synthetic accounts.
+# Production continues to build only the commercial functions and disables Aula.
+[context.deploy-preview]
+  command = "node scripts/prepare-aula-preview-functions.cjs && yarn --cwd frontend install --non-interactive --frozen-lockfile && yarn --cwd frontend build"
+
+[context.deploy-preview.environment]
+  REACT_APP_AULA_ENABLED = "true"
+  REACT_APP_AULA_PREVIEW_DEMO = "true"
