@@ -112,6 +112,50 @@ async function handle(req:Request){
   const path=rewritten?"/"+rewritten.replace(/^\/+/, ""):url.pathname.replace(/^\/api\/aula/,"")||"/";
   originGuard(req);
   if(req.method==="GET"&&path==="/health"){await q("SELECT 1");return json({ok:true});}
+  if(req.method==="POST"&&path==="/auth/reset-request"){
+    const data=await body(req),email=normEmail(data.email);
+    const apiKey=env("GASI_AULA_RESEND_API_KEY"),sender=env("GASI_AULA_SENDER_EMAIL");
+    if(!apiKey||!sender)fail(503,"password_recovery_not_configured");
+    const ip=req.headers.get("x-nf-client-connection-ip")||"unknown";
+    const limiter=hash("recovery:"+ip+":"+email);
+    const count=await q("SELECT failures,updated_at FROM aula_login_attempts WHERE key_hash=$1",[limiter]);
+    if(count[0]&&Number(count[0].failures)>=5&&(Date.now()-new Date(count[0].updated_at).getTime())<900000)fail(429,"too_many_requests");
+    await q("INSERT INTO aula_login_attempts(key_hash,failures,updated_at) VALUES($1,1,now()) ON CONFLICT(key_hash) DO UPDATE SET failures=CASE WHEN aula_login_attempts.updated_at<now()-INTERVAL '15 minutes' THEN 1 ELSE aula_login_attempts.failures+1 END,updated_at=now()",[limiter]);
+    const rows=await q("SELECT id FROM aula_users WHERE email=$1 AND active=TRUE",[email]);
+    if(rows.length){
+      const token=crypto.randomBytes(32).toString("base64url");
+      const inserted=await q("INSERT INTO aula_password_resets(user_id,token_hash,expires_at) VALUES($1,$2,now()+INTERVAL '30 minutes') RETURNING id",[rows[0].id,hash(token)]);
+      const link=new URL("/aula/recuperar",url.origin);link.searchParams.set("token",token);
+      const message={
+        from:sender,to:[email],subject:"Restablecer acceso al Aula Virtual GASI",
+        text:"Si has solicitado recuperar tu acceso al Aula Virtual GASI, abre este enlace (válido durante 30 minutos):\n"+link.toString()+"\nSi no has solicitado el cambio, ignora este mensaje."
+      };
+      try{
+        const result=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:"Bearer "+apiKey,"content-type":"application/json"},body:JSON.stringify(message),signal:AbortSignal.timeout(10000)});
+        if(!result.ok)throw new Error("email_provider_unavailable");
+      }catch{
+        await q("UPDATE aula_password_resets SET used_at=now() WHERE id=$1",[inserted[0].id]);
+        console.error("aula_recovery_delivery_failed",{provider:"resend"});
+      }
+    }
+    // Do not reveal whether a particular student email exists.
+    return json({ok:true,message:"Si existe una cuenta activa y el servicio de correo funciona, recibirá instrucciones."},202);
+  }
+  if(req.method==="POST"&&path==="/auth/reset-confirm"){
+    const data=await body(req),token=String(data.token||""),password=String(data.new_password||"");
+    if(!/^[A-Za-z0-9_-]{35,100}$/.test(token)||!strongPassword(password))fail(422,"invalid_reset_or_password");
+    const db=conn(),client=await db.pool.connect();
+    try{
+      await client.query("BEGIN");
+      const used=await client.query("UPDATE aula_password_resets SET used_at=now() WHERE token_hash=$1 AND used_at IS NULL AND expires_at>now() RETURNING user_id",[hash(token)]);
+      if(!used.rows.length){await client.query("ROLLBACK");fail(410,"reset_link_expired_or_used");}
+      await client.query("UPDATE aula_users SET password_hash=$2,must_change_password=FALSE WHERE id=$1 AND active=TRUE",[used.rows[0].user_id,await bcrypt.hash(password,12)]);
+      await client.query("UPDATE aula_sessions SET revoked_at=now() WHERE user_id=$1",[used.rows[0].user_id]);
+      await client.query("INSERT INTO aula_audit(actor_id,action,resource_type,resource_id) VALUES($1,'PASSWORD_RESET','account',$1)",[used.rows[0].user_id]);
+      await client.query("COMMIT");
+      return json({ok:true});
+    }catch(error){await client.query("ROLLBACK");throw error;}finally{client.release();}
+  }
   if(req.method==="POST"&&path==="/auth/login")return login(req);
   if(req.method==="GET"&&path==="/auth/me"){const user=await auth(req);return json({user:plainUser(user)});}
   if(req.method==="POST"&&path==="/auth/logout"){
