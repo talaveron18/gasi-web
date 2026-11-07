@@ -1,42 +1,41 @@
 import React from 'react';
-import { publicImage } from '@/utils/publicImage';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 
 const Sectores = () => {
   const sectors = [
     {
-      image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1000&q=85',
+      image: '/images/photo-1586528116311-ad8dd3c8310d.jpg',
       imageAlt: 'Centro logístico con estanterías de almacenaje',
       title: 'Logística y Distribución',
       description: 'Podemos estudiar necesidades de cobertura sanitaria presencial en centros logísticos, almacenes y plataformas de distribución.',
     },
     {
-      image: 'https://images.unsplash.com/photo-1647427060118-4911c9821b82?auto=format&fit=crop&w=1000&q=85',
+      image: '/images/photo-1647427060118-4911c9821b82.jpg',
       imageAlt: 'Robots industriales en una línea de producción de automóviles',
       title: 'Industria y Producción',
       description: 'Valoramos necesidades de enfermería presencial y formación sanitaria en centros industriales y de producción.',
     },
     {
-      image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1000&q=85',
+      image: '/images/photo-1441986300917-64674bd600d8.jpg',
       imageAlt: 'Interior de un establecimiento comercial',
       title: 'Retail y Grandes Superficies',
       description: 'Analizamos necesidades sanitarias presenciales y formativas en centros comerciales y grandes superficies.',
     },
     {
-      image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1000&q=85',
+      image: '/images/photo-1497366754035-f200968a6e72.jpg',
       imageAlt: 'Espacio de oficinas',
       title: 'Centros de Trabajo y Oficinas',
       description: 'Podemos valorar cobertura de enfermería presencial y acciones de formación sanitaria para centros de trabajo y oficinas.',
     },
     {
-      image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1000&q=85',
+      image: '/images/photo-1504307651254-35680f356dfd.jpg',
       imageAlt: 'Obra de construcción',
       title: 'Construcción y Obras',
       description: 'Estudiamos cada solicitud para determinar si la cobertura sanitaria requerida puede prestarse dentro del alcance aplicable.',
     },
     {
-      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1000&q=85',
+      image: '/images/photo-1517248135467-4c7edcad34c4.jpg',
       imageAlt: 'Interior de un establecimiento de hostelería',
       title: 'Hostelería y Turismo',
       description: 'Podemos revisar necesidades de enfermería presencial y formación sanitaria en establecimientos de hostelería y turismo.',
@@ -70,7 +69,7 @@ const Sectores = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {sectors.map((sector, index) => (
               <Card key={index} className="overflow-hidden hover-lift h-full" data-testid={`sector-card-${index}`}>
-                <div className="h-52 overflow-hidden bg-[#EAF4FC]"><img src={publicImage(sector.image)} alt={sector.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
+                <div className="h-52 overflow-hidden bg-[#EAF4FC]"><img src={sector.image} alt={sector.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
                 <div className="p-8">
                 <h3 className="text-2xl font-bold text-[#0F172A] mb-4 text-center">
                   {sector.title}
