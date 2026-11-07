@@ -5,8 +5,8 @@ import { Card } from '@/components/ui/card';
 
 const SaludLaboral = () => {
   const services = [
-    { icon: <Activity className="w-8 h-8" />, title: 'Enfermería presencial', desc: 'Cobertura enfermera en el centro o dispositivo definido, dentro del alcance previamente acordado y aplicable.' },
-    { icon: <GraduationCap className="w-8 h-8" />, title: 'Formación sanitaria', desc: 'Acciones formativas sanitarias cuya disponibilidad, contenido y formato se confirman previamente.' },
+    { icon: <Activity className="w-8 h-8" />, title: 'Asistencia sanitaria integral', desc: 'Atención sanitaria y coordinación asistencial adaptadas a cada centro de trabajo.' },
+    { icon: <GraduationCap className="w-8 h-8" />, title: 'Formación sanitaria empresarial', desc: 'Primeros auxilios, reanimación cardiopulmonar, soporte vital básico y uso de desfibriladores.' },
     { icon: <ClipboardCheck className="w-8 h-8" />, title: 'Alcance definido', desc: 'Antes del inicio se concretan el servicio, los recursos y las condiciones que GASI puede asumir.' }
   ];
 
@@ -18,19 +18,19 @@ const SaludLaboral = () => {
             Servicios sanitarios para organizaciones
           </h1>
           <p className="text-xl opacity-90">
-            Enfermería presencial y formación sanitaria, con alcance sujeto a confirmación previa y a los requisitos aplicables.
+            Asistencia sanitaria integral para empresas y formación práctica en primeros auxilios, reanimación y desfibriladores.
           </p>
         </div>
       </section>
 
       <section className="py-20 bg-white">
         <div className="max-w-5xl mx-auto px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Cobertura sanitaria con alcance definido</h2>
+          <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Soluciones sanitarias adaptadas a cada organización</h2>
           <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-            GASI puede organizar servicios de enfermería presencial y acciones de formación sanitaria. La configuración concreta se revisa para cada necesidad antes de confirmar la prestación.
+            GASI estudia soluciones de asistencia sanitaria en el entorno empresarial, integrando atención profesional y coordinación asistencial según las necesidades de cada organización. Además, desarrolla formación empresarial en primeros auxilios, reanimación cardiopulmonar y uso de desfibriladores.
           </p>
           <p className="text-lg text-[#64748B] leading-relaxed">
-            La oferta pública se limita a los servicios descritos en esta web. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.
+            Cada propuesta se define según las necesidades del cliente. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.
           </p>
         </div>
       </section>
@@ -38,7 +38,7 @@ const SaludLaboral = () => {
       <section className="py-20 bg-[#F8FAFC]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-12 text-center">
-            Alcance público actual
+            Nuestras líneas de servicio
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {services.map((service, index) => (
