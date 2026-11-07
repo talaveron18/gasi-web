@@ -1,5 +1,4 @@
 import React from 'react';
-import { publicImage } from '@/utils/publicImage';
 import { Link } from 'react-router-dom';
 import { Building2, GraduationCap, ArrowRight } from 'lucide-react';
 
@@ -10,7 +9,7 @@ const Servicios = () => {
       title: 'Asistencia Sanitaria Integral para Empresas',
       description: 'Estudiamos propuestas de enfermería presencial para organizaciones. Las funciones, horarios y recursos se definen con cada centro tras valorar la viabilidad, la disponibilidad efectiva y los requisitos aplicables.',
       benefits: ['Enfermería presencial sujeta a valoración', 'Funciones y horarios acordados previamente', 'Comprobación de requisitos aplicables', 'Propuesta y alcance definidos con cada cliente'],
-      image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1100&q=85',
+      image: '/images/photo-1576091160550-2173dba999ef.jpg',
       link: '/cobertura-sanitaria'
     },
     {
@@ -18,7 +17,7 @@ const Servicios = () => {
       title: 'Formación Sanitaria',
       description: 'Formación práctica para empresas en primeros auxilios, reanimación cardiopulmonar, soporte vital básico y uso de desfibriladores.',
       benefits: ['Primeros auxilios', 'Reanimación cardiopulmonar y soporte vital básico', 'Uso de desfibriladores', 'Formación adaptada a cada organización'],
-      image: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1100&q=85',
+      image: '/images/photo-1503676260728-1c00da094a0b.jpg',
       link: '/formacion-sanitaria'
     }
   ];
@@ -49,7 +48,7 @@ const Servicios = () => {
                     </div>
                     <Link to={service.link} className="inline-flex bg-[#005EB8] hover:bg-[#004a92] text-white px-6 py-3 rounded-lg font-semibold items-center gap-2 transition-all hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005EB8]" data-testid={`service-cta-${index}`}>Ver más detalles <ArrowRight className="w-5 h-5" aria-hidden="true" /></Link>
                   </div>
-                  <div className="flex-1 w-full"><img src={publicImage(service.image)} alt={service.title} loading="lazy" className="rounded-2xl shadow-xl w-full h-[400px] object-cover" /></div>
+                  <div className="flex-1 w-full"><img src={service.image} alt={service.title} loading="lazy" className="rounded-2xl shadow-xl w-full h-[400px] object-cover" /></div>
                 </div>
               );
             })}
