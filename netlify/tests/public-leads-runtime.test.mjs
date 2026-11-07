@@ -175,6 +175,49 @@ test("chatbot qualifies a company and accepts an optional phone without relaxing
   assert.equal(JSON.parse(response.body).message,"missing_fields");
 });
 
+test("guided RCP proposal is delivered to coordination with escaped details",async()=>{
+  resetEnv();
+  let sent;
+  global.fetch=async(_url,options)=>{sent=JSON.parse(options.body);return {ok:true,status:202};};
+  const response=await chatbot.handler({
+    httpMethod:"POST",
+    body:JSON.stringify({
+      service:"Formación sanitaria",service_detail:"Curso RCP y DEA",
+      employee_count:"20 personas",location:"Madrid",
+      timeframe:"Próximo trimestre",message:"RCP para 20 empleados. Grupo <A> & asociados",
+      name:"Ana",company:"Empresa Prueba",email:"ana@example.com",
+      phone:"",website:"",accepts_privacy:true
+    })
+  });
+  assert.equal(response.statusCode,200);
+  assert.equal(JSON.parse(response.body).message,"sent");
+  assert.deepEqual(sent.to,["coordinacion@gasisalud.com"]);
+  assert.equal(sent.reply_to,"ana@example.com");
+  assert.match(sent.html,/Curso RCP y DEA/);
+  assert.match(sent.html,/20 personas/);
+  assert.match(sent.html,/Madrid/);
+  assert.match(sent.html,/Próximo trimestre/);
+  assert.match(sent.html,/Grupo &lt;A&gt; &amp; asociados/);
+  assert.doesNotMatch(sent.html,/<A>/);
+});
+
+test("chatbot refuses patient details instead of sending clinical information",async()=>{
+  resetEnv();
+  let delivered=false;
+  global.fetch=async()=>{delivered=true;return {ok:true,status:202};};
+  const response=await chatbot.handler({
+    httpMethod:"POST",
+    body:JSON.stringify({
+      service:"Otro",company:"Empresa Prueba",name:"Ana",
+      email:"ana@example.com",phone:"",website:"",
+      message:"Mi paciente Juan tiene síntomas importantes",accepts_privacy:true
+    })
+  });
+  assert.equal(response.statusCode,422);
+  assert.equal(JSON.parse(response.body).message,"medical_content_not_allowed");
+  assert.equal(delivered,false);
+});
+
 test("lead endpoints fail closed when mail provider secret is absent",async()=>{
   delete process.env.RESEND_API_KEY;
   global.fetch=async()=>{throw new Error("must not call upstream");};
