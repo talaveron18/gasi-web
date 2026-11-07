@@ -633,41 +633,6 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/recovery/snapshot",{token:masterToken}),{});
  assert.equal(res.status,200);
  const snapshot=await responseJson(res);
- // Temporary regression diagnosis: never print audit event data, only synthetic row counts and failure stages.
- const {validAuditChainsByTenant}=await import("../functions/internal-audit-tenant-chain.mts");
- const diagnosticAuditValid=validAuditChainsByTenant(snapshot.audit,canonical);
- if(!diagnosticAuditValid){
-   const grouped=new Map();
-   for(const row of snapshot.audit){const t=String(row.tenant_id||"");grouped.set(t,[...(grouped.get(t)||[]),row]);}
-   let mismatch=null;
-   for(const [tenant,rows] of grouped){
-     let prev="0".repeat(64);
-     for(const row of [...rows].sort((a,b)=>Number(a.seq)-Number(b.seq))){
-       const at=row.at instanceof Date?row.at.toISOString():String(row.at);
-       const pay={at,actor_id:String(row.actor_id),actor_role:String(row.actor_role),action:String(row.action),episode_id:row.episode_id==null?null:String(row.episode_id),metadata:row.metadata||{}};
-       const expected=crypto.createHash("sha256").update(prev+":"+canonical(pay)).digest("hex");
-       const metadataTenant=String(row.metadata?.actor_tenant_id||"");
-       if(String(row.previous_hash)!==prev||String(row.event_hash)!==expected||(!metadataTenant?tenant!=="GASI-LEGACY":metadataTenant!==tenant)){
-         mismatch={seq:Number(row.seq),tenant,atType:typeof row.at,atIsDate:row.at instanceof Date,metadataMatches:!metadataTenant?tenant==="GASI-LEGACY":metadataTenant===tenant,previousMatches:String(row.previous_hash)===prev,hashMatches:String(row.event_hash)===expected};break;
-       }
-       prev=expected;
-     }
-     if(mismatch)break;
-   }
-   console.error("RECOVERY_TEST_AUDIT_DIAGNOSTIC",JSON.stringify({auditCount:snapshot.audit.length,groupCount:grouped.size,mismatch}));
- }
- // Diagnose the fail-closed structural guard using only anonymous counts from synthetic fixtures.
- const structuralGuard={
-  episodes:snapshot.episodes.filter(x=>!x||typeof x!=="object"||!x.id||!x.tenant_id||!x.center).length,
-  workers:snapshot.workers.filter(x=>!x||typeof x!=="object"||!x.id||!x.tenant_id||!x.role).length,
-  workstations:snapshot.workstations.filter(x=>!x||typeof x!=="object"||!x.id||!x.tenant_id||!x.center||!x.credential_hash).length,
-  attendance:snapshot.attendance.filter(x=>!x||typeof x!=="object"||!Number.isSafeInteger(Number(x.seq))||!x.worker_id||!x.tenant_id||!x.center||!x.workstation_id||!["CLOCK_IN","CLOCK_OUT","CORRECTION"].includes(x.event_type)).length,
-  contingency:snapshot.contingency.filter(x=>!x||typeof x!=="object"||!x.tenant_id||!x.center||!x.channel_type).length,
-  audit:snapshot.audit.filter(x=>!x||typeof x!=="object"||!Number.isSafeInteger(Number(x.seq))||!x.actor_id||!x.action).length,
-  counters:snapshot.counters.filter(x=>!x||typeof x!=="object"||!x.name||!Number.isFinite(Number(x.value))).length,
-  auditChainValid:diagnosticAuditValid,
- };
- console.error("RECOVERY_TEST_STRUCTURAL_DIAGNOSTIC",JSON.stringify(structuralGuard));
  assert.equal(snapshot.schema_version,4);
  assert.ok(snapshot.workstations.find(x=>x.id==="WS-A")?.claimed_at);
  assert.ok(snapshot.attendance.length>=5);
