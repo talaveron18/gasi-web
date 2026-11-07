@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import {gateUnit, canAuthor, canManageAccounts, canFinishUnit, ROLES} from "../aula/access-policy.mjs";
 import {validateBank,selectTen,gradeTest,validateRubric,gradePractice} from "../aula/f3-policy.mjs";
 import {validOutcomes,validCompetencies,validResources,authorAudit} from "../aula/f5-policy.mjs";
+import {validSurvey,validateSurveyResponses,eligibleCertificate} from "../aula/f6-policy.mjs";
 
 const COOKIE="gasi_aula_session";
 const TTL_HOURS=8;
@@ -331,6 +332,119 @@ async function handle(req:Request){
     await log(user,"STUDENT_ENROLLED","course",course.id);return json({enrollment_id:r[0].id},201);
   }
 
+
+
+  // F6 private surveys, student-submitted responses and verified certificate
+  // issue: no score, certificate or survey completion flags are accepted from
+  // client data. Access stays tied to PostgreSQL enrolment and server progress.
+  if(req.method==="GET"&&path==="/my/certificates"){
+    requireRole(user,["student"]);
+    const certificates=await q("SELECT cert.id,cert.certificate_code,cert.issued_at,c.id AS course_id,c.title,c.duration_hours "+
+      "FROM aula_certificates cert JOIN aula_enrollments e ON e.id=cert.enrollment_id JOIN aula_courses c ON c.id=e.course_id "+
+      "WHERE e.student_id=$1 ORDER BY cert.issued_at DESC",[user.id]);
+    return json({certificates});
+  }
+  const certificateDetail=path.match(/^\/my\/certificates\/([0-9a-f-]+)$/);
+  if(certificateDetail&&req.method==="GET"){
+    requireRole(user,["student"]);
+    const rows=await q("SELECT cert.id,cert.certificate_code,cert.issued_at,c.title AS course_title,c.duration_hours, "+
+      "u.name AS student_name FROM aula_certificates cert JOIN aula_enrollments e ON e.id=cert.enrollment_id "+
+      "JOIN aula_courses c ON c.id=e.course_id JOIN aula_users u ON u.id=e.student_id "+
+      "WHERE cert.id=$1 AND e.student_id=$2",[certificateDetail[1],user.id]);
+    if(!rows.length)fail(404,"certificate_not_found");
+    return json({certificate:rows[0]});
+  }
+  const adminSurvey=path.match(/^\/admin\/courses\/([0-9a-f-]+)\/surveys(?:\/([0-9a-f-]+))?$/);
+  if(adminSurvey){
+    requireRole(user,["admin","author"]);
+    const course=await courseById(adminSurvey[1]);
+    if(user.role==="author"&&String(course.created_by)!==String(user.id))fail(403,"not_course_author");
+    if(req.method==="GET"&&!adminSurvey[2]){
+      const surveys=await q("SELECT s.id,s.kind,s.title,s.unit_id,s.questions,s.created_at,count(a.survey_id)::int AS responses "+
+        "FROM aula_surveys s LEFT JOIN aula_survey_answers a ON a.survey_id=s.id WHERE s.course_id=$1 "+
+        "GROUP BY s.id ORDER BY s.created_at",[course.id]);
+      return json({surveys});
+    }
+    if(course.status!=="draft")fail(409,"course_structure_frozen");
+    if(req.method==="POST"&&!adminSurvey[2]){
+      const b=await body(req),title=string(b.title,180),kind=String(b.kind||""),questions=b.questions;
+      if(!validSurvey(title,kind,questions))fail(422,"invalid_survey");
+      const unitId=kind==="followup"&&b.unit_id?String(b.unit_id):null;
+      if(unitId){
+        const owned=await q("SELECT 1 FROM aula_units WHERE course_id=$1 AND id=$2",[course.id,unitId]);
+        if(!owned.length)fail(422,"survey_unit_not_in_course");
+      }
+      const rows=await q("INSERT INTO aula_surveys(course_id,kind,title,unit_id,questions) VALUES($1,$2,$3,$4,$5::jsonb) RETURNING id",
+        [course.id,kind,title,unitId,JSON.stringify(questions)]);
+      await log(user,"SURVEY_CREATED","course",course.id);
+      return json({survey_id:rows[0].id},201);
+    }
+    if(req.method==="DELETE"&&adminSurvey[2]){
+      await body(req);
+      const deleted=await q("DELETE FROM aula_surveys WHERE id=$1 AND course_id=$2 RETURNING id",[adminSurvey[2],course.id]);
+      if(!deleted.length)fail(404,"survey_not_found");
+      await log(user,"SURVEY_REMOVED","course",course.id);
+      return json({ok:true});
+    }
+    fail(405,"method_not_allowed");
+  }
+  const studentSurvey=path.match(/^\/courses\/([0-9a-f-]+)\/surveys(?:\/([0-9a-f-]+))?$/);
+  if(studentSurvey){
+    requireRole(user,["student"]);
+    const course=await courseById(studentSurvey[1]),e=await enrolment(user,course);
+    if(req.method==="GET"&&!studentSurvey[2]){
+      const surveys=await q("SELECT s.id,s.title,s.kind,s.unit_id,s.questions, (a.survey_id IS NOT NULL) AS submitted,a.submitted_at "+
+        "FROM aula_surveys s LEFT JOIN aula_survey_answers a ON a.survey_id=s.id AND a.enrollment_id=$2 "+
+        "WHERE s.course_id=$1 ORDER BY s.kind,s.created_at",[course.id,e.id]);
+      return json({surveys});
+    }
+    if(req.method==="POST"&&studentSurvey[2]){
+      const b=await body(req);
+      const rows=await q("SELECT * FROM aula_surveys WHERE id=$1 AND course_id=$2",[studentSurvey[2],course.id]);
+      if(!rows.length)fail(404,"survey_not_found");
+      const survey=rows[0];
+      if(!validateSurveyResponses(survey.questions,b.responses))fail(422,"invalid_survey_responses");
+      if(survey.unit_id){
+        const viewed=await q("SELECT 1 FROM aula_unit_progress WHERE enrollment_id=$1 AND unit_id=$2",[e.id,survey.unit_id]);
+        if(!viewed.length)fail(423,"survey_unit_not_visited");
+      }
+      if(survey.kind==="final"){
+        const units=await q("SELECT id,requires_test,requires_practice FROM aula_units WHERE course_id=$1 ORDER BY unit_no",[course.id]);
+        const progress=await q("SELECT * FROM aula_unit_progress WHERE enrollment_id=$1",[e.id]);
+        if(!eligibleCertificate(units,new Map(progress.map((p:any)=>[String(p.unit_id),p])),true))fail(423,"complete_units_before_final_survey");
+      }
+      const saved=await q("INSERT INTO aula_survey_answers(survey_id,enrollment_id,responses) VALUES($1,$2,$3::jsonb) ON CONFLICT DO NOTHING RETURNING survey_id",
+        [survey.id,e.id,JSON.stringify(b.responses)]);
+      if(!saved.length)fail(409,"survey_already_submitted");
+      await log(user,"SURVEY_SUBMITTED","course",course.id);
+      return json({ok:true},201);
+    }
+    fail(405,"method_not_allowed");
+  }
+  const certIssue=path.match(/^\/courses\/([0-9a-f-]+)\/certificate$/);
+  if(certIssue){
+    requireRole(user,["student"]);
+    const course=await courseById(certIssue[1]),e=await enrolment(user,course);
+    if(req.method==="GET"){
+      const existing=await q("SELECT id,certificate_code,issued_at FROM aula_certificates WHERE enrollment_id=$1",[e.id]);
+      return json({certificate:existing[0]||null});
+    }
+    if(req.method==="POST"){
+      await body(req);
+      const units=await q("SELECT id,requires_test,requires_practice FROM aula_units WHERE course_id=$1 ORDER BY unit_no",[course.id]);
+      const progress=await q("SELECT * FROM aula_unit_progress WHERE enrollment_id=$1",[e.id]);
+      const final=await q("SELECT s.id FROM aula_surveys s JOIN aula_survey_answers a ON a.survey_id=s.id "+
+        "WHERE s.course_id=$1 AND a.enrollment_id=$2 AND s.kind='final' LIMIT 1",[course.id,e.id]);
+      if(!eligibleCertificate(units,new Map(progress.map((p:any)=>[String(p.unit_id),p])),final.length>0))
+        fail(423,"all_units_and_final_survey_required");
+      const rows=await q("INSERT INTO aula_certificates(enrollment_id,certificate_code) VALUES($1,$2) "+
+        "ON CONFLICT(enrollment_id) DO UPDATE SET certificate_code=aula_certificates.certificate_code "+
+        "RETURNING id,certificate_code,issued_at",[e.id,crypto.randomBytes(20).toString("hex")]);
+      await log(user,"CERTIFICATE_ISSUED","course",course.id);
+      return json({certificate:rows[0]},201);
+    }
+    fail(405,"method_not_allowed");
+  }
 
   // F4: all community, tutor and transcript operations use the same
   // server-side course ownership, tutor assignment and student enrolment gate.
