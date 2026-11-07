@@ -138,7 +138,7 @@ test('páginas comerciales mantienen asistencia integral, formación empresarial
   assert.match(labor, /title: 'Enfermería presencial'/);
   assert.match(labor, /horarios, funciones y recursos definidos/);
   assert.doesNotMatch(labor, /reconocimientos médicos|certificación garantizada/i);
-  assert.match(bot, /Enfermería presencial/);
+  assert.match(read('src/lib/chatbotGuidance.js'), /Enfermería presencial/);
   for (const source of [about, services, healthcare, training]) {
     assert.doesNotMatch(source, /venta de (?:DEA|desfibriladores)/i);
   }
