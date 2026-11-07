@@ -3,6 +3,7 @@ import { getDatabase } from "@netlify/database";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import {gateUnit, canAuthor, canManageAccounts, canFinishUnit, ROLES} from "../aula/access-policy.mjs";
+import {validateBank,selectTen,gradeTest,validateRubric,gradePractice} from "../aula/f3-policy.mjs";
 
 const COOKIE="gasi_aula_session";
 const TTL_HOURS=8;
@@ -69,7 +70,10 @@ async function outline(user:any,course:any,e:any,now=new Date()){
   const count=await q("SELECT count(*)::int AS amount FROM aula_unit_progress WHERE enrollment_id=$1 AND first_viewed_at>=CURRENT_DATE AND first_viewed_at<CURRENT_DATE+INTERVAL '1 day'",[e.id]);
   return units.map(x=>{
     const gate=gateUnit({unit:x,units,progressByUnit:byId,enrollment:e,maxPerDay:course.max_units_per_day,newUnitsToday:Number(count[0].amount),now});
-    return {...x,open:gate.open,completed:gate.completed===true,reason:gate.reason,viewed_seconds:byId.get(String(x.id))?.viewed_seconds||0};
+    const progress=byId.get(String(x.id));
+    return {...x,open:gate.open,completed:gate.completed===true,reason:gate.reason,
+      test_passed:!!progress?.test_passed_at,practice_approved:!!progress?.practice_approved_at,
+      viewed_seconds:progress?.viewed_seconds||0,new_units_today:Number(count[0].amount)};
   });
 }
 function blocksOf(raw:any){
@@ -261,6 +265,16 @@ async function handle(req:Request){
     }
     const units=await q("SELECT * FROM aula_units WHERE course_id=$1 ORDER BY unit_no",[course.id]);
     if(units.length<2||units[0].unit_no!==0||!units[0].content_blocks?.length||units.some((u:any,i:number)=>u.unit_no!==i||!u.content_blocks?.length||(i>0&&!u.learning_outcomes?.length)))fail(422,"course_requires_welcome_content_and_outcomes");
+    for(const u of units){
+      if(u.requires_test){
+        const count=await q("SELECT count(*)::int AS count FROM aula_test_questions WHERE unit_id=$1",[u.id]);
+        if(Number(count[0].count)!==15)fail(422,"test_bank_requires_15_questions");
+      }
+      if(u.requires_practice){
+        const found=await q("SELECT 1 FROM aula_practice_assignments WHERE unit_id=$1",[u.id]);
+        if(!found.length)fail(422,"practice_rubric_required");
+      }
+    }
     await q("UPDATE aula_courses SET status='active',updated_at=now() WHERE id=$1",[course.id]);
     await log(user,"COURSE_PUBLISHED","course",course.id);
     return json({ok:true});
@@ -282,6 +296,160 @@ async function handle(req:Request){
     if(!r.length)fail(409,"already_enrolled");
     await log(user,"STUDENT_ENROLLED","course",course.id);return json({enrollment_id:r[0].id},201);
   }
+
+  // F3 authoring: draft-only bank of exactly 15 questions and a practice
+  // with four or more rubric criteria. Correct answers are staff-only.
+  const editAssessment=path.match(/^\/admin\/courses\/([0-9a-f-]+)\/units\/([0-9a-f-]+)\/assessment$/);
+  if(editAssessment){
+    requireRole(user,["admin","author"]);
+    const course=await courseById(editAssessment[1]);
+    if(user.role==="author"&&String(course.created_by)!==String(user.id))fail(403,"not_course_author");
+    const unitRows=await q("SELECT * FROM aula_units WHERE id=$1 AND course_id=$2",[editAssessment[2],course.id]);
+    if(!unitRows.length)fail(404,"unit_not_found");
+    const unit=unitRows[0];
+    if(req.method==="GET"){
+      const questions=await q("SELECT position,prompt,options,correct_index,explanation FROM aula_test_questions WHERE unit_id=$1 ORDER BY position",[unit.id]);
+      const practices=await q("SELECT title,prompt,reference_solution,rubric,min_per_criterion FROM aula_practice_assignments WHERE unit_id=$1",[unit.id]);
+      return json({questions,practice:practices[0]||null});
+    }
+    if(req.method!=="PUT")fail(405,"method_not_allowed");
+    if(course.status!=="draft")fail(409,"course_structure_frozen");
+    const b=await body(req);
+    const questions=Array.isArray(b.questions)?b.questions:[];
+    if((unit.requires_test||questions.length>0)&&!validateBank(questions))fail(422,"fifteen_questions_with_three_distinct_options_required");
+    const practice=b.practice;
+    if(unit.requires_practice&&!practice)fail(422,"practice_required");
+    if(practice&&(!validateRubric(practice.rubric)||string(practice.title,180).length<3||string(practice.prompt,6000).length<10||
+      string(practice.reference_solution,8000).length<10||!Number.isInteger(Number(practice.min_per_criterion??2))||
+      Number(practice.min_per_criterion??2)<1||Number(practice.min_per_criterion??2)>4))fail(422,"invalid_practice_rubric");
+    const db=conn(),client=await db.pool.connect();
+    try{
+      await client.query("BEGIN");
+      await client.query("DELETE FROM aula_test_questions WHERE unit_id=$1",[unit.id]);
+      for(let i=0;i<questions.length;i++){
+        const x=questions[i];
+        await client.query("INSERT INTO aula_test_questions(unit_id,position,prompt,options,correct_index,explanation) VALUES($1,$2,$3,$4::jsonb,$5,$6)",
+          [unit.id,i+1,x.prompt.trim(),JSON.stringify(x.options.map((v:string)=>v.trim())),x.correct_index,string(x.explanation,3000)]);
+      }
+      if(practice){
+        await client.query("INSERT INTO aula_practice_assignments(unit_id,title,prompt,reference_solution,rubric,min_per_criterion) VALUES($1,$2,$3,$4,$5::jsonb,$6) ON CONFLICT(unit_id) DO UPDATE SET title=excluded.title,prompt=excluded.prompt,reference_solution=excluded.reference_solution,rubric=excluded.rubric,min_per_criterion=excluded.min_per_criterion",
+         [unit.id,string(practice.title,180),string(practice.prompt,6000),string(practice.reference_solution,8000),JSON.stringify(practice.rubric.map((s:string)=>s.trim())),Number(practice.min_per_criterion??2)]);
+      }else await client.query("DELETE FROM aula_practice_assignments WHERE unit_id=$1",[unit.id]);
+      await client.query("COMMIT");
+    }catch(error){await client.query("ROLLBACK");throw error;}finally{client.release();}
+    await log(user,"UNIT_ASSESSMENT_SAVED","unit",unit.id);
+    return json({ok:true});
+  }
+
+  // Tutor queue is scoped by assignment in the database, not by a course ID
+  // provided by the client.
+  if(req.method==="GET"&&path==="/tutor/reviews"){
+    requireRole(user,["admin","tutor"]);
+    const rows=await q(
+      "SELECT s.id,s.unit_id,s.answer,s.status,s.submitted_at,e.course_id,u.name AS student_name,c.title AS course_title,un.title AS unit_title,p.rubric,p.min_per_criterion "+
+      "FROM aula_practice_submissions s JOIN aula_enrollments e ON e.id=s.enrollment_id JOIN aula_users u ON u.id=e.student_id "+
+      "JOIN aula_courses c ON c.id=e.course_id JOIN aula_units un ON un.id=s.unit_id JOIN aula_practice_assignments p ON p.unit_id=s.unit_id "+
+      "WHERE s.status='pending' AND ($1='admin' OR EXISTS(SELECT 1 FROM aula_course_tutors t WHERE t.course_id=e.course_id AND t.tutor_id=$2)) "+
+      "ORDER BY s.submitted_at ASC LIMIT 100",[user.role,user.id]);
+    return json({reviews:rows});
+  }
+  const reviewPath=path.match(/^\/tutor\/reviews\/([0-9a-f-]+)$/);
+  if(reviewPath&&req.method==="POST"){
+    requireRole(user,["admin","tutor"]);
+    const b=await body(req),decision=String(b.decision||"");
+    if(!["approved","rejected"].includes(decision))fail(422,"invalid_review_decision");
+    const rows=await q("SELECT s.id,s.enrollment_id,s.unit_id,s.status,e.course_id,p.rubric,p.min_per_criterion "+
+      "FROM aula_practice_submissions s JOIN aula_enrollments e ON e.id=s.enrollment_id "+
+      "JOIN aula_practice_assignments p ON p.unit_id=s.unit_id WHERE s.id=$1",[reviewPath[1]]);
+    if(!rows.length)fail(404,"submission_not_found");
+    const item=rows[0];
+    if(user.role==="tutor"){
+      const assigned=await q("SELECT 1 FROM aula_course_tutors WHERE course_id=$1 AND tutor_id=$2",[item.course_id,user.id]);
+      if(!assigned.length)fail(403,"not_assigned");
+    }
+    if(item.status!=="pending")fail(409,"review_already_recorded");
+    let grade;
+    try{grade=gradePractice(item.rubric,b.grades,Number(item.min_per_criterion));}
+    catch{fail(422,"invalid_rubric_grades");}
+    if(decision==="approved"&&!grade.approved)fail(422,"rubric_below_approval_threshold");
+    const feedback=string(b.feedback,5000);
+    if(decision==="rejected"&&feedback.length<5)fail(422,"feedback_required_for_rejection");
+    const updated=await q("UPDATE aula_practice_submissions SET status=$2,grades=$3::jsonb,tutor_feedback=$4,reviewed_by=$5,reviewed_at=now() WHERE id=$1 AND status='pending' RETURNING id",
+      [item.id,decision,JSON.stringify(b.grades),feedback,user.id]);
+    if(!updated.length)fail(409,"review_already_recorded");
+    if(decision==="approved")await q("UPDATE aula_unit_progress SET practice_approved_at=COALESCE(practice_approved_at,now()) WHERE enrollment_id=$1 AND unit_id=$2",[item.enrollment_id,item.unit_id]);
+    await log(user,"PRACTICE_"+decision.toUpperCase(),"unit",item.unit_id);
+    return json({ok:true,decision,score:grade.total,max:grade.max});
+  }
+
+  // Learners cannot supply scores, correct answers, or a tutor decision.
+  const assessmentPath=path.match(/^\/courses\/([0-9a-f-]+)\/units\/([0-9a-f-]+)\/assessment(?:\/(test|practice))?$/);
+  if(assessmentPath){
+    requireRole(user,["student"]);
+    const course=await courseById(assessmentPath[1]),e=await enrolment(user,course);
+    const units=await outline(user,course,e);
+    const row=units.find((x:any)=>String(x.id)===assessmentPath[2]);
+    if(!row)fail(404,"unit_not_found");
+    if(!row.open)fail(423,row.reason||"unit_locked");
+    const progress=await q("SELECT * FROM aula_unit_progress WHERE enrollment_id=$1 AND unit_id=$2",[e.id,row.id]);
+    if(!progress.length)fail(423,"unit_must_be_opened_first");
+    const storedProgress=progress[0];
+    const practiceRows=await q("SELECT title,prompt,rubric,min_per_criterion,reference_solution FROM aula_practice_assignments WHERE unit_id=$1",[row.id]);
+    const assignment=practiceRows[0]||null;
+    const submitted=await q("SELECT id,status,answer,grades,tutor_feedback,submitted_at FROM aula_practice_submissions WHERE enrollment_id=$1 AND unit_id=$2 ORDER BY submitted_at DESC LIMIT 1",[e.id,row.id]);
+    const latest=submitted[0]||null;
+    const exposePractice=assignment?{title:assignment.title,prompt:assignment.prompt,rubric:assignment.rubric,min_per_criterion:assignment.min_per_criterion,
+      ...(latest?{reference_solution:assignment.reference_solution}:{}),submission:latest}:null;
+    if(req.method==="GET"&&!assessmentPath[3]){
+      let attempt=null,questionViews=[];
+      if(row.requires_test){
+        const pending=await q("SELECT * FROM aula_test_attempts WHERE enrollment_id=$1 AND unit_id=$2 AND submitted_at IS NULL ORDER BY created_at DESC LIMIT 1",[e.id,row.id]);
+        attempt=pending[0]||null;
+        if(!attempt&&!storedProgress.test_passed_at){
+          const bank=await q("SELECT id,prompt,options FROM aula_test_questions WHERE unit_id=$1 ORDER BY position",[row.id]);
+          if(bank.length!==15)fail(503,"test_bank_not_configured");
+          const ids=selectTen(bank).map((x:any)=>x.id);
+          const inserted=await q("INSERT INTO aula_test_attempts(enrollment_id,unit_id,question_ids) VALUES($1,$2,$3::uuid[]) ON CONFLICT DO NOTHING RETURNING *",[e.id,row.id,ids]);
+          attempt=inserted[0]||(await q("SELECT * FROM aula_test_attempts WHERE enrollment_id=$1 AND unit_id=$2 AND submitted_at IS NULL ORDER BY created_at DESC LIMIT 1",[e.id,row.id]))[0];
+        }
+        if(attempt){
+          const raw=await q("SELECT id,prompt,options FROM aula_test_questions WHERE unit_id=$1 AND id=ANY($2::uuid[])",[row.id,attempt.question_ids]);
+          questionViews=attempt.question_ids.map((id:string)=>raw.find((x:any)=>String(x.id)===String(id)));
+        }
+      }
+      const past=await q("SELECT score,passed,submitted_at FROM aula_test_attempts WHERE enrollment_id=$1 AND unit_id=$2 AND submitted_at IS NOT NULL ORDER BY submitted_at DESC LIMIT 1",[e.id,row.id]);
+      return json({questions:questionViews,attempt_id:attempt?.id||null,latest_test:past[0]||null,
+        test_passed:!!storedProgress.test_passed_at,practice_approved:!!storedProgress.practice_approved_at,practice:exposePractice});
+    }
+    if(req.method==="POST"&&assessmentPath[3]==="test"){
+      if(!row.requires_test)fail(404,"test_not_required");
+      const b=await body(req);
+      const attempt=await q("SELECT * FROM aula_test_attempts WHERE id=$1 AND enrollment_id=$2 AND unit_id=$3 AND submitted_at IS NULL",[String(b.attempt_id||""),e.id,row.id]);
+      if(!attempt.length)fail(409,"attempt_not_active");
+      const raw=await q("SELECT id,correct_index,explanation FROM aula_test_questions WHERE unit_id=$1 AND id=ANY($2::uuid[])",[row.id,attempt[0].question_ids]);
+      let grade;
+      try{grade=gradeTest(attempt[0].question_ids.map((id:string)=>raw.find((x:any)=>String(x.id)===String(id))),b.answers);}
+      catch{fail(422,"invalid_answers");}
+      const saved=await q("UPDATE aula_test_attempts SET answers=$2::jsonb,score=$3,passed=$4,submitted_at=now() WHERE id=$1 AND submitted_at IS NULL RETURNING id",
+       [attempt[0].id,JSON.stringify(b.answers),grade.score,grade.passed]);
+      if(!saved.length)fail(409,"attempt_already_submitted");
+      if(grade.passed)await q("UPDATE aula_unit_progress SET test_passed_at=COALESCE(test_passed_at,now()) WHERE enrollment_id=$1 AND unit_id=$2",[e.id,row.id]);
+      await log(user,"TEST_SUBMITTED","unit",row.id);
+      return json({score:grade.score,passed:grade.passed,review:grade.review});
+    }
+    if(req.method==="POST"&&assessmentPath[3]==="practice"){
+      if(!row.requires_practice||!assignment)fail(404,"practice_not_configured");
+      const b=await body(req),answer=string(b.answer,10000);
+      if(answer.length<30)fail(422,"practice_answer_too_short");
+      if(storedProgress.practice_approved_at)fail(409,"practice_already_approved");
+      if(latest?.status==="pending")fail(409,"practice_pending_review");
+      const created=await q("INSERT INTO aula_practice_submissions(enrollment_id,unit_id,answer) VALUES($1,$2,$3) RETURNING id,status,submitted_at",[e.id,row.id,answer]);
+      await log(user,"PRACTICE_SUBMITTED","unit",row.id);
+      return json({submission:created[0],reference_solution:assignment.reference_solution},201);
+    }
+    fail(405,"method_not_allowed");
+  }
+
   const match=path.match(/^\/courses\/([0-9a-f-]+)(?:\/units\/([0-9a-f-]+)(?:\/(complete|heartbeat))?)?$/);
   if(match){
     const course=await courseById(match[1]),e=await enrolment(user,course),unitId=match[2],action=match[3];
