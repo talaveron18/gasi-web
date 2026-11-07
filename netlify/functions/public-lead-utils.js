@@ -33,7 +33,7 @@ function parseBody(event,maxBytes=8192){
   }
 }
 
-function validateBaseLead(raw,{requireCompany=false,requireMessage=false}={}){
+function validateBaseLead(raw,{requireCompany=false,requireMessage=false,phoneOptional=false}={}){
   if(raw.accepts_privacy!==true)return{error:"privacy_required"};
   if(text(raw.website,200))return{honeypot:true};
   const lead={
@@ -43,13 +43,14 @@ function validateBaseLead(raw,{requireCompany=false,requireMessage=false}={}){
     phone:text(raw.phone,20),
     service:text(raw.service||raw.service_type,80),
     employee_count:text(raw.employee_count,80),
+    location:text(raw.location,120),
     message:text(raw.message,2000)
   };
-  if(!lead.name||!lead.email||!lead.phone||!lead.service)return{error:"missing_fields"};
+  if(!lead.name||!lead.email||(!phoneOptional&&!lead.phone)||!lead.service)return{error:"missing_fields"};
   if(requireCompany&&!lead.company)return{error:"missing_fields"};
   if(requireMessage&&!lead.message)return{error:"missing_fields"};
   if(!EMAIL_RE.test(lead.email))return{error:"invalid_email"};
-  if(!PHONE_RE.test(lead.phone))return{error:"invalid_phone"};
+  if(lead.phone&&!PHONE_RE.test(lead.phone))return{error:"invalid_phone"};
   if(!SERVICES.has(lead.service))return{error:"invalid_service"};
   return{lead};
 }
