@@ -2,9 +2,9 @@ import React from 'react';
 import {ArrowLeft,ArrowRight,BookOpen,CheckCircle2,Clock,LockKeyhole} from 'lucide-react';
 
 const cls='rounded-xl border border-slate-200 bg-white p-4';
-function Block({block}){
+function Block({block,anchor}){
   if(block.type==='heading'){const T=['h1','h2','h3','h4'][Math.max(0,Math.min(3,(Number(block.level)||2)-1))];
-    return <T className={block.level===1?'text-2xl font-bold text-slate-950':'mt-6 text-xl font-semibold text-slate-900'}>{block.text}{block.level===2&&Array.isArray(block.outcome_ids)&&block.outcome_ids.length>0&&<span className="ml-2 text-xs font-normal text-slate-500">RA: {block.outcome_ids.join(', ')}</span>}</T>;}
+    return <T id={anchor||undefined} className={block.level===1?'text-2xl font-bold text-slate-950':'mt-6 text-xl font-semibold text-slate-900'}>{block.text}{block.level===2&&Array.isArray(block.outcome_ids)&&block.outcome_ids.length>0&&<span className="ml-2 text-xs font-normal text-slate-500">RA: {block.outcome_ids.join(', ')}</span>}</T>;}
   if(block.type==='callout')return <aside className="rounded-xl border-l-4 border-[#005EB8] bg-blue-50 p-4"><strong className="text-blue-900">{({recuerda:'Recuerda',importante:'Importante',ejemplo:'Ejemplo',resumen:'Resumen'})[block.style]||'Nota'}</strong><p className="mt-2 whitespace-pre-wrap text-slate-800">{block.text}</p></aside>;
   if(['accordion','faq','flashcard'].includes(block.type))return <details className="rounded-lg border border-slate-200 p-4">
     <summary className="cursor-pointer font-semibold text-[#005EB8]">{block.type==='flashcard'?'Ficha: ':''}{block.text}</summary>
@@ -23,7 +23,7 @@ export default function AulaReaderView({course,units=[],selected,unit,loading=fa
   const index=units.findIndex(x=>x.id===selected);
   const previous=units[index-1],next=units[index+1];
   const content=Array.isArray(unit?.content_blocks)?unit.content_blocks:[];
-  const headings=content.filter(x=>x.type==='heading'&&x.level<=3);
+  const headings=content.map((x,i)=>({...x,blockIndex:i})).filter(x=>x.type==='heading'&&x.level<=3);
   return <main className="min-h-[70vh] bg-slate-50 text-slate-900" data-testid="aula-reader">
     <div className="border-b border-slate-200 bg-white px-5 py-7">
       <div className="mx-auto max-w-7xl">
@@ -55,8 +55,8 @@ export default function AulaReaderView({course,units=[],selected,unit,loading=fa
         {unit&&!loading&&<>
           <article className={cls+' space-y-6'}>
             <div><p className="text-sm font-semibold text-[#005EB8]">Unidad {unit.unit_no}</p><h2 id="aula-selected-unit" className="mt-2 text-2xl font-bold">{unit.title}</h2><p className="mt-3 text-slate-600">{unit.introduction}</p></div>
-            {headings.length>0&&<aside className="rounded-xl bg-slate-50 p-4"><h3 className="text-sm font-bold">Índice de contenidos</h3><ul className="mt-2 space-y-1 text-sm text-slate-700">{headings.map((h,i)=><li key={i} className={h.level===3?'ml-4':''}>{h.text}</li>)}</ul></aside>}
-            {content.map((block,i)=><Block block={block} key={i}/>)}
+            {headings.length>0&&<aside className="rounded-xl bg-slate-50 p-4"><h3 className="text-sm font-bold">Índice de contenidos</h3><ul className="mt-2 space-y-1 text-sm text-slate-700">{headings.map((h,i)=><li key={i} className={h.level===3?'ml-4':''}><a className="text-[#005EB8] underline-offset-2 hover:underline" href={'#aula-heading-'+unit.id+'-'+h.blockIndex}>{h.text}</a></li>)}</ul></aside>}
+            {content.map((block,i)=><Block block={block} key={i} anchor={block.type==='heading'?'aula-heading-'+unit.id+'-'+i:undefined}/>)}
             {unit.resources?.length>0&&<section className="rounded-xl border border-slate-200 p-4"><h3 className="font-bold">Recursos complementarios</h3>
               <ul className="mt-3 space-y-2">{unit.resources.map((r,i)=><li key={i}><strong>{r.title}</strong><span className="ml-2 text-xs uppercase text-slate-500">{r.type}</span>
                 {r.description&&<p className="text-sm text-slate-700">{r.description}</p>}
