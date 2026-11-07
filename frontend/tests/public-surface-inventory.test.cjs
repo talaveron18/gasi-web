@@ -103,15 +103,15 @@ test('la portada presenta el nuevo posicionamiento y las dos líneas comerciales
 
 test('el pie de página no depende de un logo alojado fuera de GASI', () => {
   const footer = read('src/components/Footer.jsx');
-  assert.doesNotMatch(footer, /customer-assets\.emergentagent\.com|<img\b/i);
-  assert.match(footer, /aria-label="GASI - Grupo de Asistencia Sanitaria Integral"/);
+  assert.doesNotMatch(footer, /customer-assets\.emergentagent\.com/i);
+  assert.match(footer, /<img src=\{GASI_LOGO\} alt="GASI - Grupo de Asistencia Sanitaria Integral"/);
 });
 
 
 test('la navegación no depende de un logotipo alojado en terceros', () => {
   const navbar = read('src/components/Navbar.jsx');
-  assert.doesNotMatch(navbar, /customer-assets\.emergentagent\.com|<img\b/i);
-  assert.match(navbar, /aria-label="GASI - Grupo de Asistencia Sanitaria Integral"/);
+  assert.doesNotMatch(navbar, /customer-assets\.emergentagent\.com/i);
+  assert.match(navbar, /<img src=\{GASI_LOGO\} alt="GASI - Grupo de Asistencia Sanitaria Integral"/);
 });
 
 
@@ -158,4 +158,28 @@ test('hero y tarjeta sanitaria de portada describen únicamente la oferta evalua
   assert.match(home, /Estudiamos necesidades de enfermería presencial y formación sanitaria/);
   assert.match(home, /comprobación de los requisitos aplicables/);
   assert.doesNotMatch(home, /coordinación asistencial|Combinamos atención profesional/i);
+});
+
+test('servicios limita la oferta a enfermería presencial evaluable y formación', () => {
+  const services = read('src/pages/Servicios.jsx');
+  assert.match(services, /Estudiamos propuestas de enfermería presencial para organizaciones/);
+  assert.match(services, /funciones, horarios y recursos se definen con cada centro/);
+  assert.match(services, /viabilidad, la disponibilidad efectiva y los requisitos aplicables/);
+  assert.match(services, /Formación Sanitaria/);
+  assert.doesNotMatch(services, /coordinación asistencial|integrando atención profesional/i);
+});
+
+test('el logotipo concatena nueve fragmentos y tiene cabecera y cierre PNG válidos', () => {
+  const logo = read('src/assets/logo.js');
+  const fragments = Array.from({length: 9}, (_, i) => {
+    const match = logo.match(new RegExp('export const P' + i + ' = "([A-Za-z0-9+/=]+)";'));
+    assert.ok(match, 'Falta P' + i);
+    return match[1];
+  });
+  const encoded = fragments.join('');
+  assert.equal(encoded.length % 4, 0);
+  const image = Buffer.from(encoded, 'base64');
+  assert.equal(image.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+  assert.equal(image.subarray(-8).toString('hex'), '49454e44ae426082');
+  assert.ok(logo.includes('export const GASI_LOGO = `data:image/png;base64,' + fragments.map((_, i) => '${P' + i + '}').join('') + '`;'));
 });
