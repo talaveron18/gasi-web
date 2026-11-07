@@ -77,7 +77,7 @@ export default function AulaReader(){
   if(!user||user.must_change_password)return <Navigate to="/aula/acceso" replace/>;
   return <div>
     <div className="mx-auto max-w-7xl px-4 pt-5"><Link className="text-sm font-semibold text-[#005EB8] underline" to={user.role==='admin'||user.role==='author'?'/aula/autor':'/aula/mis-cursos'}>Volver a mis cursos</Link></div>
-    {course?<AulaReaderView course={course} units={units} selected={selected} unit={unit} loading={loading} error={error}
+    {course?<><AulaReaderView course={course} units={units} selected={selected} unit={unit} loading={loading} error={error}
       onOpen={open} onComplete={complete} completing={completing} demo={AULA_PREVIEW_DEMO}
       metrics={user.role==='student'?{percent:units.length?Math.round(units.filter(u=>u.completed).length/units.length*100):0,
         done:units.filter(u=>u.completed).length,total:units.length,seconds:units.reduce((acc,u)=>acc+Number(u.viewed_seconds||0),0),
