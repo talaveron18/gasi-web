@@ -46,7 +46,7 @@ test("private Aula: real Postgres auth, roles, unit zero, enrolment, locking, an
   const course=expectStatus(await call("/admin/courses",{method:"POST",cookie:adminCookie,body:{
     title:"RCP de demostración",objective:"Reconocer una situación de emergencia",
     target_audience:"Plantilla de empresa",requirements:"Ninguno",
-    presentation:"Metodología del curso",duration_hours:20,access_days:90,max_units_per_day:1
+    presentation:"Metodología del curso",duration_hours:20,access_days:90,max_units_per_day:2
   }}),201).course;
   const draft=expectStatus(await call("/courses/"+course.id,{cookie:adminCookie}),200);
   assert.equal(draft.units.length,1);
