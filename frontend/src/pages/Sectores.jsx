@@ -11,8 +11,8 @@ const Sectores = () => {
       description: 'Podemos estudiar necesidades de cobertura sanitaria presencial en centros logísticos, almacenes y plataformas de distribución.',
     },
     {
-      image: 'https://images.unsplash.com/photo-1565514020179-026b92b84bb6?auto=format&fit=crop&w=1000&q=85',
-      imageAlt: 'Instalaciones industriales de producción',
+      image: 'https://images.unsplash.com/photo-1647427060118-4911c9821b82?auto=format&fit=crop&w=1000&q=85',
+      imageAlt: 'Robots industriales en una línea de producción de automóviles',
       title: 'Industria y Producción',
       description: 'Valoramos necesidades de enfermería presencial y formación sanitaria en centros industriales y de producción.',
     },
