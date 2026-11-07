@@ -59,6 +59,7 @@ async function enrolment(user:any,course:any){
     if(course.status!=="active")fail(404,"course_not_found");
     const rows=await q("SELECT * FROM aula_enrollments WHERE course_id=$1 AND student_id=$2",[course.id,user.id]);
     if(!rows.length)fail(403,"not_enrolled");
+    if(rows[0].status!=="active"||new Date(rows[0].deadline).getTime()<Date.now())fail(403,"enrollment_inactive_or_expired");
     return rows[0];
   }
   if(user.role==="tutor"){
@@ -300,6 +301,143 @@ async function handle(req:Request){
     const r=await q("INSERT INTO aula_enrollments(course_id,student_id,deadline) VALUES($1,$2,now()+($3::int*INTERVAL '1 day')) ON CONFLICT(course_id,student_id) DO NOTHING RETURNING id",[course.id,student[0].id,course.access_days]);
     if(!r.length)fail(409,"already_enrolled");
     await log(user,"STUDENT_ENROLLED","course",course.id);return json({enrollment_id:r[0].id},201);
+  }
+
+
+  // F4: all community, tutor and transcript operations use the same
+  // server-side course ownership, tutor assignment and student enrolment gate.
+  const community=path.match(/^\/courses\/([0-9a-f-]+)\/(forum|tutorials|record|ratings)(?:\/([0-9a-f-]+))?$/);
+  if(community){
+    const course=await courseById(community[1]),e=await enrolment(user,course);
+    const section=community[2],itemId=community[3];
+    if(section==="forum"){
+      if(req.method==="GET"&&!itemId){
+        const rows=await q("SELECT t.id,t.title,t.locked,t.created_at,u.name AS author_name,count(p.id)::int AS posts "+
+          "FROM aula_forum_threads t JOIN aula_users u ON u.id=t.created_by "+
+          "LEFT JOIN aula_forum_posts p ON p.thread_id=t.id WHERE t.course_id=$1 "+
+          "GROUP BY t.id,u.name ORDER BY t.created_at DESC LIMIT 100",[course.id]);
+        return json({threads:rows});
+      }
+      if(req.method==="POST"&&!itemId){
+        const b=await body(req),title=string(b.title,180),post=string(b.body,4000);
+        if(title.length<8||post.length<2)fail(422,"thread_title_and_message_required");
+        const db=conn(),client=await db.pool.connect();
+        try{await client.query("BEGIN");
+          const t=(await client.query("INSERT INTO aula_forum_threads(course_id,created_by,title) VALUES($1,$2,$3) RETURNING id",[course.id,user.id,title])).rows[0];
+          await client.query("INSERT INTO aula_forum_posts(thread_id,author_id,body) VALUES($1,$2,$3)",[t.id,user.id,post]);
+          await client.query("COMMIT");await log(user,"FORUM_THREAD_CREATED","course",course.id);
+          return json({thread_id:t.id},201);
+        }catch(error){await client.query("ROLLBACK");throw error;}finally{client.release();}
+      }
+      if(!itemId)fail(405,"method_not_allowed");
+      const matches=await q("SELECT * FROM aula_forum_threads WHERE id=$1 AND course_id=$2",[itemId,course.id]);
+      if(!matches.length)fail(404,"thread_not_found");
+      const thread=matches[0];
+      if(req.method==="GET"){
+        const posts=await q("SELECT p.id,p.body,p.created_at,u.name AS author_name,u.role AS author_role "+
+          "FROM aula_forum_posts p JOIN aula_users u ON u.id=p.author_id WHERE p.thread_id=$1 ORDER BY p.created_at ASC LIMIT 300",[thread.id]);
+        return json({thread:{id:thread.id,title:thread.title,locked:thread.locked},posts});
+      }
+      if(req.method==="POST"){
+        if(thread.locked)fail(423,"thread_locked");
+        const b=await body(req),message=string(b.body,4000);
+        if(message.length<2)fail(422,"message_required");
+        const added=await q("INSERT INTO aula_forum_posts(thread_id,author_id,body) VALUES($1,$2,$3) RETURNING id",[thread.id,user.id,message]);
+        await log(user,"FORUM_POST_CREATED","course",course.id);
+        return json({post_id:added[0].id},201);
+      }
+      if(req.method==="PATCH"){
+        requireRole(user,["admin","author","tutor"]);
+        const b=await body(req);if(typeof b.locked!=="boolean")fail(422,"locked_boolean_required");
+        await q("UPDATE aula_forum_threads SET locked=$2 WHERE id=$1",[thread.id,b.locked]);
+        await log(user,"FORUM_THREAD_MODERATED","course",course.id);
+        return json({ok:true});
+      }
+      fail(405,"method_not_allowed");
+    }
+    if(section==="tutorials"){
+      if(req.method==="GET"&&!itemId){
+        const rows=await q("SELECT t.id,t.question,t.answer,t.status,t.created_at,t.answered_at,u.name AS student_name "+
+          "FROM aula_tutorial_requests t JOIN aula_users u ON u.id=t.student_id WHERE t.course_id=$1 AND ($2!='student' OR t.student_id=$3) ORDER BY t.created_at DESC LIMIT 100",
+          [course.id,user.role,user.id]);
+        return json({tutorials:rows});
+      }
+      if(req.method==="POST"&&!itemId){
+        requireRole(user,["student"]);
+        const b=await body(req),question=string(b.question,4000);
+        if(question.length<10)fail(422,"question_too_short");
+        const created=await q("INSERT INTO aula_tutorial_requests(course_id,student_id,question) VALUES($1,$2,$3) RETURNING id",[course.id,user.id,question]);
+        await log(user,"TUTORIAL_REQUEST_CREATED","course",course.id);
+        return json({tutorial_id:created[0].id},201);
+      }
+      if(req.method==="POST"&&itemId){
+        requireRole(user,["admin","tutor"]);
+        const b=await body(req),answer=string(b.answer,4000);
+        if(answer.length<10)fail(422,"answer_too_short");
+        const updated=await q("UPDATE aula_tutorial_requests SET answer=$3,status='answered',answered_by=$4,answered_at=now() "+
+          "WHERE id=$1 AND course_id=$2 AND status='open' RETURNING id",[itemId,course.id,answer,user.id]);
+        if(!updated.length)fail(409,"tutorial_not_open_or_missing");
+        await log(user,"TUTORIAL_ANSWERED","course",course.id);return json({ok:true});
+      }
+      if(req.method==="PATCH"&&itemId){
+        requireRole(user,["student"]);
+        const updated=await q("UPDATE aula_tutorial_requests SET status='closed' WHERE id=$1 AND course_id=$2 AND student_id=$3 AND status='answered' RETURNING id",
+          [itemId,course.id,user.id]);
+        if(!updated.length)fail(409,"tutorial_not_answered_or_owned");
+        return json({ok:true});
+      }
+      fail(405,"method_not_allowed");
+    }
+    if(section==="record"){
+      if(req.method!=="GET"||itemId)fail(405,"method_not_allowed");
+      const studentId=user.role==="student"?user.id:String(url.searchParams.get("student_id")||"");
+      if(!studentId)fail(422,"student_id_required");
+      const rows=await q("SELECT id,deadline,status FROM aula_enrollments WHERE course_id=$1 AND student_id=$2",[course.id,studentId]);
+      if(!rows.length)fail(404,"student_not_enrolled");
+      const enrollment=rows[0];
+      const records=await q("SELECT u.id,u.unit_no,u.title,u.requires_test,u.requires_practice,p.first_viewed_at,p.viewed_seconds,p.completed_at,p.test_passed_at,p.practice_approved_at, "+
+        "(SELECT max(a.score) FROM aula_test_attempts a WHERE a.enrollment_id=$2 AND a.unit_id=u.id AND a.submitted_at IS NOT NULL) AS best_score, "+
+        "(SELECT s.status FROM aula_practice_submissions s WHERE s.enrollment_id=$2 AND s.unit_id=u.id ORDER BY s.submitted_at DESC LIMIT 1) AS practice_status "+
+        "FROM aula_units u LEFT JOIN aula_unit_progress p ON p.unit_id=u.id AND p.enrollment_id=$2 "+
+        "WHERE u.course_id=$1 ORDER BY u.unit_no",[course.id,enrollment.id]);
+      const completed=records.filter((r:any)=>r.completed_at).length;
+      return json({course_id:course.id,student_id:studentId,deadline:enrollment.deadline,enrollment_status:enrollment.status,
+        completion_percent:records.length?Math.round(100*completed/records.length):0,
+        viewed_seconds:records.reduce((sum:number,r:any)=>sum+Number(r.viewed_seconds||0),0),
+        units:records});
+    }
+    if(section==="ratings"){
+      if(req.method==="GET"){
+        if(user.role==="student"){
+          const records=await q("SELECT r.unit_id,r.rating,r.comment,r.updated_at FROM aula_unit_ratings r WHERE r.enrollment_id=$1",[e.id]);
+          return json({ratings:records});
+        }
+        const aggregate=await q("SELECT r.unit_id,count(*)::int AS ratings,round(avg(r.rating)::numeric,2) AS average_rating "+
+          "FROM aula_unit_ratings r JOIN aula_enrollments e ON e.id=r.enrollment_id WHERE e.course_id=$1 GROUP BY r.unit_id",[course.id]);
+        return json({ratings:aggregate});
+      }
+      if(req.method==="POST"){
+        requireRole(user,["student"]);
+        const b=await body(req),unitId=String(b.unit_id||""),rating=Number(b.rating),comment=string(b.comment,2000);
+        if(!Number.isInteger(rating)||rating<1||rating>5)fail(422,"invalid_unit_rating");
+        const verified=await q("SELECT 1 FROM aula_unit_progress p JOIN aula_units u ON u.id=p.unit_id WHERE p.enrollment_id=$1 AND u.course_id=$2 AND u.id=$3",
+          [e.id,course.id,unitId]);
+        if(!verified.length)fail(403,"unit_not_viewed");
+        await q("INSERT INTO aula_unit_ratings(enrollment_id,unit_id,rating,comment) VALUES($1,$2,$3,$4) "+
+          "ON CONFLICT(enrollment_id,unit_id) DO UPDATE SET rating=excluded.rating,comment=excluded.comment,updated_at=now()",
+          [e.id,unitId,rating,comment]);
+        return json({ok:true});
+      }
+      fail(405,"method_not_allowed");
+    }
+  }
+  if(req.method==="GET"&&path==="/tutor/tutorials"){
+    requireRole(user,["admin","tutor"]);
+    const items=await q("SELECT t.id,t.course_id,t.question,t.status,t.created_at,u.name AS student_name,c.title AS course_title "+
+      "FROM aula_tutorial_requests t JOIN aula_users u ON u.id=t.student_id JOIN aula_courses c ON c.id=t.course_id "+
+      "WHERE t.status='open' AND ($1='admin' OR EXISTS(SELECT 1 FROM aula_course_tutors a WHERE a.course_id=t.course_id AND a.tutor_id=$2)) "+
+      "ORDER BY t.created_at ASC LIMIT 100",[user.role,user.id]);
+    return json({tutorials:items});
   }
 
   // F3 authoring: draft-only bank of exactly 15 questions and a practice
