@@ -30,7 +30,7 @@ const SaludLaboral = () => {
             GASI estudia servicios de enfermería presencial en centros de trabajo, con horarios, funciones y recursos definidos junto a cada organización. Además, desarrolla formación empresarial en primeros auxilios, reanimación cardiopulmonar y uso de desfibriladores.
           </p>
           <p className="text-lg text-[#64748B] leading-relaxed">
-            Cada propuesta se define según las necesidades del cliente. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.
+            Nos adaptamos a la actividad y organización de cada centro para preparar una propuesta clara de enfermería presencial o formación sanitaria. Antes de ponerla en marcha, concretamos los recursos, las funciones y los requisitos aplicables.
           </p>
         </div>
       </section>
@@ -58,7 +58,7 @@ const SaludLaboral = () => {
         <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Cuéntenos qué necesita</h2>
           <p className="text-lg text-[#64748B] mb-8">
-            Revisaremos la necesidad y confirmaremos si GASI puede atenderla y bajo qué alcance antes de cualquier prestación.
+            Explíquenos qué necesita su organización y prepararemos una propuesta ajustada a su actividad, previa comprobación de su viabilidad y requisitos.
           </p>
           <Link to="/contacto" className="inline-flex items-center justify-center rounded-md bg-[#005EB8] px-6 py-3 text-white font-medium hover:bg-[#004A92] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005EB8]" data-testid="cta-contact">
             Solicitar información
