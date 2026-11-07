@@ -181,8 +181,9 @@ jobs:
         env:
           GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
         run: |
-          psql "$GASI_INTEGRATION_DB_URL" -v ON_ERROR_STOP=1 -f aula/schema.sql
-          psql "$GASI_INTEGRATION_DB_URL" -v ON_ERROR_STOP=1 -f aula/f3.sql
+          node aula/migrate.mjs
+          node aula/migrate.mjs
+          psql "$GASI_INTEGRATION_DB_URL" -v ON_ERROR_STOP=1 -tAc "SELECT count(*) FROM aula_schema_migrations" | grep -qx 2
           node --test aula/persistence-postgres.test.mjs aula/persistence-f3.test.mjs
       - name: PostgreSQL attendance and recovery integration
         env:

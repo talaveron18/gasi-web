@@ -24,7 +24,7 @@ test('F3 full Postgres: 15 to 10 questions, server grading, tutor rubric and gat
  for(const role of ['admin','student','tutor','author','otherTutor']){
    const storedRole=role==='otherTutor'?'tutor':role;
    persons[role]=(await sql("INSERT INTO aula_users(name,email,role,password_hash,must_change_password) VALUES($1,$2,$3,$4,FALSE) RETURNING id,email",[
-     'Prueba '+role,role+suffix+'@example.invalid',storedRole,await bcrypt.hash(password,12)]))[0];
+     'Prueba '+role,role.toLowerCase()+suffix+'@example.invalid',storedRole,await bcrypt.hash(password,12)]))[0];
  }
  const signIn=async role=>expected(await call('/auth/login','POST',{email:persons[role].email,password}),200).user;
  const adminAuth=await call('/auth/login','POST',{email:persons.admin.email,password}),studentAuth=await call('/auth/login','POST',{email:persons.student.email,password});
