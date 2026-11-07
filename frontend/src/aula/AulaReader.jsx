@@ -83,7 +83,7 @@ export default function AulaReader(){
       metrics={user.role==='student'?{percent:units.length?Math.round(units.filter(u=>u.completed).length/units.length*100):0,
         done:units.filter(u=>u.completed).length,total:units.length,seconds:units.reduce((acc,u)=>acc+Number(u.viewed_seconds||0),0),
         today:Number(units[0]?.new_units_today||0),dailyMax:course.max_units_per_day}:null}
-      assessmentPanel={!AULA_PREVIEW_DEMO&&user.role==='student'&&unit&&(unit.requires_test||unit.requires_practice)&&!loading?
+      assessmentPanel={!AULA_PREVIEW_DEMO&&user.role==='student'&&unit&&(unit.requires_test||unit.requires_practice||unit.allows_voluntary_practice)&&!loading?
         <AulaAssessment key={unit.id} courseId={courseId} unitId={unit.id} onStatus={onStatus}/>:null}/>
       {!AULA_PREVIEW_DEMO&&<AulaCommunity courseId={courseId} role={user.role} units={units}/>}
       {!AULA_PREVIEW_DEMO&&user.role==='student'&&<AulaSurveys courseId={courseId}/>}</>:

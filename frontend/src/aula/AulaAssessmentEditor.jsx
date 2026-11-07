@@ -1,7 +1,7 @@
 import React,{useCallback,useEffect,useState} from 'react';
 const input='mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm';
 const startQuestions=()=>Array.from({length:15},(_,i)=>({prompt:'',options:['','',''],correct_index:0,explanation:''}));
-const startPractice=()=>({title:'Práctica obligatoria',prompt:'',reference_solution:'',rubric:['Seguridad de la escena','Valoración inicial','Activación de ayuda','Secuencia y comunicación'],min_per_criterion:2});
+const startPractice=()=>({title:'Práctica con corrección de tutor',prompt:'',reference_solution:'',rubric:['Seguridad de la escena','Valoración inicial','Activación de ayuda','Secuencia y comunicación'],min_per_criterion:2});
 export default function AulaAssessmentEditor({courseId,unitId,requiresTest,requiresPractice,request}){
  const [questions,setQuestions]=useState(startQuestions),[practice,setPractice]=useState(startPractice);
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
@@ -39,7 +39,7 @@ export default function AulaAssessmentEditor({courseId,unitId,requiresTest,requi
        <label className="mt-2 block text-sm">Explicación tras el envío<input className={input} value={q.explanation||''} onChange={e=>changeQuestion(i,{explanation:e.target.value})}/></label>
      </fieldset>)}</div>
    </details>}
-   {requiresPractice&&<details open className="rounded-lg bg-white p-4"><summary className="font-bold">Práctica y rúbrica de corrección</summary>
+   {requiresPractice&&<details open className="rounded-lg bg-white p-4"><summary className="font-bold">Práctica y rúbrica de corrección (obligatoria o voluntaria)</summary>
      <div className="mt-4 space-y-3"><label className="block text-sm">Título<input className={input} value={practice.title} onChange={e=>setPractice(p=>({...p,title:e.target.value}))}/></label>
      <label className="block text-sm">Enunciado<textarea className={input} rows={4} value={practice.prompt} onChange={e=>setPractice(p=>({...p,prompt:e.target.value}))}/></label>
      <label className="block text-sm">Solución orientativa (visible tras entregar)<textarea className={input} rows={4} value={practice.reference_solution} onChange={e=>setPractice(p=>({...p,reference_solution:e.target.value}))}/></label>

@@ -10,7 +10,7 @@ import AulaSurveyEditor from './AulaSurveyEditor';
 const input="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus-visible:ring-2 focus-visible:ring-[#005EB8]";
 const primary="rounded-lg bg-[#005EB8] px-4 py-2.5 font-semibold text-white disabled:opacity-50";
 const blankCourse={title:'',objective:'',target_audience:'',requirements:'',presentation:'',duration_hours:20,access_days:90,max_units_per_day:''};
-const emptyUnit=()=>({unit_no:1,title:'',introduction:'',content_blocks:[{type:'heading',level:1,text:''},{type:'text',text:''}],learning_outcomes:[{id:'RA1',text:''}],requires_test:false,requires_practice:false,resources:[]});
+const emptyUnit=()=>({unit_no:1,title:'',introduction:'',content_blocks:[{type:'heading',level:1,text:''},{type:'text',text:''}],learning_outcomes:[{id:'RA1',text:''}],requires_test:false,requires_practice:false,allows_voluntary_practice:false,resources:[]});
 
 function CourseEditor({courseId,request,users,role,onSaved}){
   const [course,setCourse]=useState(null),[units,setUnits]=useState([]),[selected,setSelected]=useState(null);
@@ -139,10 +139,11 @@ function CourseEditor({courseId,request,users,role,onSaved}){
       <button type="button" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" onClick={()=>setDraft(p=>({...p,resources:[...(p.resources||[]),{type:'enlace',title:'',description:'',url:''}]}))}>Añadir recurso</button>
       <p className="text-sm text-slate-600">Tras guardar la unidad puedes configurar un banco de 15 preguntas y una práctica con rúbrica. La activación del curso exigirá que las evaluaciones obligatorias estén completas.</p>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.requires_test===true} onChange={e=>setDraft(p=>({...p,requires_test:e.target.checked}))}/> Requiere superar un test</label>
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.requires_practice===true} onChange={e=>setDraft(p=>({...p,requires_practice:e.target.checked}))}/> Requiere práctica evaluada</label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.requires_practice===true} onChange={e=>setDraft(p=>({...p,requires_practice:e.target.checked,allows_voluntary_practice:e.target.checked?false:p.allows_voluntary_practice}))}/> Requiere práctica evaluada</label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.allows_voluntary_practice===true} onChange={e=>setDraft(p=>({...p,allows_voluntary_practice:e.target.checked,requires_practice:e.target.checked?false:p.requires_practice}))}/> Ofrecer práctica voluntaria (no bloquea el avance)</label>
       <button disabled={busy} type="button" onClick={save} className={primary}>{busy?'Guardando…':'Guardar unidad'}</button>
-      {selected&&(draft.requires_test||draft.requires_practice)&&<AulaAssessmentEditor key={selected} courseId={courseId} unitId={selected}
-        requiresTest={draft.requires_test} requiresPractice={draft.requires_practice} request={request}/>}
+      {selected&&(draft.requires_test||draft.requires_practice||draft.allows_voluntary_practice)&&<AulaAssessmentEditor key={selected} courseId={courseId} unitId={selected}
+        requiresTest={draft.requires_test} requiresPractice={draft.requires_practice||draft.allows_voluntary_practice} request={request}/>}
     </div>}
     {editable&&<div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
       <p className="text-sm text-amber-900">Antes de activar: incluye contenido en la Unidad 0 y al menos una unidad con resultados de aprendizaje. Al activar el curso se congela su estructura.</p>

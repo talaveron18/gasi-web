@@ -29,7 +29,7 @@ export function authorAudit(course,units,stats=[]){
      if(refs.some(id=>!known.has(id)))issues.push({level:'error',unit_no:u.unit_no,message:'H2 enlaza resultados de aprendizaje inexistentes.'});
    }
    if(u.requires_test&&Number(u.question_count)!==15)issues.push({level:'error',unit_no:u.unit_no,message:'Test obligatorio sin un banco completo de 15 preguntas.'});
-   if(u.requires_practice&&!u.has_practice)issues.push({level:'error',unit_no:u.unit_no,message:'Práctica obligatoria sin rúbrica.'});
+   if((u.requires_practice||u.allows_voluntary_practice)&&!u.has_practice)issues.push({level:'error',unit_no:u.unit_no,message:'Práctica obligatoria sin rúbrica.'});
    for(const ra of outcomes)map.push({unit_no:u.unit_no,unit_title:u.title,id:ra.id,text:ra.text,
      headings:headings.filter(h=>Array.isArray(h.outcome_ids)&&h.outcome_ids.includes(ra.id)).map(h=>h.text)});
  }

@@ -238,7 +238,7 @@ async function handle(req:Request){
     if(req.method!=="GET")fail(405,"method_not_allowed");
     const course=await courseById(auditMatch[1]);
     if(user.role==="author"&&String(course.created_by)!==String(user.id))fail(403,"not_course_author");
-    const units=await q("SELECT u.id,u.unit_no,u.title,u.content_blocks,u.learning_outcomes,u.resources,u.requires_test,u.requires_practice, "+
+    const units=await q("SELECT u.id,u.unit_no,u.title,u.content_blocks,u.learning_outcomes,u.resources,u.requires_test,u.requires_practice,u.allows_voluntary_practice, "+
       "(SELECT count(*)::int FROM aula_test_questions tq WHERE tq.unit_id=u.id) AS question_count, "+
       "EXISTS(SELECT 1 FROM aula_practice_assignments p WHERE p.unit_id=u.id) AS has_practice "+
       "FROM aula_units u WHERE u.course_id=$1 ORDER BY u.unit_no",[course.id]);
