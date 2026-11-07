@@ -176,3 +176,50 @@ jobs:
         env:
           GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
         run: node tests/postgres-backup-restore-rehearsal.mjs
+
+  # GitHub's legacy status endpoint does not expose Actions check-runs. Publish
+  # each completed job conclusion on the same preview commit for auditability.
+  report-ci-statuses:
+    if: ${{ always() && github.ref == 'refs/heads/automation/public-reconcile-20261023' }}
+    needs: [frontend, netlify-build, backend-clinical, netlify-clinical, netlify-runtime-integration]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CI_RESULTS: ${{ toJSON(needs) }}
+    steps:
+      - name: Record verified job conclusions on this preview commit
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from urllib.request import Request, urlopen
+
+          results = json.loads(os.environ['CI_RESULTS'])
+          repository = os.environ['GITHUB_REPOSITORY']
+          sha = os.environ['GITHUB_SHA']
+          token = os.environ['GH_TOKEN']
+          endpoint = f'https://api.github.com/repos/{repository}/statuses/{sha}'
+          states = {'success': 'success', 'failure': 'failure', 'cancelled': 'error', 'skipped': 'error'}
+          for name, job in results.items():
+              conclusion = job['result']
+              state = states.get(conclusion, 'error')
+              payload = json.dumps({
+                  'state': state,
+                  'context': f'gasi-ci/{name}',
+                  'description': f'GitHub Actions job {name}: {conclusion}'[:140],
+                  'target_url': f"https://github.com/{repository}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+              }).encode('utf-8')
+              request = Request(endpoint, data=payload, method='POST', headers={
+                  'Authorization': f'Bearer {token}',
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+                  'Content-Type': 'application/json',
+              })
+              with urlopen(request, timeout=20) as response:
+                  if response.status != 201:
+                      raise RuntimeError(f'Failed to report {name}: HTTP {response.status}')
+              print(f'{name}: {conclusion}')
+          PY
