@@ -1,4 +1,5 @@
 import React from 'react';
+import { publicImage } from '@/utils/publicImage';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 
@@ -25,7 +26,7 @@ const CoberturaSanitaria = () => {
         </div>
       </section>
 
-      <section className="py-20 bg-white"><div className="max-w-5xl mx-auto px-6 lg:px-8 mb-10"><img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1400&q=85" alt="Profesional sanitario en un entorno asistencial" loading="lazy" className="w-full h-64 md:h-80 object-cover rounded-2xl" /></div>
+      <section className="py-20 bg-white"><div className="max-w-5xl mx-auto px-6 lg:px-8 mb-10"><img src={publicImage("https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1400&q=85")} alt="Profesional sanitario en un entorno asistencial" loading="lazy" className="w-full h-64 md:h-80 object-cover rounded-2xl" /></div>
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Una solución sanitaria adaptada a su empresa</h2>
           <p className="text-lg text-[#64748B] leading-relaxed mb-6">
@@ -48,7 +49,7 @@ const CoberturaSanitaria = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
               <Card key={index} className="overflow-hidden h-full hover-lift" data-testid={`feature-${index}`}>
-                <div className="h-48 overflow-hidden bg-[#EAF4FC]"><img src={feature.image} alt={feature.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
+                <div className="h-48 overflow-hidden bg-[#EAF4FC]"><img src={publicImage(feature.image)} alt={feature.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
                 <div className="p-6">
                 <h3 className="font-bold text-[#0F172A] mb-2">{feature.title}</h3>
                 <p className="text-[#64748B] text-sm">{feature.desc}</p>
