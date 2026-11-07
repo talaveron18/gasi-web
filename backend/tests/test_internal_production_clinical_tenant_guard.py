@@ -11,11 +11,15 @@ def _source(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_production_route_is_fronted_by_tenant_gateway() -> None:
+def test_commercial_deployment_blocks_internal_clinical_routes() -> None:
     config = _source(NETLIFY_CONFIG)
-    assert 'from = "/api/internal-clinical/*"' in config
-    assert "internal-clinical-guarded?original_path=:splat" in config
-    assert config.index('from = "/api/internal-clinical/*"') < config.index('from = "/*"')
+    route_start = config.index('from = "/api/internal-clinical/*"')
+    route_end = config.index("[[redirects]]", route_start)
+    restricted_route = config[route_start:route_end]
+    assert 'to = "/404.html"' in restricted_route
+    assert "status = 404" in restricted_route
+    assert "force = true" in restricted_route
+    assert route_start < config.index('from = "/*"')
 
 
 def test_effective_gateway_requires_signed_tenant_claim() -> None:
