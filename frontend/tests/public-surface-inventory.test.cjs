@@ -58,8 +58,9 @@ test('captación comercial sin promesas de contratación o entrega confirmada', 
 
 test('metadatos públicos limitados a la oferta prudente', () => {
   const html = read('public/index.html');
-  assert.match(html, /Enfermería presencial y formación sanitaria/i);
-  assert.match(html, /confirmación previa de alcance/i);
+  assert.match(html, /Asistencia Sanitaria Integral para Empresas/i);
+  assert.match(html, /primeros auxilios, RCP y desfibriladores/i);
+  assert.match(html, /alcance y requisitos aplicables/i);
 });
 
 test('navegación y CTA comerciales no enlazan a compra, inscripción o servicios heredados', () => {
@@ -120,11 +121,15 @@ test('páginas comerciales mantienen asistencia integral, formación empresarial
   const services = read('src/pages/Servicios.jsx');
   const healthcare = read('src/pages/CoberturaSanitaria.jsx');
   const training = read('src/pages/FormacionSanitaria.jsx');
+  const labor = read('src/pages/SaludLaboral.jsx');
+  const bot = read('src/components/Chatbot.jsx');
   assert.match(about, /asistencia integral, flexible/);
   assert.match(about, /formación sanitaria para empresas/);
   assert.match(services, /Asistencia Sanitaria Integral para Empresas/);
   assert.match(healthcare, /Asistencia Sanitaria Integral en Empresas/);
   assert.match(training, /primeros auxilios, reanimación cardiopulmonar/);
+  assert.match(labor, /Asistencia sanitaria integral/);
+  assert.match(bot, /Asistencia sanitaria integral para empresas/);
   for (const source of [about, services, healthcare, training]) {
     assert.doesNotMatch(source, /venta de (?:DEA|desfibriladores)/i);
   }
