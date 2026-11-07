@@ -1,7 +1,7 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {Link,Navigate} from 'react-router-dom';
 import {BookOpen,CheckCircle2,GraduationCap,Plus,ShieldCheck,Users} from 'lucide-react';
-import {useAula} from './AulaAuthContext';
+import {useAula,AULA_PREVIEW_DEMO} from './AulaAuthContext';
 
 const input="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus-visible:ring-2 focus-visible:ring-[#005EB8]";
 const primary="rounded-lg bg-[#005EB8] px-4 py-2.5 font-semibold text-white disabled:opacity-50";
@@ -164,6 +164,7 @@ export default function AulaAuthor(){
         <h1 className="mt-1 text-3xl font-bold">Gestión de formación</h1><p className="mt-2 text-slate-600">Perfil: {user.role==='admin'?'Administración':user.role==='author'?'Autor':'Tutor'} · {user.name}</p></div>
         <button onClick={logout} type="button" className="rounded-lg border border-slate-300 px-4 py-2 font-semibold">Cerrar sesión</button>
       </div>
+      {AULA_PREVIEW_DEMO&&<p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950">Panel de autor en vista previa. Las cuentas y cursos son ficticios. Las operaciones de escritura están deshabilitadas; el aula real utilizará PostgreSQL.</p>}
       {error&&<p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-900">{error}</p>}
       {notice&&<p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">{notice}</p>}
       {user.role==='admin'&&<details className="rounded-2xl border border-slate-200 bg-white p-5"><summary className="cursor-pointer font-bold">Alta interna de usuarios (sin registro público)</summary>
