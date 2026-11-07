@@ -6,18 +6,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
 const Contacto = () => {
   const [loading, setLoading] = useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState(null);
   const [formData, setFormData] = useState({
     name: '', company: '', email: '', phone: '', employee_count: '', service_type: '', message: '', website: '', accepts_privacy: false
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.accepts_privacy) { toast.error('Debe aceptar la política de protección de datos'); return; }
+    setSubmissionStatus(null);
+    if (!formData.accepts_privacy) {
+      setSubmissionStatus({ type: 'error', message: 'Debe aceptar la política de protección de datos.' });
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch('/.netlify/functions/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
@@ -32,9 +36,11 @@ const Contacto = () => {
         };
         throw new Error(friendlyErrors[result.message] || 'No se pudo enviar el formulario.');
       }
-      toast.success('Solicitud enviada al servicio de recepción. Esto no confirma su entrega al buzón ni la aceptación del servicio. Si no recibe respuesta, escriba a coordinacion@gasisalud.com sin incluir datos clínicos o de salud.');
+      setSubmissionStatus({ type: 'success', message: 'Solicitud aceptada por el servicio de envío. Esto no confirma la entrega al buzón ni la aceptación del servicio. Si no recibe respuesta, escriba a coordinacion@gasisalud.com sin incluir datos de salud.' });
       setFormData({ name: '', company: '', email: '', phone: '', employee_count: '', service_type: '', message: '', website: '', accepts_privacy: false });
-    } catch (error) { toast.error(`${error?.message || 'Error al enviar el formulario.'} Como alternativa, escriba a coordinacion@gasisalud.com sin incluir datos clínicos ni de salud.`); }
+    } catch (error) {
+      setSubmissionStatus({ type: 'error', message: `${error?.message || 'Error al enviar el formulario.'} No se ha confirmado el envío. Puede reintentarlo o escribir a coordinacion@gasisalud.com sin incluir datos clínicos ni de salud.` });
+    }
     finally { setLoading(false); }
   };
 
@@ -58,6 +64,7 @@ const Contacto = () => {
           <div className="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true"><Label htmlFor="website">Sitio web</Label><Input id="website" name="website" tabIndex={-1} autoComplete="off" value={formData.website} onChange={(e) => setFormData({...formData, website: e.target.value})} /></div>
           <div className="flex items-start gap-2"><Checkbox id="privacy" checked={formData.accepts_privacy} onCheckedChange={(checked) => setFormData({...formData, accepts_privacy: checked})} data-testid="contact-privacy-checkbox" /><Label htmlFor="privacy" className="text-sm leading-relaxed">Acepto la <Link to="/politica-privacidad" className="text-[#005EB8] hover:underline">política de protección de datos</Link> y autorizo el tratamiento de mis datos para responder a mi consulta *</Label></div>
           <p className="text-sm text-[#64748B]">Este formulario es solo para consultas comerciales. No incluya información clínica, datos de pacientes ni datos de salud. No es un canal de urgencias.</p><p className="text-sm text-[#64748B]">El envío de este formulario no confirma disponibilidad, contratación ni prestación sanitaria.</p>
+          {submissionStatus && <div role={submissionStatus.type === 'error' ? 'alert' : 'status'} aria-live={submissionStatus.type === 'error' ? 'assertive' : 'polite'} data-testid="contact-submission-status" className={`rounded-md border p-4 text-sm ${submissionStatus.type === 'error' ? 'border-red-300 bg-red-50 text-red-900' : 'border-green-300 bg-green-50 text-green-900'}`}>{submissionStatus.message}</div>}
           <Button type="submit" className="w-full bg-[#005EB8] hover:bg-[#004a92] text-white" disabled={loading} data-testid="contact-submit-button">{loading ? 'Enviando...' : (<>Enviar consulta <Send className="ml-2 w-4 h-4" /></>)}</Button>
         </form></Card></div>
       </div></div></section>
