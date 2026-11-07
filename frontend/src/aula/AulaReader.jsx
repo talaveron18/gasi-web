@@ -2,6 +2,7 @@ import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {Link,Navigate,useParams} from 'react-router-dom';
 import {useAula,AULA_PREVIEW_DEMO} from './AulaAuthContext';
 import AulaReaderView from './AulaReaderView';
+import AulaAssessment from './AulaAssessment';
 
 export default function AulaReader(){
   const{courseId}=useParams(),{user,loading:authLoading,request}=useAula();
@@ -46,11 +47,20 @@ export default function AulaReader(){
     const id=currentUnit.current;
     const heartbeat=async()=>{
       if(document.visibilityState!=='visible'||currentUnit.current!==id)return;
-      try{await request('/courses/'+encodeURIComponent(courseId)+'/units/'+encodeURIComponent(id)+'/heartbeat',{method:'POST',body:{}});}catch{}
+      try{const updated=await request('/courses/'+encodeURIComponent(courseId)+'/units/'+encodeURIComponent(id)+'/heartbeat',{method:'POST',body:{}});
+        if(Number.isFinite(updated.viewed_seconds)){
+          setUnits(items=>items.map(u=>u.id===id?{...u,viewed_seconds:updated.viewed_seconds}:u));
+          setUnit(prev=>prev?.id===id?{...prev,viewed_seconds:updated.viewed_seconds}:prev);
+        }
+      }catch{}
     };
     const timer=window.setInterval(heartbeat,20000);
     return()=>window.clearInterval(timer);
   },[unit,courseId,request,user]);
+  const onStatus=useCallback(status=>{
+    setUnit(prev=>prev?{...prev,...status}:prev);
+    setUnits(prev=>prev.map(u=>u.id===currentUnit.current?{...u,...status}:u));
+  },[]);
   const complete=async id=>{
     setCompleting(true);setError('');
     try{
@@ -67,7 +77,12 @@ export default function AulaReader(){
   return <div>
     <div className="mx-auto max-w-7xl px-4 pt-5"><Link className="text-sm font-semibold text-[#005EB8] underline" to={user.role==='admin'||user.role==='author'?'/aula/autor':'/aula/mis-cursos'}>Volver a mis cursos</Link></div>
     {course?<AulaReaderView course={course} units={units} selected={selected} unit={unit} loading={loading} error={error}
-      onOpen={open} onComplete={complete} completing={completing} demo={AULA_PREVIEW_DEMO}/>:
+      onOpen={open} onComplete={complete} completing={completing} demo={AULA_PREVIEW_DEMO}
+      metrics={user.role==='student'?{percent:units.length?Math.round(units.filter(u=>u.completed).length/units.length*100):0,
+        done:units.filter(u=>u.completed).length,total:units.length,seconds:units.reduce((acc,u)=>acc+Number(u.viewed_seconds||0),0),
+        today:Number(units[0]?.new_units_today||0),dailyMax:course.max_units_per_day}:null}
+      assessmentPanel={!AULA_PREVIEW_DEMO&&user.role==='student'&&unit&&(unit.requires_test||unit.requires_practice)&&!loading?
+        <AulaAssessment key={unit.id} courseId={courseId} unitId={unit.id} onStatus={onStatus}/>:null}/>:
       <main className="mx-auto max-w-4xl px-5 py-16">{loading?<p role="status">Cargando curso…</p>:<p role="alert">{error||'Curso no disponible.'}</p>}</main>}
   </div>;
 }
