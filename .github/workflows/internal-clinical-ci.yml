@@ -5,6 +5,7 @@ on:
     branches:
       - 'automation/web-internal-clinical-*'
       - 'automation/public-reconcile-*'
+      - 'automation/chatbot-proposals-*'
       - 'work/web-infra-v1-*'
   workflow_dispatch:
 
@@ -189,7 +190,7 @@ jobs:
   # GitHub's legacy status endpoint does not expose Actions check-runs. Publish
   # each completed job conclusion on the same preview commit for auditability.
   report-ci-statuses:
-    if: ${{ always() && (github.ref == 'refs/heads/automation/public-reconcile-20261023' || github.ref == 'refs/heads/automation/public-reconcile-access-chat-20261107') }}
+    if: ${{ always() && (github.ref == 'refs/heads/automation/public-reconcile-20261023' || github.ref == 'refs/heads/automation/public-reconcile-access-chat-20261107' || github.ref == 'refs/heads/automation/chatbot-proposals-access-20261107') }}
     needs: [frontend, netlify-build, backend-clinical, netlify-clinical, netlify-runtime-integration]
     runs-on: ubuntu-latest
     permissions:

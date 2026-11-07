@@ -1,17 +1,9 @@
 import React from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { GraduationCap, Stethoscope, LogIn } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useInternalPrototypeAuth } from '@/contexts/InternalPrototypeAuthContext';
 import { STUDENT_PORTAL_ENABLED, INTERNAL_PORTAL_ENABLED } from '@/lib/accessAvailability';
 
 export default function AccessPortal() {
-  const { user, loading } = useAuth();
-  const { isAuthenticated, session, sessionChecking } = useInternalPrototypeAuth();
-
-  if (STUDENT_PORTAL_ENABLED && !loading && user) return <Navigate to="/dashboard" replace />;
-  if (INTERNAL_PORTAL_ENABLED && !sessionChecking && isAuthenticated && !session?.mustChangePassword) return <Navigate to="/interno/clinica" replace />;
-
   return (
     <section className="min-h-screen bg-slate-50 py-16 text-slate-900" data-testid="access-portal" aria-labelledby="access-portal-title">
       <div className="mx-auto max-w-4xl px-6">
@@ -36,7 +28,6 @@ export default function AccessPortal() {
             <Link to="/interno/acceso" className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-[#005EB8] px-4 py-3 font-semibold text-[#005EB8] hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#005EB8] focus-visible:ring-offset-2" data-testid="access-team">{INTERNAL_PORTAL_ENABLED ? "Entrar al área de equipo" : "Consultar acceso del equipo"}</Link>
           </section>
         </div>
-        {(loading || sessionChecking) && <p role="status" aria-live="polite" className="mt-6 text-center text-sm text-slate-500">Comprobando si ya tienes una sesión activa…</p>}
       </div>
     </section>
   );
