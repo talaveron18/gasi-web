@@ -54,6 +54,8 @@ test('captación comercial sin promesas de contratación o entrega confirmada', 
   }
   assert.match(contact, /no confirma (?:su |la )?entrega al buzón/i);
   assert.match(bot, /no confirma su entrega al buzón/i);
+  assert.match(bot, /El servicio de envío ha aceptado tu solicitud/);
+  assert.doesNotMatch(bot, /Tu solicitud se ha enviado al servicio de recepción/);
 });
 
 test('metadatos públicos limitados a la oferta prudente', () => {
