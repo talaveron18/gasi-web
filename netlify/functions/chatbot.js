@@ -32,6 +32,6 @@ exports.handler=async event=>{
     replyTo:lead.email,
     recipientOverride:"coordinacion@gasisalud.com"
   });
-  if(!delivery.ok)return response(delivery.code==="service_unavailable"?503:502,delivery.code);
+  if(!delivery.ok)return delivery.code==="rate_limited" ? response(429,"rate_limited",{"retry-after":"60"}) : response(delivery.code==="service_unavailable"?503:502,delivery.code);
   return response(200,"sent");
 };
