@@ -328,8 +328,10 @@ describe('reconciliación del contenido público GASI', () => {
   test('Contacto muestra una alternativa comercial segura si falla el envío', () => {
     const contacto = read('pages/Contacto.jsx');
     expect(contacto).toContain("error?.message || 'Error al enviar el formulario.'");
-    expect(contacto).toContain('Como alternativa, escriba a coordinacion@gasisalud.com sin incluir datos clínicos ni de salud.');
-    expect(contacto).toContain("no confirma su entrega al buzón");
+    expect(contacto).toContain('Puede reintentarlo o escribir a coordinacion@gasisalud.com sin incluir datos clínicos ni de salud.');
+    expect(contacto).toContain('No se ha confirmado el envío.');
+    expect(contacto).toContain('data-testid="contact-submission-status"');
+    expect(contacto).toContain("Esto no confirma la entrega al buzón");
   });
 
   test('el WhatsApp flotante es inequívocamente comercial y desaconseja datos de salud', () => {
