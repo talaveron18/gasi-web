@@ -373,9 +373,14 @@ async function handle(req:Request){
         "GROUP BY s.id ORDER BY s.created_at",[course.id]);
       return json({surveys});
     }
-    if(course.status!=="draft")fail(409,"course_structure_frozen");
+    // Course units stay immutable after publication. A missing final
+    // questionnaire may be attached later so enrolled learners can still
+    // obtain a completion certificate; follow-up structure remains frozen.
+    if(course.status!=="draft"&&!(course.status==="active"&&req.method==="POST"&&!adminSurvey[2]))
+      fail(409,"course_structure_frozen");
     if(req.method==="POST"&&!adminSurvey[2]){
       const b=await body(req),title=string(b.title,180),kind=String(b.kind||""),questions=b.questions;
+      if(course.status==="active"&&kind!=="final")fail(409,"course_structure_frozen");
       if(!validSurvey(title,kind,questions))fail(422,"invalid_survey");
       const unitId=kind==="followup"&&b.unit_id?String(b.unit_id):null;
       if(unitId){
