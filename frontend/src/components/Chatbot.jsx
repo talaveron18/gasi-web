@@ -180,7 +180,7 @@ export default function Chatbot() {
   return <>
     <button ref={openerRef} hidden={open} type="button" aria-label="Abrir asistente GASI"
       data-testid="chatbot-open-button" onClick={() => setOpen(true)}
-      className="fixed bottom-4 right-4 z-50 items-center gap-2 rounded-full bg-[#005EB8] px-4 py-3 text-sm font-semibold text-white shadow-xl hover:bg-[#004a92] focus-visible:ring-4 focus-visible:ring-blue-300 [display:flex]">
+      className={(open ? 'hidden' : 'flex') + " fixed bottom-4 right-4 z-50 items-center gap-2 rounded-full bg-[#005EB8] px-4 py-3 text-sm font-semibold text-white shadow-xl hover:bg-[#004a92] focus-visible:ring-4 focus-visible:ring-blue-300"}>
       <MessageCircle aria-hidden="true" size={21}/><span>¿Te ayudamos?</span>
     </button>
     {open && <section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true"
