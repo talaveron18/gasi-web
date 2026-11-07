@@ -132,7 +132,7 @@ jobs:
       - name: Verify Aula function isolation
         run: node --test scripts/aula-package.test.cjs
       - name: Test Aula progression and synthetic preview endpoints
-        run: node --test netlify/aula/access-policy.test.mjs netlify/aula/aula-demo.test.mjs
+        run: node --test netlify/aula/access-policy.test.mjs netlify/aula/f3-policy.test.mjs netlify/aula/aula-demo.test.mjs
       - name: Netlify HTTP header smoke
         run: node scripts/netlify-http-smoke.mjs
       - name: Rehearse release artifact restore
@@ -182,6 +182,7 @@ jobs:
           GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
         run: |
           psql "$GASI_INTEGRATION_DB_URL" -v ON_ERROR_STOP=1 -f aula/schema.sql
+          psql "$GASI_INTEGRATION_DB_URL" -v ON_ERROR_STOP=1 -f aula/f3.sql
           node --test aula/persistence-postgres.test.mjs
       - name: PostgreSQL attendance and recovery integration
         env:
