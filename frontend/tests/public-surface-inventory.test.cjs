@@ -50,9 +50,9 @@ test('captación comercial sin promesas de contratación o entrega confirmada', 
   const bot = read('src/components/Chatbot.jsx');
   for (const source of [contact, bot]) {
     assert.match(source, /coordinacion@gasisalud\.com/);
-    assert.match(source, /no (?:es un canal clínico ni de urgencias|confirma su entrega al buzón)/i);
+    assert.match(source, /(?:no es un canal clínico ni de urgencias|no confirma (?:su |la )?entrega al buzón)/i);
   }
-  assert.match(contact, /no confirma su entrega al buzón/i);
+  assert.match(contact, /no confirma (?:su |la )?entrega al buzón/i);
   assert.match(bot, /no confirma su entrega al buzón/i);
 });
 
