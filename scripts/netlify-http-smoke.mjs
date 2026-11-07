@@ -25,7 +25,10 @@ child.stdout.on("data",d=>{stdout+=d.toString();});
 child.stderr.on("data",d=>{stderr+=d.toString();});
 
 async function waitReady(){
-  const deadline=Date.now()+30000;
+  // A cold GitHub runner may need to download the pinned Netlify CLI before
+  // `netlify dev` can bind the port. Keep polling the actual HTTP endpoint so
+  // readiness is still proven rather than inferred from process output.
+  const deadline=Date.now()+120000;
   while(Date.now()<deadline){
     if(child.exitCode!==null)throw new Error(`netlify_dev_exited:${child.exitCode}\n${stdout}\n${stderr}`);
     try{

@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { GraduationCap, BookOpen, Clock, ArrowRight, Settings } from 'lucide-react';
+import { GraduationCap, BookOpen, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import axios from 'axios';
 import { PUBLIC_API_BASE as API } from '@/lib/publicApi';
 
@@ -57,13 +56,6 @@ const Dashboard = () => {
             Bienvenido, {user.name}
           </h1>
           <p className="text-lg opacity-90">Tu panel de formación sanitaria</p>
-          {user.is_admin && (
-            <Link to="/dashboard/admin/cursos" className="inline-flex mt-5">
-              <Button variant="secondary" data-testid="admin-courses-link">
-                <Settings className="w-4 h-4 mr-2" aria-hidden="true" /> Administrar aula
-              </Button>
-            </Link>
-          )}
         </div>
       </div>
 
@@ -71,11 +63,7 @@ const Dashboard = () => {
         <div className="mb-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-[#0F172A]">Mis Cursos</h2>
-            <Link to="/formacion-sanitaria">
-              <Button className="bg-[#005EB8] hover:bg-[#004a92]" data-testid="explore-courses-button">
-                Explorar más cursos
-              </Button>
-            </Link>
+            <Link to="/formacion-sanitaria" className="inline-flex items-center rounded-md bg-[#005EB8] px-4 py-2 text-white hover:bg-[#004a92]" data-testid="explore-courses-button">Consultar formación sanitaria</Link>
           </div>
 
           {loadingCourses ? (
@@ -119,11 +107,7 @@ const Dashboard = () => {
                         ></div>
                       </div>
                     </div>
-                    <Link to={`/curso/${item.course.course_id}`}>
-                      <Button className="w-full bg-[#005EB8] hover:bg-[#004a92]" data-testid={`continue-course-${index}`}>
-                        Continuar curso <ArrowRight className="ml-2 w-4 h-4" />
-                      </Button>
-                    </Link>
+                    <p className="text-sm text-[#64748B]">Consulta con GASI la disponibilidad del acceso al contenido de este curso.</p>
                   </CardContent>
                 </Card>
               ))}
@@ -135,13 +119,9 @@ const Dashboard = () => {
                 Aún no estás inscrito en ningún curso
               </h3>
               <p className="text-[#64748B] mb-6">
-                Explora nuestro catálogo de formación sanitaria y comienza a aprender
+                Puedes consultar las opciones de formación sanitaria. La disponibilidad de cada actividad se confirma previamente.
               </p>
-              <Link to="/formacion-sanitaria">
-                <Button className="bg-[#005EB8] hover:bg-[#004a92]" data-testid="explore-courses-empty">
-                  Ver cursos disponibles
-                </Button>
-              </Link>
+              <Link to="/formacion-sanitaria" className="inline-flex items-center rounded-md bg-[#005EB8] px-4 py-2 text-white hover:bg-[#004a92]" data-testid="explore-courses-empty">Consultar formación sanitaria</Link>
             </Card>
           )}
         </div>

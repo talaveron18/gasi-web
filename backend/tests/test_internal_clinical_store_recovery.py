@@ -13,13 +13,21 @@ class Cursor:
 
 class Collection:
     def __init__(self, db, name, rows=None):
-        self.db=db; self.name=name; self.rows=[dict(x) for x in (rows or [])]; self.fail_insert=False
+        self.db=db; self.name=name; self.rows=[dict(x) for x in (rows or [])]; self.fail_insert=False; self.indexes={}
     def find(self,q): return Cursor(self.rows)
     async def delete_many(self,q,session=None): self.rows=[]
     async def insert_many(self,rows,session=None):
         if self.fail_insert: raise RuntimeError("injected_database_failure")
         self.rows.extend(dict(x) for x in rows)
-    async def create_index(self,*args,**kwargs): return None
+    async def create_index(self,keys,**kwargs):
+        name=kwargs.get('name')
+        if not name:
+            if isinstance(keys,str): name=f'{keys}_1'
+            else: name='_'.join(f'{field}_{direction}' for field,direction in keys)
+        self.indexes[name]={'key':keys,'unique':bool(kwargs.get('unique',False))}
+        return name
+    async def index_information(self): return deepcopy(self.indexes)
+    async def drop_index(self,name): self.indexes.pop(name,None)
 
 class Transaction:
     def __init__(self, db): self.db=db; self.before=None

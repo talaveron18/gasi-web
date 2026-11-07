@@ -19,9 +19,6 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+()\d\s.-]{6,40}$/;
 const ALLOWED_SERVICES = new Set([
   'Enfermería presencial',
-  'Apoyo médico remoto',
-  'Fisioterapia',
-  'Psicología',
   'Formación sanitaria',
   'Otro'
 ]);

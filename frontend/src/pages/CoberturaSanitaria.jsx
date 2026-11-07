@@ -1,17 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Users, Clock, Building, CheckCircle, FileText } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 
 const CoberturaSanitaria = () => {
   const features = [
-    { icon: <Users className="w-6 h-6" />, title: 'Personal Sanitario Cualificado', desc: 'Enfermeros/as y técnicos con experiencia en salud laboral' },
-    { icon: <Clock className="w-6 h-6" />, title: 'Horarios Flexibles', desc: 'Adaptamos nuestros horarios a sus turnos de trabajo' },
-    { icon: <Building className="w-6 h-6" />, title: 'En Sus Instalaciones', desc: 'Sala de primeros auxilios y enfermería en su centro' },
-    { icon: <Shield className="w-6 h-6" />, title: 'Atención Preventiva', desc: 'Reducción de riesgos y accidentes laborales' },
-    { icon: <FileText className="w-6 h-6" />, title: 'Gestión Documental', desc: 'Informes y registros sanitarios completos' },
-    { icon: <CheckCircle className="w-6 h-6" />, title: 'Cumplimiento Legal', desc: 'Aseguramos normativa de prevención de riesgos' }
+    { image: '/images/photo-1576091160550-2173dba999ef.jpg', imageAlt: 'Profesional sanitario en consulta', title: 'Atención Sanitaria', desc: 'Asistencia profesional adaptada al entorno empresarial' },
+    { image: '/images/photo-1497366754035-f200968a6e72.jpg', imageAlt: 'Instalaciones de una organización', title: 'Cobertura Planificada', desc: 'Horarios y presencia definidos previamente según las necesidades y el alcance aplicable' },
+    { image: '/images/photo-1497366811353-6870744d04b2.jpg', imageAlt: 'Espacio de trabajo empresarial', title: 'En Sus Instalaciones', desc: 'Prestación presencial en el centro acordado cuando el servicio resulte aplicable' },
+    { image: '/images/photo-1576091160399-112ba8d25d1d.jpg', imageAlt: 'Equipo sanitario en un entorno clínico', title: 'Alcance Definido', desc: 'Las actuaciones incluidas se concretan antes del inicio del servicio' },
+    { image: '/images/photo-1584982751601-97dcc096659c.jpg', imageAlt: 'Profesionales sanitarios', title: 'Registro Asistencial', desc: 'Documentación de la actividad conforme al servicio contratado y a los requisitos aplicables' },
+    { image: '/images/photo-1559839734-2b71ea197ec2.jpg', imageAlt: 'Profesional sanitaria', title: 'Validación Previa', desc: 'Confirmamos previamente que la cobertura solicitada puede prestarse dentro del alcance aplicable' }
   ];
 
   return (
@@ -19,25 +17,25 @@ const CoberturaSanitaria = () => {
       <section className="bg-gradient-to-br from-[#005EB8] to-[#327BBD] text-white py-20">
         <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
           <h1 className="text-4xl lg:text-5xl font-bold mb-6" data-testid="page-title">
-            Cobertura Sanitaria en Empresas
+            Asistencia Sanitaria Integral en Empresas
           </h1>
           <p className="text-xl opacity-90">
-            Personal sanitario trabajando en sus instalaciones para el cuidado de sus trabajadores
+            Soluciones de atención sanitaria y coordinación asistencial adaptadas a las necesidades de cada organización
           </p>
         </div>
       </section>
 
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white"><div className="max-w-5xl mx-auto px-6 lg:px-8 mb-10"><img src="/images/photo-1576091160550-2173dba999ef.jpg" alt="Profesional sanitario en un entorno asistencial" loading="lazy" className="w-full h-64 md:h-80 object-cover rounded-2xl" /></div>
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-[#0F172A] mb-6">¿Qué es nuestro servicio de cobertura sanitaria?</h2>
+          <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Una solución sanitaria adaptada a su empresa</h2>
           <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-            GASI proporciona <strong>personal sanitario cualificado</strong> que trabaja directamente dentro de sus instalaciones empresariales. No somos un servicio de emergencias ni de ambulancias: somos su <strong>equipo sanitario interno</strong>.
+            GASI desarrolla un modelo de <strong>asistencia sanitaria integral en el entorno de trabajo</strong>, con enfermería presencial y coordinación asistencial adaptadas a las necesidades de cada centro. La configuración concreta se estudia con cada organización.
           </p>
           <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-            Nuestros profesionales se integran en su centro de trabajo, estableciendo una <strong>sala de primeros auxilios</strong> completamente equipada y ofreciendo atención sanitaria básica, preventiva y de apoyo a la seguridad laboral.
+            Antes de iniciar un servicio definimos con la organización el centro, los horarios, las funciones y los medios necesarios. La prestación se ajusta a lo acordado y a los requisitos profesionales y sanitarios que correspondan.
           </p>
           <p className="text-lg text-[#64748B] leading-relaxed">
-            Este servicio es especialmente valorado por centros logísticos, almacenes industriales, plataformas de distribución y empresas con alta densidad de trabajadores.
+            Si necesita presencia sanitaria en su organización, puede trasladarnos el caso para que valoremos si podemos atenderlo y en qué condiciones.
           </p>
         </div>
       </section>
@@ -49,12 +47,12 @@ const CoberturaSanitaria = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
-              <Card key={index} className="p-6 hover-lift" data-testid={`feature-${index}`}>
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-[#005EB8]/10 rounded-full text-[#005EB8] mb-4">
-                  {feature.icon}
-                </div>
+              <Card key={index} className="overflow-hidden h-full hover-lift" data-testid={`feature-${index}`}>
+                <div className="h-48 overflow-hidden bg-[#EAF4FC]"><img src={feature.image} alt={feature.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
+                <div className="p-6">
                 <h3 className="font-bold text-[#0F172A] mb-2">{feature.title}</h3>
                 <p className="text-[#64748B] text-sm">{feature.desc}</p>
+                </div>
               </Card>
             ))}
           </div>
@@ -63,25 +61,19 @@ const CoberturaSanitaria = () => {
 
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-[#0F172A] mb-8 text-center">¿Para qué empresas está diseñado?</h2>
+          <h2 className="text-3xl font-bold text-[#0F172A] mb-8 text-center">¿En qué entornos puede plantearse?</h2>
           <div className="space-y-6">
             <Card className="p-6">
-              <h3 className="font-bold text-xl text-[#0F172A] mb-3">📦 Centros Logísticos y Almacenes</h3>
-              <p className="text-[#64748B]">
-                Empresas como Amazon, GXO o DHL que requieren personal sanitario disponible para atender incidencias durante operaciones 24/7.
-              </p>
+              <h3 className="font-bold text-xl text-[#0F172A] mb-3">Logística y Almacenes</h3>
+              <p className="text-[#64748B]">Centros que quieran valorar una solución de atención sanitaria para un horario y unas funciones previamente definidos.</p>
             </Card>
             <Card className="p-6">
-              <h3 className="font-bold text-xl text-[#0F172A] mb-3">🏭 Industria y Manufactura</h3>
-              <p className="text-[#64748B]">
-                Fábricas y plantas industriales con trabajadores expuestos a riesgos laborales que necesitan respuesta sanitaria inmediata.
-              </p>
+              <h3 className="font-bold text-xl text-[#0F172A] mb-3">Industria</h3>
+              <p className="text-[#64748B]">Instalaciones industriales que necesiten estudiar la incorporación de atención sanitaria dentro de un alcance acordado.</p>
             </Card>
             <Card className="p-6">
-              <h3 className="font-bold text-xl text-[#0F172A] mb-3">🏬 Retail y Grandes Superficies</h3>
-              <p className="text-[#64748B]">
-                Centros comerciales como Leroy Merlin o Decathlon con alta afluencia de empleados y necesidad de atención sanitaria preventiva.
-              </p>
+              <h3 className="font-bold text-xl text-[#0F172A] mb-3">Centros de Trabajo</h3>
+              <p className="text-[#64748B]">Otras organizaciones con centros presenciales pueden consultarnos su necesidad para valorar su encaje antes de definir una propuesta.</p>
             </Card>
           </div>
         </div>
@@ -89,23 +81,11 @@ const CoberturaSanitaria = () => {
 
       <section className="py-20 bg-gradient-to-r from-[#005EB8] to-[#327BBD] text-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold mb-6">
-            ¿Necesita cobertura sanitaria en su empresa?
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
-            Solicite información personalizada sin compromiso
-          </p>
+          <h2 className="text-3xl lg:text-4xl font-bold mb-6">¿Necesita valorar una cobertura sanitaria?</h2>
+          <p className="text-xl mb-8 opacity-90">Cuéntenos la necesidad. Confirmaremos primero si podemos atenderla y bajo qué alcance.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/contacto">
-              <Button size="lg" className="bg-white text-[#005EB8] hover:bg-gray-100" data-testid="cta-contact">
-                Solicitar Presupuesto
-              </Button>
-            </Link>
-            <a href="tel:622822101">
-              <Button size="lg" variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#005EB8]" data-testid="cta-call">
-                Llamar: 622 822 101
-              </Button>
-            </a>
+            <Link to="/contacto" className="inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium bg-white text-[#005EB8] hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" data-testid="cta-contact">Solicitar información</Link>
+            <a href="tel:622822101" className="inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#005EB8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" data-testid="cta-call">Llamar: 622 822 101</a>
           </div>
         </div>
       </section>

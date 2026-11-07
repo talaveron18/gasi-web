@@ -12,8 +12,24 @@ FORBIDDEN_AUDIT_KEYS = frozenset({
     "patient_name", "diagnosis", "prescription", "indication", "password", "token",
     "secret", "authorization", "cookie",
 })
+# Block decorated/compound variants too (for example access_token, patientName,
+# clinicalText). Exact-name filtering alone is too easy to bypass accidentally.
+FORBIDDEN_AUDIT_KEY_FRAGMENTS = (
+    "clinical", "patient", "diagnos", "prescript", "indication", "narrative",
+    "password", "passwd", "token", "secret", "authorization", "cookie",
+)
 ALLOWED_SCALAR_TYPES = (str, int, float, bool, type(None))
 GENESIS_HASH = "0" * 64
+AUDIT_ADDENDUM_ACTION = "AUDIT_ADDENDUM"
+# Addenda correct audit metadata by reference; they never overwrite history and
+# never carry free-text or clinical content.
+ALLOWED_ADDENDUM_REASON_CODES = frozenset({
+    "ACTOR_ROLE_CORRECTION", "ACTION_CODE_CORRECTION", "OPERATIONAL_METADATA_CORRECTION",
+})
+
+
+def _normalized_audit_key(key: str) -> str:
+    return "".join(char for char in key.lower() if char.isalnum())
 
 
 def sanitize_audit_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -22,7 +38,9 @@ def sanitize_audit_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any
     clean: dict[str, Any] = {}
     for raw_key, value in metadata.items():
         key = str(raw_key).strip()
-        if not key or key.lower() in FORBIDDEN_AUDIT_KEYS:
+        normalized = _normalized_audit_key(key)
+        if (not key or key.lower() in FORBIDDEN_AUDIT_KEYS
+                or any(fragment in normalized for fragment in FORBIDDEN_AUDIT_KEY_FRAGMENTS)):
             raise ValueError("audit_metadata_forbidden")
         if not isinstance(value, ALLOWED_SCALAR_TYPES):
             raise ValueError("audit_metadata_must_be_scalar")
@@ -38,6 +56,30 @@ def build_audit_event(*, actor_id: str, actor_role: str, action: str,
     return {"at": at or datetime.now(timezone.utc).isoformat(), "actor_id": actor_id.strip(),
             "actor_role": actor_role.strip(), "action": action.strip(), "episode_id": episode_id,
             "metadata": sanitize_audit_metadata(metadata)}
+
+
+def build_audit_addendum(*, actor_id: str, actor_role: str, target_event_hash: str,
+                         reason_code: str, episode_id: str | None = None,
+                         corrected_field: str | None = None,
+                         corrected_value: str | int | float | bool | None = None,
+                         at: str | None = None) -> dict[str, Any]:
+    """Build a minimal correction event without mutating or duplicating the source event."""
+    target = target_event_hash.strip().lower()
+    if len(target) != 64 or any(char not in "0123456789abcdef" for char in target):
+        raise ValueError("audit_addendum_target_hash_invalid")
+    reason = reason_code.strip().upper()
+    if reason not in ALLOWED_ADDENDUM_REASON_CODES:
+        raise ValueError("audit_addendum_reason_invalid")
+    metadata: dict[str, Any] = {"target_event_hash": target, "reason_code": reason}
+    if corrected_field is not None:
+        field = corrected_field.strip()
+        if not field or field not in {"actor_role", "action", "level", "from", "to", "response_id"}:
+            raise ValueError("audit_addendum_field_invalid")
+        metadata["corrected_field"] = field
+        metadata["corrected_value"] = corrected_value
+    return build_audit_event(actor_id=actor_id, actor_role=actor_role,
+                             action=AUDIT_ADDENDUM_ACTION, episode_id=episode_id,
+                             metadata=metadata, at=at)
 
 
 def _event_hash(event: Mapping[str, Any], previous_hash: str) -> str:

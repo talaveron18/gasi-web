@@ -654,12 +654,14 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  tampered.audit[0].event_hash="0".repeat(64);
  res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:tampered}),{});
  assert.equal(res.status,422);
- assert.equal((await responseJson(res)).detail,"invalid_recovery_snapshot");
+ // Editing an audit hash also invalidates the snapshot HMAC; reject as an unsigned alteration.
+ assert.equal((await responseJson(res)).detail,"invalid_recovery_snapshot_signature");
  const afterTamper=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
  assert.equal(afterTamper,beforeTamper);
 
  const duplicateWorker=structuredClone(snapshot);
  duplicateWorker.workers.push(structuredClone(duplicateWorker.workers[0]));
+ resignSnapshot(duplicateWorker,secrets.GASI_RECOVERY_SIGNING_SECRET);
  res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:duplicateWorker}),{});
  assert.equal(res.status,422);
  assert.equal((await responseJson(res)).detail,"invalid_recovery_snapshot_references");

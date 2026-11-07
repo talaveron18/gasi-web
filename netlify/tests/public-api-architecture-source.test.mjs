@@ -13,23 +13,24 @@ const app=fs.readFileSync(new URL("../../frontend/src/App.js",import.meta.url),"
 const publicApi=fs.readFileSync(new URL("../functions/public-api.mts",import.meta.url),"utf8");
 const migration=fs.readFileSync(new URL("../database/migrations/20260920190000_public-web-v1/migration.sql",import.meta.url),"utf8");
 
-test("public frontend defaults to one same-origin API helper",()=>{
+test("dormant course/auth frontend uses one same-origin API helper while public training stays static",()=>{
   assert.match(apiHelper,/PUBLIC_API_BASE/);
   assert.match(apiHelper,/configured/);
   assert.equal(apiHelper.includes("NODE_ENV === 'development'"),true);
   assert.match(apiHelper,/\/api/);
-  for(const source of [auth,training,dashboard,course,admin,callback]){
+  for(const source of [auth,dashboard,course,admin,callback]){
     assert.match(source,/PUBLIC_API_BASE as API/);
     assert.doesNotMatch(source,/REACT_APP_BACKEND_URL/);
     assert.doesNotMatch(source,/undefined\/api/);
   }
+  assert.doesNotMatch(training,/PUBLIC_API_BASE|REACT_APP_BACKEND_URL|\/api\/courses/);
   assert.doesNotMatch(app,/REACT_APP_BACKEND_URL/);
 });
 
-test("training page has no second course administration implementation",()=>{
+test("training page is informational only and exposes no course administration surface",()=>{
   assert.doesNotMatch(training,/adminMode|handleCreateCourse|handleDeleteCourse|admin-create-course|admin-edit-/);
-  assert.match(training,/\/dashboard\/admin\/cursos/);
-  assert.match(training,/data-testid="catalog-admin-link"/);
+  assert.doesNotMatch(training,/\/dashboard\/admin\/cursos|catalog-admin-link/);
+  assert.match(training,/Solicitar información/);
 });
 
 test("public production API is PostgreSQL and same-origin Netlify",()=>{

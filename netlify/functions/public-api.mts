@@ -334,7 +334,11 @@ function stripeSignature(raw:string,header:string,secret:string){
 }
 
 async function handlePublicApi(req:Request,_context:Context){
-  const url=new URL(req.url),path=url.pathname,db=database();
+  const url=new URL(req.url),path=url.pathname;
+  // Keep the withdrawn anonymous course catalogue closed at the function layer,
+  // even if a direct function invocation bypasses CDN redirects.
+  if(req.method==="GET"&&(path==="/api/courses/"||/^\/api\/courses\/[^/]+$/.test(path)))return json({detail:"not_found"},404);
+  const db=database();
   try{
     enforceBrowserMutationOrigin(req,path);
     if(req.method==="GET"&&path==="/api/health"){await queryRows(db,"SELECT 1");return json({ok:true,storage:"postgresql"});}

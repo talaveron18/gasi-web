@@ -9,12 +9,14 @@ from backend.internal_session_security import (
     issue_session,
     session_is_valid,
     sign_session_token,
+    signed_session_identity,
     verify_session_token,
 )
 
 NOW = datetime(2026, 9, 17, 5, 0, tzinfo=timezone.utc)
 WORKER = "GASI-WORKER-SECURITY"
 SECRET = "synthetic-test-secret-32-bytes-minimum-2026"
+TENANT = "tenant-a"
 
 
 def test_session_expires_and_auth_version_revokes_it():
@@ -34,6 +36,22 @@ def test_signed_session_token_derives_identity_and_rejects_tampering():
     tampered = f"{parts[0]}.{parts[1][:-1]}A.{parts[2]}"
     with pytest.raises(SessionSecurityError, match="invalid_session_signature"):
         verify_session_token(token=tampered, secret=SECRET, current_auth_version=3, now=NOW + timedelta(minutes=1))
+
+
+def test_tenant_bound_session_round_trips_signed_identity():
+    session = issue_session(worker_id=WORKER, tenant_id=TENANT, auth_version=5, now=NOW, ttl_minutes=30)
+    token = sign_session_token(session, secret=SECRET)
+    assert signed_session_identity(token=token, secret=SECRET) == (TENANT, WORKER)
+    observed = verify_session_token(token=token, secret=SECRET, current_auth_version=5, now=NOW + timedelta(minutes=1))
+    assert observed.tenant_id == TENANT
+    assert observed.worker_id == WORKER
+
+
+def test_tenant_facing_identity_rejects_legacy_tenantless_session():
+    session = issue_session(worker_id=WORKER, auth_version=5, now=NOW, ttl_minutes=30)
+    token = sign_session_token(session, secret=SECRET)
+    with pytest.raises(SessionSecurityError, match="tenant_session_required"):
+        signed_session_identity(token=token, secret=SECRET)
 
 
 def test_signed_session_token_rejects_expired_or_rotated_auth_version():

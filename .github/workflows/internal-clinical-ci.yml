@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'automation/web-internal-clinical-*'
+      - 'automation/public-reconcile-*'
       - 'work/web-infra-v1-*'
   workflow_dispatch:
 
@@ -34,14 +35,14 @@ jobs:
         env:
           CI: 'true'
         run: yarn test --watchAll=false --passWithNoTests
+      - name: Public commercial source and contact regression
+        run: node --test tests/public-*.test.cjs
       - name: Browser E2E access and accessibility
         run: node e2e/browser-access.mjs
+      - name: Browser E2E public route accessibility
+        run: node e2e/browser-public-accessibility.mjs
       - name: Browser E2E authenticated clinical flow
         run: node e2e/browser-clinical.mjs
-      - name: Browser E2E student course flow
-        run: node e2e/browser-course-flow.mjs
-      - name: Browser E2E course administration
-        run: node e2e/browser-course-admin.mjs
 
   backend-clinical:
     runs-on: ubuntu-latest
@@ -81,7 +82,9 @@ jobs:
       - name: Install Netlify function dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Typecheck clinical function
-        run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-clinical.mts
+        run: npx tsc --noEmit --allowImportingTsExtensions --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-clinical.mts
+      - name: Typecheck personal inbox function
+        run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/internal-personal-inbox.mts
       - name: Typecheck public API function
         run: npx tsc --noEmit --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --types node functions/public-api.mts
       - name: Tenant isolation and security regression
@@ -108,10 +111,15 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Audit Netlify runtime dependencies
         run: npm --prefix netlify audit --omit=dev --audit-level=high
-      - name: Run Netlify production build
+      - name: Build production artifact without deploy
         env:
-          CI: 'false'
-        run: npx -y netlify-cli@27.8.0 build --offline
+          CI: 'true'
+          GENERATE_SOURCEMAP: 'false'
+        run: yarn --cwd frontend build
+      - name: Prepare isolated commercial functions
+        run: node scripts/prepare-commercial-functions.cjs
+      - name: Verify commercial-only function package
+        run: node --test scripts/commercial-package.test.cjs
       - name: Netlify HTTP header smoke
         run: node scripts/netlify-http-smoke.mjs
       - name: Rehearse release artifact restore
@@ -152,9 +160,66 @@ jobs:
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: '24'
+      - name: Install PostgreSQL client tools
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - name: Install Netlify function dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: PostgreSQL attendance and recovery integration
         env:
           GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
         run: node --test tests/runtime-postgres-integration.test.mjs
+      - name: PostgreSQL personal inbox isolation integration
+        env:
+          GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
+        run: node --test tests/runtime-personal-inbox-postgres.test.mjs
+      - name: PostgreSQL backup and restore rehearsal
+        env:
+          GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
+        run: node tests/postgres-backup-restore-rehearsal.mjs
+
+  # GitHub's legacy status endpoint does not expose Actions check-runs. Publish
+  # each completed job conclusion on the same preview commit for auditability.
+  report-ci-statuses:
+    if: ${{ always() && github.ref == 'refs/heads/automation/public-reconcile-20261023' }}
+    needs: [frontend, netlify-build, backend-clinical, netlify-clinical, netlify-runtime-integration]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CI_RESULTS: ${{ toJSON(needs) }}
+    steps:
+      - name: Record verified job conclusions on this preview commit
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from urllib.request import Request, urlopen
+
+          results = json.loads(os.environ['CI_RESULTS'])
+          repository = os.environ['GITHUB_REPOSITORY']
+          sha = os.environ['GITHUB_SHA']
+          token = os.environ['GH_TOKEN']
+          endpoint = f'https://api.github.com/repos/{repository}/statuses/{sha}'
+          states = {'success': 'success', 'failure': 'failure', 'cancelled': 'error', 'skipped': 'error'}
+          for name, job in results.items():
+              conclusion = job['result']
+              state = states.get(conclusion, 'error')
+              payload = json.dumps({
+                  'state': state,
+                  'context': f'gasi-ci/{name}',
+                  'description': f'GitHub Actions job {name}: {conclusion}'[:140],
+                  'target_url': f"https://github.com/{repository}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+              }).encode('utf-8')
+              request = Request(endpoint, data=payload, method='POST', headers={
+                  'Authorization': f'Bearer {token}',
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+                  'Content-Type': 'application/json',
+              })
+              with urlopen(request, timeout=20) as response:
+                  if response.status != 201:
+                      raise RuntimeError(f'Failed to report {name}: HTTP {response.status}')
+              print(f'{name}: {conclusion}')
+          PY

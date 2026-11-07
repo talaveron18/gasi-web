@@ -2,9 +2,6 @@ const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE=/^[+()\d\s.-]{7,20}$/;
 const SERVICES=new Set([
   "Enfermería presencial",
-  "Apoyo médico remoto",
-  "Fisioterapia",
-  "Psicología",
   "Formación sanitaria",
   "Otro"
 ]);
@@ -57,28 +54,29 @@ function validateBaseLead(raw,{requireCompany=false,requireMessage=false}={}){
   return{lead};
 }
 
-async function sendLeadEmail({subject,html}){
-  const apiKey=process.env.MAILERSEND_API_KEY||"";
+async function sendLeadEmail({subject,html,replyTo}){
+  const apiKey=process.env.RESEND_API_KEY||"";
   const sender=process.env.GASI_LEAD_SENDER_EMAIL||"coordinacion@gasisalud.com";
   const recipient=process.env.GASI_LEAD_RECIPIENT_EMAIL||"coordinacion@gasisalud.com";
   if(!apiKey)return{ok:false,code:"service_unavailable"};
   let upstream;
   try{
-    upstream=await fetch("https://api.mailersend.com/v1/email",{
+    upstream=await fetch("https://api.resend.com/emails",{
       method:"POST",
       headers:{"content-type":"application/json","authorization":`Bearer ${apiKey}`},
       body:JSON.stringify({
-        from:{email:sender,name:"Web GASI"},
-        to:[{email:recipient,name:"GASI Coordinación"}],
+        from:`Web GASI <${sender}>`,
+        to:[recipient],
         subject,
-        html
+        html,
+        reply_to:replyTo
       })
     });
   }catch{
     return{ok:false,code:"delivery_failed"};
   }
   if(!upstream.ok){
-    console.error("lead_delivery_failed",{provider:"mailersend",status:upstream.status});
+    console.error("lead_delivery_failed",{provider:"resend",status:upstream.status});
     return{ok:false,code:"delivery_failed"};
   }
   return{ok:true};
