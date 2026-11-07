@@ -11,7 +11,8 @@ const json=(v:any,status=200,extra:any={})=>new Response(JSON.stringify(v),{stat
 class HttpError extends Error{status:number;constructor(status:number,message:string){super(message);this.status=status;}}
 const fail=(status:number,message:string):never=>{throw new HttpError(status,message);};
 const env=(name:string)=>String((globalThis as any).Netlify?.env?.get?.(name)||process.env[name]||"");
-const conn=()=>{const url=env("GASI_AULA_DB_URL");return url?getDatabase({connectionString:url}):getDatabase();};
+const dbCache=new Map<string,any>();
+const conn=()=>{const url=env("GASI_AULA_DB_URL"),key=url||"__netlify_default__";if(!dbCache.has(key))dbCache.set(key,url?getDatabase({connectionString:url}):getDatabase());return dbCache.get(key);};
 async function q(text:string,values:any[]=[]){const db=conn(),client=await db.pool.connect();try{return (await client.query(text,values)).rows;}finally{client.release();}}
 const hash=(v:string)=>crypto.createHash("sha256").update(v).digest("hex");
 const normEmail=(v:unknown)=>{const e=String(v||"").trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)||e.length>254)fail(422,"invalid_email");return e;};
