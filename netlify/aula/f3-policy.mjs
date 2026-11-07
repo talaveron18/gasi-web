@@ -34,3 +34,31 @@ export function gradePractice(rubric,grades,minPerCriterion=2){
    grades.some(n=>!Number.isInteger(n)||n<0||n>4)||!Number.isInteger(minPerCriterion)||minPerCriterion<1||minPerCriterion>4)throw new Error('invalid_rubric_grades');
  return {approved:grades.every(n=>n>=minPerCriterion),total:grades.reduce((x,n)=>x+n,0),max:4*grades.length};
 }
+
+export function makeOptionOrders(sample,draw=n=>Math.floor(Math.random()*n)){
+ if(!Array.isArray(sample)||sample.length!==TEST_SAMPLE_SIZE)throw new Error('invalid_sample');
+ const orders={};
+ for(const q of sample){
+   const order=[0,1,2];
+   for(let i=2;i>0;i--){const j=draw(i+1);if(!Number.isInteger(j)||j<0||j>i)throw new Error('invalid_rng');
+     [order[i],order[j]]=[order[j],order[i]];
+   }
+   orders[String(q.id)]=order;
+ }
+ return orders;
+}
+export function gradeWithOptionOrders(selected,answers,orders={}){
+ if(!answers||typeof answers!=='object'||Array.isArray(answers))throw new Error('invalid_answers');
+ const original={};
+ for(const q of selected){
+   const id=String(q.id),order=orders[id]||[0,1,2];
+   if(!Array.isArray(order)||order.length!==3||new Set(order).size!==3||order.some(n=>!Number.isInteger(n)||n<0||n>2)
+      ||!Number.isInteger(answers[id])||answers[id]<0||answers[id]>2)throw new Error('invalid_answers');
+   original[id]=order[answers[id]];
+ }
+ const result=gradeTest(selected,original);
+ return {...result,review:result.review.map(r=>{
+   const order=orders[r.id]||[0,1,2];
+   return {...r,submitted:answers[r.id],correct_index:order.indexOf(r.correct_index)};
+ })};
+}
