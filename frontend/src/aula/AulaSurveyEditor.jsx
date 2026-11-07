@@ -15,7 +15,7 @@ export default function AulaSurveyEditor({courseId,status,units,request}){
  const change=(i,fields)=>setDraft(p=>({...p,questions:p.questions.map((q,n)=>n===i?{...q,...fields}:q)}));
  const save=async()=>{
    setSaving(true);setError('');setNotice('');
-   try{await request('/admin/courses/'+courseId+'/surveys',{method:'POST',body:{...draft,unit_id:draft.kind==='followup'&&draft.unit_id?draft.unit_id:null}});
+   try{await request('/admin/courses/'+courseId+'/surveys',{method:'POST',body:{...draft,kind:status==='active'?'final':draft.kind,unit_id:status==='draft'&&draft.kind==='followup'&&draft.unit_id?draft.unit_id:null}});
      setDraft(initial());await refresh();setNotice('Encuesta creada en este curso.');}
    catch(e){setError('No se pudo crear la encuesta: '+e.message);}finally{setSaving(false);}
  };
@@ -39,7 +39,7 @@ export default function AulaSurveyEditor({courseId,status,units,request}){
      {status==='draft'&&<label className="block text-sm">Tipo<select className={cls} value={draft.kind} onChange={e=>setDraft(p=>({...p,kind:e.target.value}))}>
        <option value="final">Finalización</option><option value="followup">Seguimiento</option></select></label>}
      <label className="block text-sm">Título<input className={cls} value={draft.title} maxLength={180} onChange={e=>setDraft(p=>({...p,title:e.target.value}))}/></label>
-     {draft.kind==='followup'&&<label className="block text-sm">Unidad relacionada (opcional)<select className={cls} value={draft.unit_id} onChange={e=>setDraft(p=>({...p,unit_id:e.target.value}))}>
+     {status==='draft'&&draft.kind==='followup'&&<label className="block text-sm">Unidad relacionada (opcional)<select className={cls} value={draft.unit_id} onChange={e=>setDraft(p=>({...p,unit_id:e.target.value}))}>
        <option value="">Todo el curso</option>{units.map(u=><option key={u.id} value={u.id}>Unidad {u.unit_no}: {u.title}</option>)}</select></label>}
      {draft.questions.map((q,i)=><fieldset key={i} className="rounded-lg border bg-white p-3">
        <legend className="font-semibold">Pregunta {i+1}</legend>
