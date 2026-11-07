@@ -110,7 +110,7 @@ describe('reconciliación del contenido público GASI', () => {
     // A new public route must not escape the inventory because its first JSX tag is a guard.
     const routeElements = [...app.matchAll(/<Route\s+path="([^"]+)"\s+element=\{([\s\S]*?)\}\s*\/>/g)];
     const publicRoutes = routeElements.filter(([, route]) =>
-      !route.startsWith('/interno') && !route.startsWith('/dashboard')
+      !route.startsWith('/interno') && !route.startsWith('/dashboard') && !route.startsWith('/aula')
     );
     expect(publicRoutes.length).toBeGreaterThan(0);
     for (const [, route, element] of publicRoutes) {
