@@ -300,16 +300,24 @@ async function handle(req:Request){
     }
     const units=await q("SELECT * FROM aula_units WHERE course_id=$1 ORDER BY unit_no",[course.id]);
     if(units.length<2||units[0].unit_no!==0||!units[0].content_blocks?.length||units.some((u:any,i:number)=>u.unit_no!==i||!u.content_blocks?.length||(i>0&&!u.learning_outcomes?.length)))fail(422,"course_requires_welcome_content_and_outcomes");
+    const unitsForAudit=[];
     for(const u of units){
+      let question_count=0,has_practice=false;
       if(u.requires_test){
         const count=await q("SELECT count(*)::int AS count FROM aula_test_questions WHERE unit_id=$1",[u.id]);
-        if(Number(count[0].count)!==15)fail(422,"test_bank_requires_15_questions");
+        question_count=Number(count[0].count);
+        if(question_count!==15)fail(422,"test_bank_requires_15_questions");
       }
       if(u.requires_practice||u.allows_voluntary_practice){
         const found=await q("SELECT 1 FROM aula_practice_assignments WHERE unit_id=$1",[u.id]);
-        if(!found.length)fail(422,"practice_rubric_required");
+        has_practice=found.length>0;
+        if(!has_practice)fail(422,"practice_rubric_required");
       }
+      unitsForAudit.push({...u,question_count,has_practice});
     }
+    const preflight=authorAudit(course,unitsForAudit);
+    if(!preflight.ready)return json({detail:"course_author_audit_failed",
+      issues:preflight.issues.filter((issue:any)=>issue.level==="error")},422);
     await q("UPDATE aula_courses SET status='active',updated_at=now() WHERE id=$1",[course.id]);
     await log(user,"COURSE_PUBLISHED","course",course.id);
     return json({ok:true});
