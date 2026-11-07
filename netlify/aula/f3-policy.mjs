@@ -48,7 +48,9 @@ export function makeOptionOrders(sample,draw=n=>Math.floor(Math.random()*n)){
  return orders;
 }
 export function gradeWithOptionOrders(selected,answers,orders={}){
- if(!answers||typeof answers!=='object'||Array.isArray(answers))throw new Error('invalid_answers');
+ if(!Array.isArray(selected)||selected.length!==TEST_SAMPLE_SIZE||!answers||typeof answers!=='object'||Array.isArray(answers)||
+    Object.keys(answers).length!==selected.length||
+    Object.keys(answers).some(id=>!selected.some(q=>String(q.id)===id)))throw new Error('invalid_answers');
  const original={};
  for(const q of selected){
    const id=String(q.id),order=orders[id]||[0,1,2];
