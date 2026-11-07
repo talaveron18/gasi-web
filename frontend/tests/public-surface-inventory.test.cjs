@@ -87,7 +87,7 @@ test('navegación y CTA comerciales no enlazan a compra, inscripción o servicio
 });
 
 
-test('la portada no depende de imágenes externas no verificadas', () => {
+test('la portada presenta el nuevo posicionamiento y las dos líneas comerciales', () => {
   const home = read('src/pages/Home.jsx');
   assert.doesNotMatch(home, /customer-assets\.emergentagent\.com|service\.image|<img\b/i);
   assert.match(home, /bg-gradient-to-br/);
@@ -113,4 +113,19 @@ test('el chatbot comprueba el consentimiento vigente al enviar, sin fijarlo arti
   assert.match(chatbot, /if\(!acceptsPrivacy\)\{addBot\('Debes aceptar la política de protección de datos antes de enviar la solicitud\.'\);return;\}/);
   assert.match(chatbot, /accepts_privacy:acceptsPrivacy/);
   assert.doesNotMatch(chatbot, /accepts_privacy:true/);
+});
+
+test('páginas comerciales mantienen asistencia integral, formación empresarial y excluyen venta de DEA', () => {
+  const about = read('src/pages/QuienesSomos.jsx');
+  const services = read('src/pages/Servicios.jsx');
+  const healthcare = read('src/pages/CoberturaSanitaria.jsx');
+  const training = read('src/pages/FormacionSanitaria.jsx');
+  assert.match(about, /asistencia integral, flexible/);
+  assert.match(about, /formación sanitaria para empresas/);
+  assert.match(services, /Asistencia Sanitaria Integral para Empresas/);
+  assert.match(healthcare, /Asistencia Sanitaria Integral en Empresas/);
+  assert.match(training, /primeros auxilios, reanimación cardiopulmonar/);
+  for (const source of [about, services, healthcare, training]) {
+    assert.doesNotMatch(source, /venta de (?:DEA|desfibriladores)/i);
+  }
 });
