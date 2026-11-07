@@ -1,6 +1,6 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {Link,Navigate,useParams} from 'react-router-dom';
-import {useAula} from './AulaAuthContext';
+import {useAula,AULA_PREVIEW_DEMO} from './AulaAuthContext';
 import AulaReaderView from './AulaReaderView';
 
 export default function AulaReader(){
@@ -67,7 +67,7 @@ export default function AulaReader(){
   return <div>
     <div className="mx-auto max-w-7xl px-4 pt-5"><Link className="text-sm font-semibold text-[#005EB8] underline" to={user.role==='admin'||user.role==='author'?'/aula/autor':'/aula/mis-cursos'}>Volver a mis cursos</Link></div>
     {course?<AulaReaderView course={course} units={units} selected={selected} unit={unit} loading={loading} error={error}
-      onOpen={open} onComplete={complete} completing={completing}/>:
+      onOpen={open} onComplete={complete} completing={completing} demo={AULA_PREVIEW_DEMO}/>:
       <main className="mx-auto max-w-4xl px-5 py-16">{loading?<p role="status">Cargando curso…</p>:<p role="alert">{error||'Curso no disponible.'}</p>}</main>}
   </div>;
 }
