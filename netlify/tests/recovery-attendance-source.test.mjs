@@ -87,9 +87,11 @@ test("restore explicitly serializes JSONB payloads for node-postgres",()=>{
 
 test("restore verifies the audit hash chain before destructive work",()=>{
  assert.match(source,/function validAuditSnapshot\(rows:any\[\]\)/);
- assert.match(source,/previous="0"\.repeat\(64\)/);
- assert.match(source,/String\(x\.previous_hash\|\|""\)!==previous/);
- assert.match(source,/crypto\.createHash\("sha256"\)\.update\(previous\+":"\+canonical\(payload\)\)\.digest\("hex"\)/);
+  assert.match(source,/validAuditChainsByTenant\\(rows,canonical\\)/);
+  const tenantAudit=fs.readFileSync(new URL("../functions/internal-audit-tenant-chain.mts",import.meta.url),"utf8");
+  assert.match(tenantAudit,/previous=ZERO_HASH/);
+  assert.match(tenantAudit,/String\\(x\\.previous_hash\\|\\|""\\)!==previous/);
+  assert.match(tenantAudit,/crypto\\.createHash\\("sha256"\\)\\.update\\(previous\\+":"\\+canonical\\(payload\\)\\)\\.digest\\("hex"\\)/);
  assert.match(source,/!validAuditSnapshot\(snapshot\.audit\)/);
  const validation=source.indexOf("!validAuditSnapshot(snapshot.audit)");
  const connect=source.indexOf("const client=await db.pool.connect()",source.indexOf('path==="/api/internal-clinical/recovery/restore"'));
