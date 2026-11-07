@@ -276,19 +276,19 @@ describe('reconciliación del contenido público GASI', () => {
 
   test('la ruta de organizaciones delimita positivamente el alcance público actual', () => {
     const organisations = read('pages/SaludLaboral.jsx');
-    expect(organisations).toContain('La oferta pública se limita a los servicios descritos en esta web. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.');
-    expect(organisations).toContain('Enfermería presencial y formación sanitaria, con alcance sujeto a confirmación previa y a los requisitos aplicables.');
+    expect(organisations).toContain('Cada propuesta se define según las necesidades del cliente. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.');
+    expect(organisations).toContain('Asistencia sanitaria integral para empresas y formación práctica en primeros auxilios, reanimación y desfibriladores.');
   });
 
-  test('metadatos limitan la oferta a enfermería presencial y formación sanitaria', () => {
-    expect(metadata).toContain('Enfermería presencial y formación sanitaria para organizaciones, sujetas a confirmación previa de alcance y requisitos aplicables.');
-    expect(metadata).toContain('<title>GASI | Enfermería presencial y formación sanitaria</title>');
+  test('metadatos describen asistencia sanitaria integral y formación empresarial', () => {
+    expect(metadata).toContain('Soluciones de asistencia sanitaria integral para empresas y formación empresarial en primeros auxilios, RCP y desfibriladores.');
+    expect(metadata).toContain('<title>GASI | Asistencia Sanitaria Integral para Empresas</title>');
   });
 
   test('chatbot público sigue siendo comercial, no clínico y no de urgencias', () => {
     const chatbot = read('components/Chatbot.jsx');
     expect(chatbot).toContain('Este asistente sirve únicamente para contacto comercial e información general. No es un canal clínico ni de urgencias.');
-    expect(chatbot).toContain("const SERVICES = ['Enfermería presencial', 'Formación sanitaria', 'Otro'];");
+    expect(chatbot).toContain("const SERVICES = ['Asistencia sanitaria integral para empresas', 'Formación sanitaria empresarial', 'Otro'];");
   });
 
   test('el chatbot ofrece correo alternativo y advierte sobre datos de salud incluso si falla el envío', () => {
