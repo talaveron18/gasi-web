@@ -54,7 +54,10 @@ function validStoredTenantIdentity(row:any){
   // Rows created before tenant scoping intentionally derive GASI-LEGACY from missing actor_tenant_id.
   // They remain verifiable/restorable as one isolated historical chain, but a row may never claim
   // GASI-LEGACY while carrying a different authenticated tenant in its hashed metadata.
-  if(tenant===LEGACY_TENANT)return !metadataTenant;
+  // Historical rows have no actor_tenant_id; active workers in the migrated legacy
+  // tenant may legitimately record an explicit, matching actor_tenant_id.
+  // Never accept another tenant's identity in a legacy-scoped row.
+  if(tenant===LEGACY_TENANT)return !metadataTenant||metadataTenant===LEGACY_TENANT;
   return metadataTenant===tenant;
 }
 
