@@ -132,7 +132,9 @@ test('páginas comerciales mantienen asistencia integral, formación empresarial
   assert.match(services, /Asistencia Sanitaria Integral para Empresas/);
   assert.match(healthcare, /Asistencia Sanitaria Integral en Empresas/);
   assert.match(training, /primeros auxilios, reanimación cardiopulmonar/);
-  assert.match(labor, /Asistencia sanitaria integral/);
+  assert.match(labor, /title: 'Enfermería presencial'/);
+  assert.match(labor, /horarios, funciones y recursos definidos/);
+  assert.doesNotMatch(labor, /reconocimientos médicos|certificación garantizada/i);
   assert.match(bot, /Asistencia sanitaria integral para empresas/);
   for (const source of [about, services, healthcare, training]) {
     assert.doesNotMatch(source, /venta de (?:DEA|desfibriladores)/i);
