@@ -1,4 +1,5 @@
 import React from 'react';
+import { publicImage } from '@/utils/publicImage';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 
@@ -69,7 +70,7 @@ const Sectores = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {sectors.map((sector, index) => (
               <Card key={index} className="overflow-hidden hover-lift h-full" data-testid={`sector-card-${index}`}>
-                <div className="h-52 overflow-hidden bg-[#EAF4FC]"><img src={sector.image} alt={sector.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
+                <div className="h-52 overflow-hidden bg-[#EAF4FC]"><img src={publicImage(sector.image)} alt={sector.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
                 <div className="p-8">
                 <h3 className="text-2xl font-bold text-[#0F172A] mb-4 text-center">
                   {sector.title}
