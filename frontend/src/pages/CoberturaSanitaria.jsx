@@ -29,7 +29,7 @@ const CoberturaSanitaria = () => {
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Una solución sanitaria adaptada a su empresa</h2>
           <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-            GASI desarrolla un modelo de <strong>asistencia sanitaria integral en el entorno de trabajo</strong>, con atención profesional y coordinación asistencial adaptadas a las necesidades de cada centro. La configuración concreta se estudia con cada organización.
+            GASI desarrolla un modelo de <strong>asistencia sanitaria integral en el entorno de trabajo</strong>, con enfermería presencial y coordinación asistencial adaptadas a las necesidades de cada centro. La configuración concreta se estudia con cada organización.
           </p>
           <p className="text-lg text-[#64748B] leading-relaxed mb-6">
             Antes de iniciar un servicio definimos con la organización el centro, los horarios, las funciones y los medios necesarios. La prestación se ajusta a lo acordado y a los requisitos profesionales y sanitarios que correspondan.
