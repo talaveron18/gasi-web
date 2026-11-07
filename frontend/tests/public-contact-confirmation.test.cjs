@@ -6,8 +6,8 @@ const path = require('node:path');
 
 test('contact form does not imply mailbox delivery or service acceptance', () => {
   const source = fs.readFileSync(path.join(__dirname, '../src/pages/Contacto.jsx'), 'utf8');
-  assert.match(source, /toast\.success\('Solicitud enviada al servicio de recepción\./);
-  assert.match(source, /Esto no confirma su entrega al buzón ni la aceptación del servicio/);
+  assert.match(source, /setSubmissionStatus\(\{ type: 'success', message: 'Solicitud aceptada por el servicio de envío\./);
+  assert.match(source, /Esto no confirma la entrega al buzón ni la aceptación del servicio/);
   assert.match(source, /Si no recibe respuesta, escriba a coordinacion@gasisalud\.com/);
   assert.doesNotMatch(source, /toast\.success\('Formulario enviado\. Revisaremos su solicitud y nos pondremos en contacto\.'/);
   assert.match(source, /No incluya información clínica, datos de pacientes ni datos de salud/);
