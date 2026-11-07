@@ -218,6 +218,45 @@ test("chatbot refuses patient details instead of sending clinical information",a
   assert.equal(delivered,false);
 });
 
+test("chatbot rejects malformed JSON with HTTP 400 before any mail send",async()=>{
+  resetEnv();
+  let calls=0;
+  global.fetch=async()=>{calls++;throw new Error("should never send");};
+  const invalid=await chatbot.handler({httpMethod:"POST",body:'{"service":'});
+  assert.equal(invalid.statusCode,400);
+  assert.equal(JSON.parse(invalid.body).message,"invalid_json");
+  assert.equal(calls,0);
+});
+
+test("Resend HTTP 429 is propagated as chatbot HTTP 429 with retry advice",async()=>{
+  resetEnv();
+  let calls=0;
+  global.fetch=async()=>{calls++;return{ok:false,status:429};};
+  const result=await chatbot.handler({httpMethod:"POST",body:JSON.stringify({
+    service:"Formación sanitaria",name:"Ana",company:"Empresa Prueba",
+    email:"ana@example.com",phone:"",location:"Madrid",
+    website:"",accepts_privacy:true
+  })});
+  assert.equal(result.statusCode,429);
+  assert.equal(JSON.parse(result.body).message,"rate_limited");
+  assert.equal(result.headers["retry-after"],"60");
+  assert.equal(calls,1);
+});
+
+test("chatbot handles Resend server failure and network failure without false success",async()=>{
+  resetEnv();
+  const lead={service:"Enfermería presencial",name:"Eva",company:"Empresa",
+    email:"eva@example.com",phone:"",website:"",accepts_privacy:true};
+  global.fetch=async()=>({ok:false,status:500});
+  let result=await chatbot.handler({httpMethod:"POST",body:JSON.stringify(lead)});
+  assert.equal(result.statusCode,502);
+  assert.equal(JSON.parse(result.body).message,"delivery_failed");
+  global.fetch=async()=>{throw new Error("simulated connection loss");};
+  result=await chatbot.handler({httpMethod:"POST",body:JSON.stringify(lead)});
+  assert.equal(result.statusCode,502);
+  assert.equal(JSON.parse(result.body).message,"delivery_failed");
+});
+
 test("lead endpoints fail closed when mail provider secret is absent",async()=>{
   delete process.env.RESEND_API_KEY;
   global.fetch=async()=>{throw new Error("must not call upstream");};
