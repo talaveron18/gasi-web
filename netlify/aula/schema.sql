@@ -56,6 +56,11 @@ CREATE TABLE IF NOT EXISTS aula_units(
   UNIQUE(course_id,unit_no)
 );
 CREATE INDEX IF NOT EXISTS aula_units_course_idx ON aula_units(course_id,unit_no);
+CREATE TABLE IF NOT EXISTS aula_course_tutors(
+  course_id uuid NOT NULL REFERENCES aula_courses(id) ON DELETE CASCADE,
+  tutor_id uuid NOT NULL REFERENCES aula_users(id),
+  PRIMARY KEY(course_id,tutor_id)
+);
 CREATE TABLE IF NOT EXISTS aula_enrollments(
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id uuid NOT NULL REFERENCES aula_courses(id),
