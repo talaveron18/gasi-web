@@ -13,7 +13,7 @@
 # Internal clinical endpoints are excluded from the commercial deployment.
 [[redirects]]
   from = "/api/internal-clinical/*"
-  to = "/404.html"
+  to = "/api-unavailable.json"
   status = 404
   force = true
 
@@ -23,13 +23,27 @@
 # authenticated course infrastructure for future work.
 [[redirects]]
   from = "/api/courses/"
-  to = "/404.html"
+  to = "/api-unavailable.json"
   status = 404
   force = true
 
 [[redirects]]
   from = "/api/courses/:course_id"
-  to = "/404.html"
+  to = "/api-unavailable.json"
+  status = 404
+  force = true
+
+# Unknown /api routes must never receive the SPA index.html with HTTP 200.
+# Netlify commercial functions remain served at /.netlify/functions/*.
+[[redirects]]
+  from = "/api"
+  to = "/api-unavailable.json"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/api/*"
+  to = "/api-unavailable.json"
   status = 404
   force = true
 
