@@ -19,7 +19,7 @@ function Block({block}){
   if(block.type==='video')return <figure><video controls preload="metadata" className="max-h-96 w-full rounded-xl" src={block.src}>Tu navegador no puede reproducir este vídeo.</video>{block.text&&<figcaption className="mt-2 text-sm text-slate-600">{block.text}</figcaption>}</figure>;
   return <p className="whitespace-pre-wrap leading-7 text-slate-800">{block.text}</p>;
 }
-export default function AulaReaderView({course,units=[],selected,unit,loading=false,error='',onOpen,onComplete,completing=false,demo=false,assessmentPanel=null,metrics=null}){
+export default function AulaReaderView({course,units=[],selected,unit,loading=false,error='',onOpen,onComplete,completing=false,assessmentPanel=null,metrics=null}){
   const index=units.findIndex(x=>x.id===selected);
   const previous=units[index-1],next=units[index+1];
   const content=Array.isArray(unit?.content_blocks)?unit.content_blocks:[];
@@ -27,7 +27,6 @@ export default function AulaReaderView({course,units=[],selected,unit,loading=fa
   return <main className="min-h-[70vh] bg-slate-50 text-slate-900" data-testid="aula-reader">
     <div className="border-b border-slate-200 bg-white px-5 py-7">
       <div className="mx-auto max-w-7xl">
-        {demo&&<p className="mb-2 inline-block rounded-lg bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-950">Vista previa con datos totalmente ficticios — sin backend ni cuentas reales</p>}
         <p className="text-sm font-semibold uppercase tracking-wider text-[#005EB8]">Aula Virtual GASI</p>
         <h1 className="mt-2 text-3xl font-bold">{course.title}</h1>
         <p className="mt-3 max-w-3xl text-slate-600">{course.objective}</p>

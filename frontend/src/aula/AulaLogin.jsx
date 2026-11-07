@@ -1,7 +1,7 @@
 import React,{useState} from 'react';
 import {Link,Navigate} from 'react-router-dom';
 import {GraduationCap,LockKeyhole} from 'lucide-react';
-import {AULA_ENABLED,AULA_PREVIEW_DEMO,useAula} from './AulaAuthContext';
+import {AULA_ENABLED,useAula} from './AulaAuthContext';
 
 export default function AulaLogin(){
   const{user,loading,login,changePassword}=useAula();
@@ -18,7 +18,7 @@ export default function AulaLogin(){
   };
   return <main className="min-h-[70vh] bg-slate-50 px-5 py-16 text-slate-900" data-testid="aula-login">
     <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
-      {AULA_PREVIEW_DEMO&&<p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-950">Demostración con cuentas y cursos ficticios. No utilices contraseñas reales ni datos personales.</p>}<GraduationCap className="h-9 w-9 text-[#005EB8]" aria-hidden="true"/>
+      <GraduationCap className="h-9 w-9 text-[#005EB8]" aria-hidden="true"/>
       <h1 className="mt-4 text-3xl font-bold">{user?'Cambiar contraseña inicial':'Acceso al Aula Virtual GASI'}</h1>
       <p className="mt-2 text-sm text-slate-600">{user?'Por seguridad debes establecer una contraseña propia antes de acceder.':'Solo para alumnado, tutores y autores dados de alta por GASI. No existe registro público.'}</p>
       <form onSubmit={submit} className="mt-7 space-y-5">
@@ -28,11 +28,6 @@ export default function AulaLogin(){
         {error&&<p role="alert" className="text-sm text-rose-800">{error}</p>}
         <button disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#005EB8] px-4 py-3 font-semibold text-white disabled:opacity-50"><LockKeyhole size={17} aria-hidden="true"/>{busy?'Comprobando…':user?'Establecer nueva contraseña':'Entrar al aula'}</button>
       </form>
-      {AULA_PREVIEW_DEMO&&<div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
-        <p className="font-semibold">Revisión sin credenciales</p>
-        <p className="mt-1">Puedes examinar el lector, los cuatro perfiles y las unidades bloqueadas con un curso ficticio. No se utiliza una sesión real.</p>
-        <Link to="/aula/vista-previa" className="mt-2 inline-block font-semibold text-[#005EB8] underline" data-testid="aula-review-without-login">Abrir demostración visual del aula</Link>
-      </div>}
       {!user&&<Link to="/aula/recuperar" className="mt-4 inline-block text-sm font-semibold text-[#005EB8] underline">¿Has olvidado tu contraseña?</Link>}
       <p className="mt-6 text-xs leading-relaxed text-slate-500">GASI registra los accesos y el tiempo de conexión para el seguimiento académico. Consulta la <Link className="text-[#005EB8] underline" to="/politica-privacidad">información de privacidad</Link>. No compartas tus credenciales.</p>
     </div>

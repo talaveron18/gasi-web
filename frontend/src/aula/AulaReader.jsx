@@ -1,6 +1,6 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {Link,Navigate,useParams} from 'react-router-dom';
-import {useAula,AULA_PREVIEW_DEMO} from './AulaAuthContext';
+import {useAula} from './AulaAuthContext';
 import AulaReaderView from './AulaReaderView';
 import AulaAssessment from './AulaAssessment';
 import AulaCommunity from './AulaCommunity';
@@ -79,14 +79,14 @@ export default function AulaReader(){
   return <div>
     <div className="mx-auto max-w-7xl px-4 pt-5"><Link className="text-sm font-semibold text-[#005EB8] underline" to={user.role==='admin'||user.role==='author'?'/aula/autor':'/aula/mis-cursos'}>Volver a mis cursos</Link></div>
     {course?<><AulaReaderView course={course} units={units} selected={selected} unit={unit} loading={loading} error={error}
-      onOpen={open} onComplete={complete} completing={completing} demo={AULA_PREVIEW_DEMO}
+      onOpen={open} onComplete={complete} completing={completing}
       metrics={user.role==='student'?{percent:units.length?Math.round(units.filter(u=>u.completed).length/units.length*100):0,
         done:units.filter(u=>u.completed).length,total:units.length,seconds:units.reduce((acc,u)=>acc+Number(u.viewed_seconds||0),0),
         today:Number(units[0]?.new_units_today||0),dailyMax:course.max_units_per_day}:null}
-      assessmentPanel={!AULA_PREVIEW_DEMO&&user.role==='student'&&unit&&(unit.requires_test||unit.requires_practice||unit.allows_voluntary_practice)&&!loading?
+      assessmentPanel={user.role==='student'&&unit&&(unit.requires_test||unit.requires_practice||unit.allows_voluntary_practice)&&!loading?
         <AulaAssessment key={unit.id} courseId={courseId} unitId={unit.id} onStatus={onStatus}/>:null}/>
-      {!AULA_PREVIEW_DEMO&&<AulaCommunity courseId={courseId} role={user.role} units={units}/>}
-      {!AULA_PREVIEW_DEMO&&user.role==='student'&&<AulaSurveys courseId={courseId}/>}</>:
+      <AulaCommunity courseId={courseId} role={user.role} units={units}/>
+      {user.role==='student'&&<AulaSurveys courseId={courseId}/>}</>:
       <main className="mx-auto max-w-4xl px-5 py-16">{loading?<p role="status">Cargando curso…</p>:<p role="alert">{error||'Curso no disponible.'}</p>}</main>}
   </div>;
 }

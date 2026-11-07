@@ -1,6 +1,6 @@
 import React,{useState} from 'react';
 import {Link,useSearchParams} from 'react-router-dom';
-import {AULA_ENABLED,AULA_PREVIEW_DEMO,useAula} from './AulaAuthContext';
+import {AULA_ENABLED,useAula} from './AulaAuthContext';
 
 export default function AulaRecovery(){
   const [params]=useSearchParams(),token=params.get('token');
@@ -22,7 +22,7 @@ export default function AulaRecovery(){
   return <main className="min-h-[70vh] bg-slate-50 px-5 py-14 text-slate-900">
     <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-7">
       <h1 className="text-2xl font-bold">Recuperar acceso al aula</h1>
-      {!AULA_ENABLED||AULA_PREVIEW_DEMO?<p className="mt-4 text-slate-600">La recuperación de contraseñas solo estará habilitada cuando se configure el servicio privado de correo y el acceso real. Las cuentas de demostración no envían correos.</p>:
+      {!AULA_ENABLED?<p className="mt-4 text-slate-600">La recuperación de contraseñas se habilitará cuando GASI configure el correo del aula privada.</p>:
       done?<div role="status" className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
         {token?'Contraseña actualizada. Ya puedes iniciar sesión con tu nueva contraseña.':'Si existe una cuenta activa, recibirás un mensaje con las instrucciones para restablecer tu contraseña. Comprueba también el correo no deseado.'}
       </div>:

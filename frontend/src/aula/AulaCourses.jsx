@@ -1,7 +1,7 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {Link,Navigate} from 'react-router-dom';
 import {BookOpen,CalendarDays,Clock,LogOut,RefreshCw,ShieldCheck} from 'lucide-react';
-import {useAula,AULA_PREVIEW_DEMO} from './AulaAuthContext';
+import {useAula} from './AulaAuthContext';
 
 export default function AulaCourses(){
   const{user,loading,request,logout}=useAula();
@@ -29,7 +29,6 @@ export default function AulaCourses(){
       </div>
     </div>
     <div className="mx-auto max-w-6xl px-5 py-8">
-      {AULA_PREVIEW_DEMO&&<p className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950">Vista previa sintética. Las cuentas, los cursos y el progreso no corresponden a alumnos reales ni se almacenan en PostgreSQL.</p>}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4"><h2 className="text-2xl font-bold">Formación disponible</h2>
         <button onClick={refresh} disabled={busy} className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 font-semibold disabled:opacity-50"><RefreshCw size={17}/> Actualizar</button>
       </div>

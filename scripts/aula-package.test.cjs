@@ -19,12 +19,7 @@ test('private PostgreSQL Aula deploy publishes only authenticated API',()=>{
   assert.doesNotMatch(source,/aula-demo|internal-clinical/);
   const config=fs.readFileSync(path.join(root,'aula-site/netlify.toml'),'utf8');
   assert.match(config,/directory = "netlify\/private-aula-functions-build"/);
-  assert.match(config,/REACT_APP_AULA_PREVIEW_DEMO=false/);
-});
-test('preview function packaging fails outside the exact PR deploy context',()=>{
-  assert.throws(()=>execFileSync(process.execPath,['scripts/prepare-aula-preview-functions.cjs'],{
-    cwd:root,env:{...process.env,CONTEXT:'production',BRANCH:'main'},stdio:'pipe'
-  }),/Command failed/);
+  assert.match(config,/REACT_APP_AULA_ENABLED=true/);
 });
 test('commercial build remains independent and excludes real Aula authentication',()=>{
   execFileSync(process.execPath,['scripts/prepare-commercial-functions.cjs'],{cwd:root});

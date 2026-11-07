@@ -132,7 +132,7 @@ jobs:
       - name: Verify Aula function isolation
         run: node --test scripts/aula-package.test.cjs
       - name: Test Aula progression and synthetic preview endpoints
-        run: node --test netlify/aula/access-policy.test.mjs netlify/aula/f3-policy.test.mjs netlify/aula/f5-policy.test.mjs netlify/aula/f6-policy.test.mjs netlify/aula/aula-demo.test.mjs
+        run: node --test netlify/aula/access-policy.test.mjs netlify/aula/f3-policy.test.mjs netlify/aula/f5-policy.test.mjs netlify/aula/f6-policy.test.mjs
       - name: Netlify HTTP header smoke
         run: node scripts/netlify-http-smoke.mjs
       - name: Rehearse release artifact restore
