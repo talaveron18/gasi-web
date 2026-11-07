@@ -1,3 +1,8 @@
+[images]
+  # Netlify Image CDN fetches and caches publicly hosted editorial photos.
+  # Browsers then load the images from this site's own domain.
+  remote_images = ['https://images\.unsplash\.com/.*']
+
 [build]
   base = "/"
   command = "node scripts/prepare-commercial-functions.cjs && yarn --cwd frontend install --non-interactive --frozen-lockfile && yarn --cwd frontend build"
