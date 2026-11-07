@@ -1,0 +1,52 @@
+# Dedicated PRIVATE clinical deployment.
+# Netlify site "gasi-clinical": set Package directory = internal-site,
+# Base directory = repository root. Do not use this config for gasisalud.com.
+[build]
+  base = "/"
+  command = "npm ci && node scripts/prepare-private-clinical-functions.cjs && yarn --cwd frontend install --non-interactive --frozen-lockfile && REACT_APP_INTERNAL_PORTAL_ENABLED=true REACT_APP_STUDENT_PORTAL_ENABLED=false yarn --cwd frontend build"
+  publish = "frontend/build"
+
+[build.environment]
+  NODE_VERSION = "24"
+  GENERATE_SOURCEMAP = "false"
+
+[functions]
+  directory = "netlify/private-clinical-functions-build"
+  node_bundler = "esbuild"
+
+# All clinical API requests pass through the TENANT-BOUND guard.
+# The inner clinical handler only exists inside _shared/, never standalone.
+[[redirects]]
+  from = "/api/internal-clinical/*"
+  to = "/.netlify/functions/internal-clinical-guarded?original_path=:splat"
+  status = 200
+  force = true
+
+# No anonymous course or miscellaneous API may fall through to the SPA.
+[[redirects]]
+  from = "/api/*"
+  to = "/api-unavailable.json"
+  status = 404
+  force = true
+
+# Private service opens on its access gateway, not the commercial homepage.
+[[redirects]]
+  from = "/"
+  to = "/interno/acceso"
+  status = 302
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:;"
