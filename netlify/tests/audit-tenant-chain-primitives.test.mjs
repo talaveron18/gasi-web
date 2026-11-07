@@ -63,6 +63,13 @@ test("atomic append fails before any query when tenant identity is missing",asyn
   assert.equal(queried,false);
 });
 
+test("snapshot verifier canonicalizes PostgreSQL Date timestamps to the original ISO hash input",()=>{
+  const written=row("TENANT-A",1,ZERO_HASH,"LOGIN");
+  const readFromPostgres={...written,at:new Date(written.at)};
+  assert.equal(validAuditChainsByTenant([readFromPostgres],canonical),true);
+  assert.equal(validAuditChainsByTenant([{...readFromPostgres,at:new Date("invalid")}],canonical),false);
+});
+
 test("snapshot verification accepts independent interleaved tenant chains",()=>{
   const a1=row("TENANT-A",1,ZERO_HASH,"LOGIN"),b1=row("TENANT-B",2,ZERO_HASH,"LOGIN"),a2=row("TENANT-A",3,a1.event_hash,"READ"),b2=row("TENANT-B",4,b1.event_hash,"READ");
   assert.equal(validAuditChainsByTenant([a1,b1,a2,b2],canonical),true);
