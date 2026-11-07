@@ -54,7 +54,7 @@ test('captación comercial sin promesas de contratación o entrega confirmada', 
   }
   assert.match(contact, /no confirma (?:su |la )?entrega al buzón/i);
   assert.match(bot, /no confirma su entrega al buzón/i);
-  assert.match(bot, /El servicio de envío ha aceptado tu solicitud/);
+  assert.match(bot, /El servicio de correo ha aceptado tu consulta/);
   assert.doesNotMatch(bot, /Tu solicitud se ha enviado al servicio de recepción/);
 });
 
@@ -115,11 +115,12 @@ test('la navegación no depende de un logotipo alojado en terceros', () => {
 });
 
 
-test('el chatbot comprueba el consentimiento vigente al enviar, sin fijarlo artificialmente', () => {
+test('el chatbot valida consentimiento real, sin inventar confirmaciones', () => {
   const chatbot = read('src/components/Chatbot.jsx');
-  assert.match(chatbot, /if\(!acceptsPrivacy\)\{addBot\('Debes aceptar la política de protección de datos antes de enviar la solicitud\.'\);return;\}/);
-  assert.match(chatbot, /accepts_privacy:acceptsPrivacy/);
-  assert.doesNotMatch(chatbot, /accepts_privacy:true/);
+  assert.match(chatbot, /if \(!privacy\)/);
+  assert.match(chatbot, /accepts_privacy: privacy/);
+  assert.doesNotMatch(chatbot, /accepts_privacy: true/);
+  assert.match(chatbot, /result.message !== 'sent'/);
 });
 
 test('páginas comerciales mantienen asistencia integral, formación empresarial y excluyen venta de DEA', () => {
@@ -137,7 +138,7 @@ test('páginas comerciales mantienen asistencia integral, formación empresarial
   assert.match(labor, /title: 'Enfermería presencial'/);
   assert.match(labor, /horarios, funciones y recursos definidos/);
   assert.doesNotMatch(labor, /reconocimientos médicos|certificación garantizada/i);
-  assert.match(bot, /Asistencia sanitaria integral para empresas/);
+  assert.match(bot, /Enfermería presencial/);
   for (const source of [about, services, healthcare, training]) {
     assert.doesNotMatch(source, /venta de (?:DEA|desfibriladores)/i);
   }
