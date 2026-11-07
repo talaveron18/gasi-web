@@ -6,7 +6,7 @@ exports.handler=async event=>{
   const parsed=parseBody(event,4096);
   if(parsed.error)return parsed.error;
 
-  const validated=validateBaseLead(parsed.data,{requireCompany:true,phoneOptional:true});
+  const validated=validateBaseLead(parsed.data,{requireCompany:true,phoneOptional:true,disallowClinicalData:true});
   if(validated.honeypot)return response(200,"accepted");
   if(validated.error)return response(422,validated.error);
 
@@ -17,7 +17,9 @@ exports.handler=async event=>{
     <p><strong>Nombre:</strong> ${escapeHtml(lead.name)}</p>
     <p><strong>Empresa:</strong> ${escapeHtml(lead.company)}</p>
     <p><strong>Localidad:</strong> ${escapeHtml(lead.location||"No indicada")}</p>
-    <p><strong>Trabajadores:</strong> ${escapeHtml(lead.employee_count||"No indicado")}</p>
+    <p><strong>Trabajadores o participantes:</strong> ${escapeHtml(lead.employee_count||"No indicado")}</p>
+    <p><strong>Actividad concreta:</strong> ${escapeHtml(lead.service_detail||"No indicada")}</p>
+    <p><strong>Plazo solicitado:</strong> ${escapeHtml(lead.timeframe||"Sin fecha definida")}</p>
     <p><strong>Email:</strong> ${escapeHtml(lead.email)}</p>
     <p><strong>Teléfono:</strong> ${escapeHtml(lead.phone||"No indicado")}</p>
     <p><strong>Consulta:</strong> ${escapeHtml(lead.message||"Solicita información")}</p>
@@ -27,7 +29,8 @@ exports.handler=async event=>{
   const delivery=await sendLeadEmail({
     subject:`Nuevo lead web: ${lead.service}`,
     html,
-    replyTo:lead.email
+    replyTo:lead.email,
+    recipientOverride:"coordinacion@gasisalud.com"
   });
   if(!delivery.ok)return response(delivery.code==="service_unavailable"?503:502,delivery.code);
   return response(200,"sent");
