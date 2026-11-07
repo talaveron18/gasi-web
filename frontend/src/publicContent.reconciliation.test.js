@@ -152,8 +152,8 @@ describe('reconciliación del contenido público GASI', () => {
   test('el logotipo público no desborda la navegación ni el footer', () => {
     const navbar = read('components/Navbar.jsx');
     const footer = read('components/Footer.jsx');
-    expect(navbar).toContain('aria-label="GASI - Grupo de Asistencia Sanitaria Integral"');
-    expect(footer).toContain('aria-label="GASI - Grupo de Asistencia Sanitaria Integral"');
+    expect(navbar).toContain('<img src={GASI_LOGO} alt="GASI - Grupo de Asistencia Sanitaria Integral"');
+    expect(footer).toContain('<img src={GASI_LOGO} alt="GASI - Grupo de Asistencia Sanitaria Integral"');
     expect(navbar).not.toContain('className="h-80 w-auto"');
     expect(footer).not.toContain('className="h-80 w-auto');
   });
@@ -276,8 +276,8 @@ describe('reconciliación del contenido público GASI', () => {
 
   test('la ruta de organizaciones delimita positivamente el alcance público actual', () => {
     const organisations = read('pages/SaludLaboral.jsx');
-    expect(organisations).toContain('Cada propuesta se define según las necesidades del cliente. La disponibilidad de cada actividad está condicionada al alcance acordado y a los requisitos profesionales y administrativos aplicables.');
-    expect(organisations).toContain('Asistencia sanitaria integral para empresas y formación práctica en primeros auxilios, reanimación y desfibriladores.');
+    expect(organisations).toContain('Antes de ponerla en marcha, concretamos los recursos, las funciones y los requisitos aplicables.');
+    expect(organisations).toContain('Enfermería presencial para empresas y formación práctica en primeros auxilios, reanimación cardiopulmonar y uso de desfibriladores.');
   });
 
   test('metadatos describen asistencia sanitaria integral y formación empresarial', () => {
