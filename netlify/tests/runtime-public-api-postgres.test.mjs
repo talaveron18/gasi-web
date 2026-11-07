@@ -178,9 +178,11 @@ test("runtime: public same-origin API works on PostgreSQL",{skip:!enabled},async
   assert.equal(res.status,201);
   const paidCourse=await payload(res);
 
+  // Public course catalogue is intentionally closed even if invoked directly;
+  // authenticated course/material paths below remain covered separately.
   res=await handler(request("/api/courses/"),{});
-  assert.equal(res.status,200);
-  assert.equal((await payload(res)).length,2);
+  assert.equal(res.status,404);
+  assert.equal((await payload(res)).detail,"not_found");
 
   res=await handler(request("/api/auth/register",{method:"POST",body:{name:"Alumno Runtime",email:"student@example.com",password:"SyntheticStudentPass123!"}}),{});
   assert.equal(res.status,201);
