@@ -6,9 +6,9 @@ const SERVICES=new Set([
   "Otro"
 ]);
 
-const response=(statusCode,message)=>({
+const response=(statusCode,message,extraHeaders={})=>({
   statusCode,
-  headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"},
+  headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store",...extraHeaders},
   body:JSON.stringify({message})
 });
 
@@ -80,6 +80,7 @@ async function sendLeadEmail({subject,html,replyTo,recipientOverride}){
     return{ok:false,code:"delivery_failed"};
   }
   if(!upstream.ok){
+    if(upstream.status===429)return{ok:false,code:"rate_limited"};
     console.error("lead_delivery_failed",{provider:"resend",status:upstream.status});
     return{ok:false,code:"delivery_failed"};
   }
