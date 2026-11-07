@@ -70,7 +70,10 @@ export function validAuditChainsByTenant(rows:any[],canonical:(value:any)=>strin
     let previous=ZERO_HASH;
     for(const x of ordered){
       if(String(x.previous_hash||"")!==previous)return false;
-      const payload={at:String(x.at),actor_id:String(x.actor_id),actor_role:String(x.actor_role),action:String(x.action),episode_id:x.episode_id==null?null:String(x.episode_id),metadata:x.metadata||{}};
+      // PostgreSQL TIMESTAMPTZ values are Date objects; appended events were hashed with ISO-8601 strings.
+      const at=x.at instanceof Date?(Number.isFinite(x.at.getTime())?x.at.toISOString():null):String(x.at);
+      if(!at)return false;
+      const payload={at,actor_id:String(x.actor_id),actor_role:String(x.actor_role),action:String(x.action),episode_id:x.episode_id==null?null:String(x.episode_id),metadata:x.metadata||{}};
       const expected=crypto.createHash("sha256").update(previous+":"+canonical(payload)).digest("hex");
       if(String(x.event_hash||"")!==expected)return false;
       previous=expected;
