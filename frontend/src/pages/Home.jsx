@@ -22,10 +22,10 @@ const Home = () => {
   ];
 
   const sectors = [
-    { name: 'Logística y Distribución', icon: '📦' },
-    { name: 'Industria', icon: '⚙️' },
-    { name: 'Retail y Grandes Superficies', icon: '🏪' },
-    { name: 'Centros de Trabajo', icon: '🏢' }
+    { name: 'Logística y Distribución', image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=900&q=85', imageAlt: 'Almacén logístico' },
+    { name: 'Industria', image: 'https://images.unsplash.com/photo-1647427060118-4911c9821b82?auto=format&fit=crop&w=900&q=85', imageAlt: 'Línea de producción industrial' },
+    { name: 'Retail y Grandes Superficies', image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&q=85', imageAlt: 'Tienda de ropa' },
+    { name: 'Centros de Trabajo', image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=85', imageAlt: 'Oficina moderna' }
   ];
 
   const advantages = [
@@ -57,7 +57,7 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="py-20 lg:py-24 bg-[#F8FAFC]"><div className="max-w-7xl mx-auto px-6 lg:px-8"><div className="text-center mb-16"><h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4">Sectores</h2><p className="text-lg text-[#64748B]">Podemos estudiar necesidades de organizaciones de distintos sectores, sin que ello implique disponibilidad o contratación automática.</p></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">{sectors.map((sector, index) => (<Card key={index} className="text-center p-8 hover-lift" data-testid={`sector-card-${index}`}><div className="text-5xl mb-4">{sector.icon}</div><h3 className="font-semibold text-[#0F172A]">{sector.name}</h3></Card>))}</div><div className="text-center mt-12"><Link to="/sectores" className="inline-flex items-center justify-center rounded-md bg-[#005EB8] hover:bg-[#004a92] text-white px-8 h-11 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#005EB8]" data-testid="sectors-cta">Consultar sectores</Link></div></div></section>
+      <section className="py-20 lg:py-24 bg-[#F8FAFC]"><div className="max-w-7xl mx-auto px-6 lg:px-8"><div className="text-center mb-16"><h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4">Sectores</h2><p className="text-lg text-[#64748B]">Podemos estudiar necesidades de organizaciones de distintos sectores, sin que ello implique disponibilidad o contratación automática.</p></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">{sectors.map((sector, index) => (<Card key={index} className="overflow-hidden h-full hover-lift" data-testid={`sector-card-${index}`}><div className="h-40 overflow-hidden bg-[#EAF4FC]"><img src={sector.image} alt={sector.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div><h3 className="font-semibold text-[#0F172A] text-center p-5">{sector.name}</h3></Card>))}</div><div className="text-center mt-12"><Link to="/sectores" className="inline-flex items-center justify-center rounded-md bg-[#005EB8] hover:bg-[#004a92] text-white px-8 h-11 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#005EB8]" data-testid="sectors-cta">Consultar sectores</Link></div></div></section>
 
       <section className="py-20 lg:py-24 bg-white"><div className="max-w-7xl mx-auto px-6 lg:px-8"><div className="text-center mb-16"><h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4">Cómo trabajamos</h2><p className="text-lg text-[#64748B]">Primero delimitamos la necesidad y el alcance que puede prestarse.</p></div><div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">{advantages.map((adv, index) => (<div key={index} className="text-center" data-testid={`advantage-${index}`}><div className="inline-flex items-center justify-center w-16 h-16 bg-[#005EB8]/10 rounded-full text-[#005EB8] mb-4">{adv.icon}</div><h3 className="font-bold text-[#0F172A] mb-2">{adv.title}</h3><p className="text-[#64748B] text-sm">{adv.desc}</p></div>))}</div></div></section>
 
