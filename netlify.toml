@@ -73,7 +73,7 @@
 # F1/F2 classroom review only: this PR preview uses synthetic accounts.
 # Production continues to build only the commercial functions and disables Aula.
 [context.deploy-preview]
-  command = "node scripts/prepare-aula-preview-functions.cjs && yarn --cwd frontend install --non-interactive --frozen-lockfile && yarn --cwd frontend build"
+  command = "npm --prefix netlify ci --ignore-scripts --no-audit --no-fund && node scripts/prepare-aula-preview-functions.cjs && yarn --cwd frontend install --non-interactive --frozen-lockfile && yarn --cwd frontend build"
 
 [context.deploy-preview.environment]
   REACT_APP_AULA_ENABLED = "true"
