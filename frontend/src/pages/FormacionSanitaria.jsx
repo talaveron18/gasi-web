@@ -9,13 +9,13 @@ const FormacionSanitaria = () => (
       <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
         <h1 className="text-4xl lg:text-5xl font-bold mb-6" data-testid="page-title">Formación sanitaria para organizaciones</h1>
         <p className="text-xl opacity-90 mb-8">
-          Estudiamos necesidades de formación sanitaria y confirmamos previamente si podemos atenderlas, con qué contenido, formato y alcance.
+          Formación práctica para equipos de trabajo en primeros auxilios, reanimación cardiopulmonar, soporte vital básico y utilización de desfibriladores. Adaptamos la propuesta a las necesidades de cada organización.
         </p>
         <Link to="/contacto" className="inline-flex items-center justify-center rounded-md px-6 py-3 text-base font-medium bg-white text-[#005EB8] hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" data-testid="hero-contact-cta">Solicitar información</Link>
       </div>
     </section>
 
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-white"><div className="max-w-6xl mx-auto px-6 lg:px-8 mb-12"><img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1400&q=85" alt="Actividad formativa en grupo" loading="lazy" className="w-full h-64 md:h-80 object-cover rounded-2xl" /></div>
       <div className="max-w-6xl mx-auto px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl lg:text-4xl font-bold text-[#0F172A] mb-4">Cómo planteamos una solicitud</h2>
