@@ -137,6 +137,16 @@ async function handle(req:Request){
       :await q("SELECT id,title,objective,status,duration_hours FROM aula_courses WHERE $1='admin' OR created_by=$2 ORDER BY created_at DESC",[user.role,user.id]);
     return json({courses:rows});
   }
+  if(req.method==="GET"&&path==="/admin/users"){
+    requireRole(user,["admin"]);
+    const rows=await q("SELECT id,email,name,role,active,created_at FROM aula_users ORDER BY name LIMIT 500");
+    return json({users:rows});
+  }
+  if(req.method==="GET"&&path==="/admin/tutors"){
+    requireRole(user,["admin","author"]);
+    const rows=await q("SELECT id,name,email FROM aula_users WHERE active=TRUE AND role='tutor' ORDER BY name");
+    return json({tutors:rows});
+  }
   if(req.method==="POST"&&path==="/admin/users"){
     requireRole(user,["admin"]);const b=await body(req),email=normEmail(b.email),role=String(b.role||"");
     if(!ROLES.includes(role))fail(422,"invalid_role");
@@ -207,6 +217,13 @@ async function handle(req:Request){
     await q("UPDATE aula_courses SET status='active',updated_at=now() WHERE id=$1",[course.id]);
     await log(user,"COURSE_PUBLISHED","course",course.id);
     return json({ok:true});
+  }
+  if(req.method==="GET"&&path==="/admin/enrollments"){
+    requireRole(user,["admin","author"]);const courseId=String(url.searchParams.get("course_id")||"");
+    const course=await courseById(courseId);
+    if(user.role==="author"&&course.created_by!==user.id)fail(403,"not_course_author");
+    const rows=await q("SELECT e.id,e.status,e.deadline,u.id AS student_id,u.name,u.email FROM aula_enrollments e JOIN aula_users u ON u.id=e.student_id WHERE e.course_id=$1 ORDER BY u.name",[course.id]);
+    return json({enrollments:rows});
   }
   if(req.method==="POST"&&path==="/admin/enrollments"){
     requireRole(user,["admin","author"]);const b=await body(req),course=await courseById(String(b.course_id||""));
