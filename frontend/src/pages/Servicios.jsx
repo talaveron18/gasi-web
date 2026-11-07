@@ -7,8 +7,8 @@ const Servicios = () => {
     {
       icon: Building2,
       title: 'Asistencia Sanitaria Integral para Empresas',
-      description: 'Diseñamos soluciones de asistencia sanitaria para el entorno de trabajo, integrando atención profesional y coordinación asistencial según las necesidades de cada organización.',
-      benefits: ['Atención sanitaria en el entorno de trabajo', 'Coordinación asistencial', 'Organización adaptada al centro', 'Propuesta y alcance definidos con cada cliente'],
+      description: 'Estudiamos propuestas de enfermería presencial para organizaciones. Las funciones, horarios y recursos se definen con cada centro tras valorar la viabilidad, la disponibilidad efectiva y los requisitos aplicables.',
+      benefits: ['Enfermería presencial sujeta a valoración', 'Funciones y horarios acordados previamente', 'Comprobación de requisitos aplicables', 'Propuesta y alcance definidos con cada cliente'],
       image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1100&q=85',
       link: '/cobertura-sanitaria'
     },
@@ -27,7 +27,7 @@ const Servicios = () => {
       <section className="bg-gradient-to-br from-[#005EB8] to-[#327BBD] text-white py-20">
         <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
           <h1 className="text-4xl lg:text-5xl font-bold mb-6" data-testid="page-title">Nuestros Servicios</h1>
-          <p className="text-xl opacity-90">Asistencia sanitaria integral como actividad principal y formación sanitaria empresarial como línea especializada</p>
+          <p className="text-xl opacity-90">Información sobre enfermería presencial para organizaciones y formación sanitaria empresarial, sujeta a valoración y confirmación de alcance</p>
         </div>
       </section>
 
