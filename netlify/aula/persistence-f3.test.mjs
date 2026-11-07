@@ -34,7 +34,7 @@ test('F3 full Postgres: 15 to 10 questions, server grading, tutor rubric and gat
  for(const a of [adminAuth,studentAuth,tutorAuth,otherAuth,authorAuth,otherStudentAuth])expected(a,200);
  const admin=adminAuth.cookie,student=studentAuth.cookie,tutor=tutorAuth.cookie,outsider=otherAuth.cookie,author=authorAuth.cookie,otherStudent=otherStudentAuth.cookie;
  const course=expected(await call('/admin/courses','POST',{
-  title:'Curso de prueba F3',objective:'Evaluación en servidor',duration_hours:8,access_days:90,max_units_per_day:2},admin),201).course;
+  title:'Curso de prueba F3',objective:'Evaluación en servidor',duration_hours:8,access_days:90,max_units_per_day:3},admin),201).course;
  // Each actor is isolated from courses they do not own or attend.
  // Draft courses are deliberately concealed from students as 404, not 403.
  assert.equal((await call('/courses/'+course.id,'GET',{},otherStudent)).status,404);
@@ -54,6 +54,12 @@ test('F3 full Postgres: 15 to 10 questions, server grading, tutor rubric and gat
   rubric:['Seguridad de escena','Valoración inicial','Solicitud de ayuda','Comunicación de actuaciones'],min_per_criterion:2};
  expected(await call('/admin/courses/'+course.id+'/units/'+next.id+'/assessment','PUT',{questions:bank.slice(0,14),practice},admin),422);
  expected(await call('/admin/courses/'+course.id+'/units/'+next.id+'/assessment','PUT',{questions:bank,practice},admin),200);
+ const optional=expected(await call('/admin/courses/'+course.id+'/units','POST',{
+   unit_no:2,title:'Práctica voluntaria de repaso',allows_voluntary_practice:true,
+   content_blocks:[{type:'heading',level:1,text:'Repaso voluntario'}],
+   learning_outcomes:[{id:'RA2',text:'Describir el procedimiento de respuesta'}]
+ },admin),201).unit;
+ expected(await call('/admin/courses/'+course.id+'/units/'+optional.id+'/assessment','PUT',{questions:[],practice},admin),200);
  expected(await call('/admin/courses/'+course.id+'/publish','POST',{},admin),200);
  // Neither a different author nor an unassigned tutor may alter or read the assessment.
  assert.equal((await call('/admin/courses/'+course.id+'/units/'+next.id+'/assessment','GET',{},author)).status,403);
@@ -69,7 +75,7 @@ test('F3 full Postgres: 15 to 10 questions, server grading, tutor rubric and gat
  assert.equal((await call('/admin/users','GET',{},author)).status,403);
  assert.equal((await call('/tutor/reviews','GET',{},author)).status,403);
  let listing=expected(await call('/courses/'+course.id,'GET',{},student),200);
- assert.deepEqual(listing.units.map(u=>u.open),[true,false]);
+ assert.deepEqual(listing.units.map(u=>u.open),[true,false,false]);
  expected(await call('/courses/'+course.id+'/units/'+first.id,'GET',{},student),200);
  await sql("UPDATE aula_unit_progress SET viewed_seconds=20 WHERE unit_id=$1",[first.id]);
  expected(await call('/courses/'+course.id+'/units/'+first.id+'/complete','POST',{},student),200);
@@ -80,7 +86,9 @@ test('F3 full Postgres: 15 to 10 questions, server grading, tutor rubric and gat
  assert.equal(new Set(initial.questions.map(q=>q.id)).size,10);
  assert.ok(initial.questions.every(q=>q.options.length===3&&!Object.hasOwn(q,'correct_index')));
  assert.ok(initial.attempt_id);
- const badAnswers=Object.fromEntries(initial.questions.map(q=>[q.id,0]));
+ const attemptOrders=(await sql("SELECT option_orders FROM aula_test_attempts WHERE id=$1",[initial.attempt_id]))[0].option_orders;
+ const badAnswers=Object.fromEntries(initial.questions.map(q=>[q.id,attemptOrders[q.id].indexOf(0)]));
+ assert.ok(Object.values(attemptOrders).every(order=>order.length===3&&new Set(order).size===3));
  assert.equal((await call(assessment+'/test','POST',{attempt_id:initial.attempt_id,answers:{...badAnswers,injected:0}},student)).status,422);
  const grade=expected(await call(assessment+'/test','POST',{attempt_id:initial.attempt_id,answers:badAnswers},student),200);
  assert.equal(grade.score,10);assert.equal(grade.passed,true);
@@ -105,5 +113,18 @@ test('F3 full Postgres: 15 to 10 questions, server grading, tutor rubric and gat
  assert.equal(after.test_passed,true);assert.equal(after.practice_approved,true);
  expected(await call('/courses/'+course.id+'/units/'+next.id+'/complete','POST',{},student),200);
  listing=expected(await call('/courses/'+course.id,'GET',{},student),200);
- assert.deepEqual(listing.units.map(u=>u.completed),[true,true]);
+ assert.deepEqual(listing.units.map(u=>u.completed),[true,true,false]);
+ const voluntaryOpen=expected(await call('/courses/'+course.id+'/units/'+optional.id,'GET',{},student),200);
+ assert.equal(voluntaryOpen.unit.allows_voluntary_practice,true);
+ const optionalAssessment=expected(await call('/courses/'+course.id+'/units/'+optional.id+'/assessment','GET',{},student),200);
+ assert.ok(optionalAssessment.practice);
+ await sql('UPDATE aula_unit_progress SET viewed_seconds=20 WHERE unit_id=$1',[optional.id]);
+ expected(await call('/courses/'+course.id+'/units/'+optional.id+'/complete','POST',{},student),200);
+ const voluntarySent=expected(await call('/courses/'+course.id+'/units/'+optional.id+'/assessment/practice','POST',{
+   answer:'Reviso la seguridad de la escena y pido ayuda especializada de forma inmediata.'},student),201);
+ assert.equal(voluntarySent.submission.status,'pending');
+ const optionalQueue=expected(await call('/tutor/reviews','GET',{},tutor),200).reviews;
+ assert.ok(optionalQueue.some(x=>x.id===voluntarySent.submission.id));
+ listing=expected(await call('/courses/'+course.id,'GET',{},student),200);
+ assert.deepEqual(listing.units.map(u=>u.completed),[true,true,true]);
 });
