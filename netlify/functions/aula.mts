@@ -75,7 +75,7 @@ async function outline(user:any,course:any,e:any,now=new Date()){
   if(user.role!=="student")return units.map(x=>({...x,open:true,completed:false}));
   const rows=await q("SELECT p.* FROM aula_unit_progress p WHERE enrollment_id=$1",[e.id]);
   const byId=new Map(rows.map((r:any)=>[String(r.unit_id),r]));
-  const count=await q("SELECT count(*)::int AS amount FROM aula_unit_progress WHERE enrollment_id=$1 AND first_viewed_at>=CURRENT_DATE AND first_viewed_at<CURRENT_DATE+INTERVAL '1 day'",[e.id]);
+  const count=await q("SELECT count(*)::int AS amount FROM aula_unit_progress WHERE enrollment_id=$1 AND (first_viewed_at AT TIME ZONE 'Europe/Madrid')::date=(now() AT TIME ZONE 'Europe/Madrid')::date",[e.id]);
   return units.map(x=>{
     const gate=gateUnit({unit:x,units,progressByUnit:byId,enrollment:e,maxPerDay:course.max_units_per_day,newUnitsToday:Number(count[0].amount),now});
     const progress=byId.get(String(x.id));
@@ -768,7 +768,7 @@ async function handle(req:Request){
         const all=(await client.query("SELECT id,unit_no,requires_test,requires_practice FROM aula_units WHERE course_id=$1 ORDER BY unit_no",[course.id])).rows;
         const rows=(await client.query("SELECT * FROM aula_unit_progress WHERE enrollment_id=$1",[e.id])).rows;
         const byId=new Map(rows.map((r:any)=>[String(r.unit_id),r]));
-        const today=(await client.query("SELECT count(*)::int AS amount FROM aula_unit_progress WHERE enrollment_id=$1 AND first_viewed_at>=CURRENT_DATE AND first_viewed_at<CURRENT_DATE+INTERVAL '1 day'",[e.id])).rows[0].amount;
+        const today=(await client.query("SELECT count(*)::int AS amount FROM aula_unit_progress WHERE enrollment_id=$1 AND (first_viewed_at AT TIME ZONE 'Europe/Madrid')::date=(now() AT TIME ZONE 'Europe/Madrid')::date",[e.id])).rows[0].amount;
         const gate=gateUnit({unit,units:all,progressByUnit:byId,enrollment:e,newUnitsToday:Number(today),maxPerDay:course.max_units_per_day});
         if(!gate.open){await client.query("ROLLBACK");return json({detail:"unit_locked",reason:gate.reason},423);}
         await client.query("INSERT INTO aula_unit_progress(enrollment_id,unit_id) VALUES($1,$2) ON CONFLICT DO NOTHING",[e.id,unit.id]);
