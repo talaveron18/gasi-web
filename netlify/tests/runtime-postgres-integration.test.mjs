@@ -633,6 +633,29 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  res=await handler(request("/api/internal-clinical/recovery/snapshot",{token:masterToken}),{});
  assert.equal(res.status,200);
  const snapshot=await responseJson(res);
+ // Temporary regression diagnosis: never print audit event data, only synthetic row counts and failure stages.
+ const {validAuditChainsByTenant}=await import("../functions/internal-audit-tenant-chain.mts");
+ const diagnosticAuditValid=validAuditChainsByTenant(snapshot.audit,canonical);
+ if(!diagnosticAuditValid){
+   const grouped=new Map();
+   for(const row of snapshot.audit){const t=String(row.tenant_id||"");grouped.set(t,[...(grouped.get(t)||[]),row]);}
+   let mismatch=null;
+   for(const [tenant,rows] of grouped){
+     let prev="0".repeat(64);
+     for(const row of [...rows].sort((a,b)=>Number(a.seq)-Number(b.seq))){
+       const at=row.at instanceof Date?row.at.toISOString():String(row.at);
+       const pay={at,actor_id:String(row.actor_id),actor_role:String(row.actor_role),action:String(row.action),episode_id:row.episode_id==null?null:String(row.episode_id),metadata:row.metadata||{}};
+       const expected=crypto.createHash("sha256").update(prev+":"+canonical(pay)).digest("hex");
+       const metadataTenant=String(row.metadata?.actor_tenant_id||"");
+       if(String(row.previous_hash)!==prev||String(row.event_hash)!==expected||(!metadataTenant?tenant!=="GASI-LEGACY":metadataTenant!==tenant)){
+         mismatch={seq:Number(row.seq),tenant,atType:typeof row.at,atIsDate:row.at instanceof Date,metadataMatches:!metadataTenant?tenant==="GASI-LEGACY":metadataTenant===tenant,previousMatches:String(row.previous_hash)===prev,hashMatches:String(row.event_hash)===expected};break;
+       }
+       prev=expected;
+     }
+     if(mismatch)break;
+   }
+   console.error("RECOVERY_TEST_AUDIT_DIAGNOSTIC",JSON.stringify({auditCount:snapshot.audit.length,groupCount:grouped.size,mismatch}));
+ }
  assert.equal(snapshot.schema_version,4);
  assert.ok(snapshot.workstations.find(x=>x.id==="WS-A")?.claimed_at);
  assert.ok(snapshot.attendance.length>=5);
