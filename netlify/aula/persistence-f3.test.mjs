@@ -36,8 +36,9 @@ test('F3 full Postgres: 15 to 10 questions, server grading, tutor rubric and gat
  const course=expected(await call('/admin/courses','POST',{
   title:'Curso de prueba F3',objective:'Evaluación en servidor',duration_hours:8,access_days:90,max_units_per_day:2},admin),201).course;
  // Each actor is isolated from courses they do not own or attend.
- assert.equal((await call('/courses/'+course.id,'GET',{},otherStudent)).status,403);
- assert.equal((await call('/courses/'+course.id,'GET',{},student)).status,403);
+ // Draft courses are deliberately concealed from students as 404, not 403.
+ assert.equal((await call('/courses/'+course.id,'GET',{},otherStudent)).status,404);
+ assert.equal((await call('/courses/'+course.id,'GET',{},student)).status,404);
  assert.equal((await call('/courses/'+course.id,'GET',{},outsider)).status,403);
  assert.equal((await call('/courses/'+course.id,'GET',{},author)).status,403);
  const first=expected(await call('/courses/'+course.id,'GET',{},admin),200).units[0];
