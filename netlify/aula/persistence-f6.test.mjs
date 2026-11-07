@@ -46,6 +46,23 @@ test('F6 PostgreSQL: survey validation, completion gating, durable certificate, 
  assert.equal((await call('/admin/courses/'+course.id+'/surveys','POST',{kind:'followup',title:'Encuesta no válida',questions:[{id:1,type:'choice',text:'Faltan alternativas'}]},a)).status,422);
  expect(await call('/admin/courses/'+course.id+'/publish','POST',{},a),200);
  assert.equal((await call('/admin/courses/'+course.id+'/surveys','POST',{kind:'followup',title:'Otra encuesta',questions:question},a)).status,409);
+ // An active course lacking the final questionnaire can be repaired without
+ // reopening its content or admitting follow-up changes after publication.
+ const second=expect(await call('/admin/courses','POST',{
+   title:'Curso sin encuesta '+suffix,objective:'Prueba de recuperación de formulario',duration_hours:4},a),201).course;
+ const secondUnits=expect(await call('/courses/'+second.id,'GET',{},a),200).units;
+ expect(await call('/admin/courses/'+second.id+'/units/'+secondUnits[0].id,'PATCH',{
+   title:'Bienvenida',content_blocks:[{type:'heading',level:1,text:'Introducción del curso'}]},a),200);
+ expect(await call('/admin/courses/'+second.id+'/units','POST',{
+   unit_no:1,title:'Contenido del módulo',learning_outcomes:[{id:'RA1',text:'Completar el curso'}],
+   content_blocks:[{type:'heading',level:1,text:'Módulo'}]},a),201);
+ expect(await call('/admin/courses/'+second.id+'/publish','POST',{},a),200);
+ expect(await call('/admin/courses/'+second.id+'/surveys','POST',{
+   kind:'final',title:'Encuesta final añadida tras activación',questions:question},a),201);
+ assert.equal((await call('/admin/courses/'+second.id+'/surveys','POST',{
+   kind:'followup',title:'Seguimiento tardío',questions:question},a)).status,409);
+ assert.equal((await call('/admin/courses/'+second.id+'/units','POST',{
+   unit_no:2,title:'No se puede añadir contenido'},a)).status,409);
  expect(await call('/admin/enrollments','POST',{course_id:course.id,student_id:actors.student.id},admin),201);
  assert.equal((await call('/courses/'+course.id+'/surveys','GET',{},outsider)).status,403);
  assert.equal((await call('/courses/'+course.id+'/certificate','POST',{},student)).status,423);
