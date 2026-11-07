@@ -4,19 +4,21 @@ import {BookOpen,CheckCircle2,GraduationCap,Plus,ShieldCheck,Users} from 'lucide
 import {useAula,AULA_PREVIEW_DEMO} from './AulaAuthContext';
 import AulaTutor from './AulaTutor';
 import AulaAssessmentEditor from './AulaAssessmentEditor';
+import AulaAuthorInsights from './AulaAuthorInsights';
 
 const input="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus-visible:ring-2 focus-visible:ring-[#005EB8]";
 const primary="rounded-lg bg-[#005EB8] px-4 py-2.5 font-semibold text-white disabled:opacity-50";
 const blankCourse={title:'',objective:'',target_audience:'',requirements:'',presentation:'',duration_hours:20,access_days:90,max_units_per_day:''};
-const emptyUnit=()=>({unit_no:1,title:'',introduction:'',content_blocks:[{type:'heading',level:1,text:''},{type:'text',text:''}],learning_outcomes:[{id:'RA1',text:''}],requires_test:false,requires_practice:false});
+const emptyUnit=()=>({unit_no:1,title:'',introduction:'',content_blocks:[{type:'heading',level:1,text:''},{type:'text',text:''}],learning_outcomes:[{id:'RA1',text:''}],requires_test:false,requires_practice:false,resources:[]});
 
 function CourseEditor({courseId,request,users,role,onSaved}){
   const [course,setCourse]=useState(null),[units,setUnits]=useState([]),[selected,setSelected]=useState(null);
   const [draft,setDraft]=useState(emptyUnit()),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
   const [student,setStudent]=useState(''),[tutor,setTutor]=useState('');
+  const [competencies,setCompetencies]=useState([]);
   const refresh=useCallback(async()=>{
     const data=await request('/courses/'+courseId);
-    setCourse(data.course);setUnits(data.units);
+    setCourse(data.course);setUnits(data.units);setCompetencies(data.course.competencies||[]);
     return data.units;
   },[courseId,request]);
   useEffect(()=>{refresh().catch(e=>setError('No se ha podido cargar el curso: '+e.message));},[refresh]);
@@ -47,6 +49,12 @@ function CourseEditor({courseId,request,users,role,onSaved}){
     try{await request('/admin/courses/'+courseId+'/publish',{method:'POST',body:{}});await refresh();await onSaved();setNotice('Curso activado. Ahora se puede matricular alumnado.');}
     catch(e){setError('No se puede activar el curso: '+e.message);}finally{setBusy(false);}
   };
+  const saveCompetencies=async()=>{
+    setBusy(true);setError('');setNotice('');
+    try{await request('/admin/courses/'+courseId,{method:'PATCH',body:{competencies}});
+      await refresh();setNotice('Competencias guardadas.');}
+    catch(e){setError('No se han guardado las competencias: '+e.message);}finally{setBusy(false);}
+  };
   const enroll=async()=>{
     if(!student)return;setBusy(true);setError('');setNotice('');
     try{await request('/admin/enrollments',{method:'POST',body:{student_id:student,course_id:courseId}});setNotice('Matrícula creada.');setStudent('');}
@@ -65,6 +73,16 @@ function CourseEditor({courseId,request,users,role,onSaved}){
       <p className="mt-1 text-sm text-slate-600">Estado: {editable?'Borrador — editable':'Activo — estructura bloqueada'}</p></div>
       <Link className="rounded-lg border border-[#005EB8] px-4 py-2 text-sm font-semibold text-[#005EB8]" to={'/aula/curso/'+courseId}>Vista del lector</Link>
     </div>
+    {editable&&<section className="rounded-xl border border-slate-200 p-4">
+      <h3 className="font-bold">Competencias generales del curso</h3>
+      {competencies.map((c,i)=><div key={i} className="mt-3 grid gap-2 sm:grid-cols-[100px_1fr_auto]">
+        <input aria-label={'Código de competencia '+(i+1)} className={input} value={c.id} onChange={e=>setCompetencies(p=>p.map((x,j)=>i===j?{...x,id:e.target.value}:x))}/>
+        <input aria-label={'Descripción de competencia '+(i+1)} className={input} value={c.text} onChange={e=>setCompetencies(p=>p.map((x,j)=>i===j?{...x,text:e.target.value}:x))}/>
+        <button type="button" className="text-sm text-rose-700" onClick={()=>setCompetencies(p=>p.filter((_,j)=>i!==j))}>Eliminar</button>
+      </div>)}
+      <div className="mt-3 flex flex-wrap gap-3"><button type="button" className="rounded-lg border px-3 py-2 text-sm" onClick={()=>setCompetencies(p=>[...p,{id:'C'+(p.length+1),text:''}])}>Añadir competencia</button>
+        <button type="button" disabled={busy} className={primary} onClick={saveCompetencies}>Guardar competencias</button></div>
+    </section>}
     {error&&<p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-900">{error}</p>}
     {notice&&<p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">{notice}</p>}
     <div><h3 className="mb-3 font-bold">Unidades y resultados de aprendizaje</h3>
@@ -84,22 +102,40 @@ function CourseEditor({courseId,request,users,role,onSaved}){
       <h4 className="font-semibold">Bloques del contenido</h4>
       {(draft.content_blocks||[]).map((b,i)=><div key={i} className="rounded-lg border border-slate-200 bg-white p-3">
         <div className="grid gap-3 sm:grid-cols-[180px_1fr]"><label className="text-sm">Tipo<select className={input} value={b.type} onChange={e=>changeBlock(i,'type',e.target.value)}>
-          <option value="heading">Título</option><option value="text">Párrafo</option><option value="callout">Caja</option><option value="image">Imagen</option><option value="video">Vídeo</option></select></label>
+          <option value="heading">Título</option><option value="text">Párrafo</option><option value="callout">Caja</option><option value="image">Imagen</option><option value="video">Vídeo</option><option value="accordion">Acordeón</option><option value="flashcard">Ficha interactiva</option><option value="faq">Pregunta frecuente</option><option value="glossary">Glosario</option><option value="link">Enlace</option><option value="bibliography">Bibliografía</option></select></label>
           {b.type==='heading'&&<label className="text-sm">Nivel<select className={input} value={b.level||2} onChange={e=>changeBlock(i,'level',Number(e.target.value))}>
             {[1,2,3,4].map(n=><option key={n} value={n}>H{n}</option>)}</select></label>}
           {b.type==='callout'&&<label className="text-sm">Estilo<select className={input} value={b.style||'recuerda'} onChange={e=>changeBlock(i,'style',e.target.value)}>
             {['recuerda','importante','ejemplo','resumen'].map(s=><option key={s} value={s}>{s}</option>)}</select></label>}
         </div>
-        {(b.type==='image'||b.type==='video')&&<label className="mt-3 block text-sm">URL HTTPS<input value={b.src||''} onChange={e=>changeBlock(i,'src',e.target.value)} className={input}/></label>}
+        {(['image','video','link','bibliography'].includes(b.type))&&<label className="mt-3 block text-sm">URL HTTPS<input value={b.src||''} onChange={e=>changeBlock(i,'src',e.target.value)} className={input}/></label>}
         {b.type==='image'&&<label className="mt-3 block text-sm">Texto alternativo<input value={b.alt||''} onChange={e=>changeBlock(i,'alt',e.target.value)} className={input}/></label>}
         <label className="mt-3 block text-sm">{b.type==='heading'?'Texto del título':b.type==='image'||b.type==='video'?'Pie o descripción':'Contenido'}
           <textarea rows={b.type==='text'?5:2} value={b.text||''} onChange={e=>changeBlock(i,'text',e.target.value)} className={input}/></label>
+        {['accordion','flashcard','faq','glossary'].includes(b.type)&&<label className="mt-3 block text-sm">Respuesta / reverso / definición
+          <textarea rows={3} className={input} value={b.body||''} onChange={e=>changeBlock(i,'body',e.target.value)}/></label>}
+        {b.type==='heading'&&Number(b.level)===2&&<fieldset className="mt-3 rounded-lg bg-blue-50 p-3"><legend className="font-semibold">Resultados de aprendizaje asociados a este H2</legend>
+          {(draft.learning_outcomes||[]).filter(x=>x.id?.trim()).map(outcome=><label key={outcome.id} className="mt-2 flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={Array.isArray(b.outcome_ids)&&b.outcome_ids.includes(outcome.id)} onChange={e=>{
+              const chosen=Array.isArray(b.outcome_ids)?b.outcome_ids:[];
+              changeBlock(i,'outcome_ids',e.target.checked?[...chosen,outcome.id]:chosen.filter(x=>x!==outcome.id));
+            }}/>{outcome.id}: {outcome.text}</label>)}
+        </fieldset>}
         <button type="button" className="mt-2 text-xs font-semibold text-rose-700 underline" onClick={()=>setDraft(p=>({...p,content_blocks:p.content_blocks.filter((_,n)=>n!==i)}))}>Eliminar bloque</button>
       </div>)}
       <button type="button" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold" onClick={()=>setDraft(p=>({...p,content_blocks:[...p.content_blocks,{type:'text',text:''}]}))}>Añadir bloque</button>
       <h4 className="font-semibold">Resultados de aprendizaje</h4>
       {(draft.learning_outcomes||[]).map((o,i)=><div key={i} className="grid gap-2 sm:grid-cols-[90px_1fr]"><input aria-label={'Código del RA '+(i+1)} value={o.id} onChange={e=>setDraft(p=>({...p,learning_outcomes:p.learning_outcomes.map((x,j)=>i===j?{...x,id:e.target.value}:x)}))} className={input} placeholder="RA1"/><input aria-label={'Descripción del RA '+(i+1)} value={o.text} onChange={e=>setDraft(p=>({...p,learning_outcomes:p.learning_outcomes.map((x,j)=>i===j?{...x,text:e.target.value}:x)}))} className={input} placeholder="Al finalizar podrá…"/></div>)}
       <button type="button" onClick={()=>setDraft(p=>({...p,learning_outcomes:[...p.learning_outcomes,{id:'RA'+(p.learning_outcomes.length+1),text:''}]}))} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">Añadir RA</button>
+      <h4 className="font-semibold">Recursos complementarios</h4>
+      {(draft.resources||[]).map((r,i)=><fieldset key={i} className="rounded-lg border bg-white p-3"><legend className="font-semibold">Recurso {i+1}</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm">Tipo<select className={input} value={r.type} onChange={e=>setDraft(p=>({...p,resources:p.resources.map((x,j)=>i===j?{...x,type:e.target.value}:x)}))}>
+            <option value="bibliografia">Bibliografía</option><option value="enlace">Enlace</option><option value="glosario">Glosario</option><option value="faq">Pregunta frecuente</option></select></label>
+          {['title','description','url'].map(key=><label key={key} className="block text-sm">{({title:'Título',description:'Descripción',url:'URL HTTPS (opcional)'})[key]}
+            <input className={input} value={r[key]||''} onChange={e=>setDraft(p=>({...p,resources:p.resources.map((x,j)=>i===j?{...x,[key]:e.target.value}:x)}))}/></label>)}
+        </div><button className="mt-2 text-xs text-rose-700 underline" type="button" onClick={()=>setDraft(p=>({...p,resources:p.resources.filter((_,j)=>j!==i)}))}>Eliminar recurso</button></fieldset>)}
+      <button type="button" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" onClick={()=>setDraft(p=>({...p,resources:[...(p.resources||[]),{type:'enlace',title:'',description:'',url:''}]}))}>Añadir recurso</button>
       <p className="text-sm text-slate-600">Tras guardar la unidad puedes configurar un banco de 15 preguntas y una práctica con rúbrica. La activación del curso exigirá que las evaluaciones obligatorias estén completas.</p>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.requires_test===true} onChange={e=>setDraft(p=>({...p,requires_test:e.target.checked}))}/> Requiere superar un test</label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.requires_practice===true} onChange={e=>setDraft(p=>({...p,requires_practice:e.target.checked}))}/> Requiere práctica evaluada</label>
@@ -111,6 +147,7 @@ function CourseEditor({courseId,request,users,role,onSaved}){
       <p className="text-sm text-amber-900">Antes de activar: incluye contenido en la Unidad 0 y al menos una unidad con resultados de aprendizaje. Al activar el curso se congela su estructura.</p>
       <button disabled={busy} type="button" onClick={publish} className={primary+' mt-3'}>Activar curso</button>
     </div>}
+    <AulaAuthorInsights courseId={courseId} request={request}/>
     {course.status==='active'&&<>
       <div className="grid gap-6 md:grid-cols-2">
         <div className="space-y-3 rounded-xl border border-slate-200 p-4"><h3 className="font-bold">Matricular alumnado</h3>
