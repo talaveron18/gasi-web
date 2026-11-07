@@ -1,16 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Users, Clock, Building, CheckCircle, FileText } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 const CoberturaSanitaria = () => {
   const features = [
-    { icon: <Users className="w-6 h-6" />, title: 'Atención Sanitaria', desc: 'Asistencia profesional adaptada al entorno empresarial' },
-    { icon: <Clock className="w-6 h-6" />, title: 'Cobertura Planificada', desc: 'Horarios y presencia definidos previamente según las necesidades y el alcance aplicable' },
-    { icon: <Building className="w-6 h-6" />, title: 'En Sus Instalaciones', desc: 'Prestación presencial en el centro acordado cuando el servicio resulte aplicable' },
-    { icon: <Shield className="w-6 h-6" />, title: 'Alcance Definido', desc: 'Las actuaciones incluidas se concretan antes del inicio del servicio' },
-    { icon: <FileText className="w-6 h-6" />, title: 'Registro Asistencial', desc: 'Documentación de la actividad conforme al servicio contratado y a los requisitos aplicables' },
-    { icon: <CheckCircle className="w-6 h-6" />, title: 'Validación Previa', desc: 'Confirmamos previamente que la cobertura solicitada puede prestarse dentro del alcance aplicable' }
+    { image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesional sanitario en consulta', title: 'Atención Sanitaria', desc: 'Asistencia profesional adaptada al entorno empresarial' },
+    { image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Instalaciones de una organización', title: 'Cobertura Planificada', desc: 'Horarios y presencia definidos previamente según las necesidades y el alcance aplicable' },
+    { image: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Espacio de trabajo empresarial', title: 'En Sus Instalaciones', desc: 'Prestación presencial en el centro acordado cuando el servicio resulte aplicable' },
+    { image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Equipo sanitario en un entorno clínico', title: 'Alcance Definido', desc: 'Las actuaciones incluidas se concretan antes del inicio del servicio' },
+    { image: 'https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesionales sanitarios', title: 'Registro Asistencial', desc: 'Documentación de la actividad conforme al servicio contratado y a los requisitos aplicables' },
+    { image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesional sanitaria', title: 'Validación Previa', desc: 'Confirmamos previamente que la cobertura solicitada puede prestarse dentro del alcance aplicable' }
   ];
 
   return (
@@ -48,12 +47,12 @@ const CoberturaSanitaria = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
-              <Card key={index} className="p-6 hover-lift" data-testid={`feature-${index}`}>
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-[#005EB8]/10 rounded-full text-[#005EB8] mb-4">
-                  {feature.icon}
-                </div>
+              <Card key={index} className="overflow-hidden h-full hover-lift" data-testid={`feature-${index}`}>
+                <div className="h-48 overflow-hidden bg-[#EAF4FC]"><img src={feature.image} alt={feature.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
+                <div className="p-6">
                 <h3 className="font-bold text-[#0F172A] mb-2">{feature.title}</h3>
                 <p className="text-[#64748B] text-sm">{feature.desc}</p>
+                </div>
               </Card>
             ))}
           </div>
@@ -65,15 +64,15 @@ const CoberturaSanitaria = () => {
           <h2 className="text-3xl font-bold text-[#0F172A] mb-8 text-center">¿En qué entornos puede plantearse?</h2>
           <div className="space-y-6">
             <Card className="p-6">
-              <h3 className="font-bold text-xl text-[#0F172A] mb-3">📦 Logística y Almacenes</h3>
+              <h3 className="font-bold text-xl text-[#0F172A] mb-3">Logística y Almacenes</h3>
               <p className="text-[#64748B]">Centros que quieran valorar una solución de atención sanitaria para un horario y unas funciones previamente definidos.</p>
             </Card>
             <Card className="p-6">
-              <h3 className="font-bold text-xl text-[#0F172A] mb-3">🏭 Industria</h3>
+              <h3 className="font-bold text-xl text-[#0F172A] mb-3">Industria</h3>
               <p className="text-[#64748B]">Instalaciones industriales que necesiten estudiar la incorporación de atención sanitaria dentro de un alcance acordado.</p>
             </Card>
             <Card className="p-6">
-              <h3 className="font-bold text-xl text-[#0F172A] mb-3">🏬 Centros de Trabajo</h3>
+              <h3 className="font-bold text-xl text-[#0F172A] mb-3">Centros de Trabajo</h3>
               <p className="text-[#64748B]">Otras organizaciones con centros presenciales pueden consultarnos su necesidad para valorar su encaje antes de definir una propuesta.</p>
             </Card>
           </div>
