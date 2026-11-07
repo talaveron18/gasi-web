@@ -30,9 +30,10 @@ test('effective clinical runtime must not append audit events through a global c
 test('effective clinical runtime must not validate recovery audit snapshots as one global chain', () => {
   const validator = runtime.match(/function validAuditSnapshot\(rows:any\[\]\)\{[\s\S]*?\}function validAttendanceSnapshot/);
   assert.ok(validator, 'expected the clinical recovery audit validator to remain discoverable');
-  assert.match(
-    validator[0],
-    /tenant_id|actor_tenant_id/,
-    'recovery audit validation must preserve tenant boundaries instead of validating one global sequence',
-  );
+  assert.match(validator[0], /validAuditChainsByTenant\(rows,canonical\)/,
+    'recovery validator must delegate to tenant-scoped hash chain verification');
+  assert.match(tenantAudit, /groups\.set\(tenant,/,
+    'tenant audit verifier must group rows by tenant');
+  assert.match(tenantAudit, /metadata\?\.actor_tenant_id/,
+    'tenant audit verifier must validate identity in hashed metadata');
 });
