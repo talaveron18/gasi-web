@@ -4,8 +4,17 @@ import {ArrowLeft,ArrowRight,BookOpen,CheckCircle2,Clock,LockKeyhole} from 'luci
 const cls='rounded-xl border border-slate-200 bg-white p-4';
 function Block({block}){
   if(block.type==='heading'){const T=['h1','h2','h3','h4'][Math.max(0,Math.min(3,(Number(block.level)||2)-1))];
-    return <T className={block.level===1?'text-2xl font-bold text-slate-950':'mt-6 text-xl font-semibold text-slate-900'}>{block.text}</T>;}
+    return <T className={block.level===1?'text-2xl font-bold text-slate-950':'mt-6 text-xl font-semibold text-slate-900'}>{block.text}{block.level===2&&Array.isArray(block.outcome_ids)&&block.outcome_ids.length>0&&<span className="ml-2 text-xs font-normal text-slate-500">RA: {block.outcome_ids.join(', ')}</span>}</T>;}
   if(block.type==='callout')return <aside className="rounded-xl border-l-4 border-[#005EB8] bg-blue-50 p-4"><strong className="text-blue-900">{({recuerda:'Recuerda',importante:'Importante',ejemplo:'Ejemplo',resumen:'Resumen'})[block.style]||'Nota'}</strong><p className="mt-2 whitespace-pre-wrap text-slate-800">{block.text}</p></aside>;
+  if(['accordion','faq','flashcard'].includes(block.type))return <details className="rounded-lg border border-slate-200 p-4">
+    <summary className="cursor-pointer font-semibold text-[#005EB8]">{block.type==='flashcard'?'Ficha: ':''}{block.text}</summary>
+    <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{block.body}</p>
+  </details>;
+  if(block.type==='glossary')return <dl className="rounded-lg bg-slate-100 p-4"><dt className="font-bold">{block.text}</dt><dd className="mt-2 text-sm">{block.body}</dd></dl>;
+  if(block.type==='link'||block.type==='bibliography')return <div className="rounded-lg border border-slate-200 p-4">
+    <p className="font-semibold">{block.text}</p>
+    {block.src&&<a className="mt-2 inline-flex text-sm font-semibold text-[#005EB8] underline" href={block.src} rel="noopener noreferrer" target="_blank">Abrir recurso externo</a>}
+  </div>;
   if(block.type==='image')return <figure><img src={block.src} alt={block.alt} loading="lazy" className="max-h-96 w-full rounded-xl object-contain"/>{block.text&&<figcaption className="mt-2 text-sm text-slate-600">{block.text}</figcaption>}</figure>;
   if(block.type==='video')return <figure><video controls preload="metadata" className="max-h-96 w-full rounded-xl" src={block.src}>Tu navegador no puede reproducir este vídeo.</video>{block.text&&<figcaption className="mt-2 text-sm text-slate-600">{block.text}</figcaption>}</figure>;
   return <p className="whitespace-pre-wrap leading-7 text-slate-800">{block.text}</p>;
@@ -49,6 +58,11 @@ export default function AulaReaderView({course,units=[],selected,unit,loading=fa
             <div><p className="text-sm font-semibold text-[#005EB8]">Unidad {unit.unit_no}</p><h2 id="aula-selected-unit" className="mt-2 text-2xl font-bold">{unit.title}</h2><p className="mt-3 text-slate-600">{unit.introduction}</p></div>
             {headings.length>0&&<aside className="rounded-xl bg-slate-50 p-4"><h3 className="text-sm font-bold">Índice de contenidos</h3><ul className="mt-2 space-y-1 text-sm text-slate-700">{headings.map((h,i)=><li key={i} className={h.level===3?'ml-4':''}>{h.text}</li>)}</ul></aside>}
             {content.map((block,i)=><Block block={block} key={i}/>)}
+            {unit.resources?.length>0&&<section className="rounded-xl border border-slate-200 p-4"><h3 className="font-bold">Recursos complementarios</h3>
+              <ul className="mt-3 space-y-2">{unit.resources.map((r,i)=><li key={i}><strong>{r.title}</strong><span className="ml-2 text-xs uppercase text-slate-500">{r.type}</span>
+                {r.description&&<p className="text-sm text-slate-700">{r.description}</p>}
+                {r.url&&<a href={r.url} target="_blank" rel="noopener noreferrer" className="text-sm text-[#005EB8] underline">Abrir enlace</a>}</li>)}</ul>
+            </section>}
             {unit.learning_outcomes?.length>0&&<section className="rounded-xl bg-emerald-50 p-4"><h3 className="font-bold text-emerald-950">Resultados de aprendizaje</h3><ul className="mt-2 list-inside list-disc space-y-1 text-sm text-emerald-950">{unit.learning_outcomes.map(o=><li key={o.id}>{o.text}</li>)}</ul></section>}
             {assessmentPanel}
             {(unit.requires_test||unit.requires_practice)&&<p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
