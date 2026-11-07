@@ -664,7 +664,7 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
  resignSnapshot(duplicateWorker,secrets.GASI_RECOVERY_SIGNING_SECRET);
  res=await handler(request("/api/internal-clinical/recovery/restore",{method:"POST",token:masterToken,body:duplicateWorker}),{});
  assert.equal(res.status,422);
- assert.equal((await responseJson(res)).detail,"invalid_recovery_snapshot");
+ assert.equal((await responseJson(res)).detail,"invalid_recovery_snapshot_references");
  const afterDuplicate=(await pool.query("SELECT COUNT(*)::int AS n FROM internal_attendance_events")).rows[0].n;
  assert.equal(afterDuplicate,beforeTamper);
 
