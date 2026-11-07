@@ -140,3 +140,11 @@ test('páginas comerciales mantienen asistencia integral, formación empresarial
     assert.doesNotMatch(source, /venta de (?:DEA|desfibriladores)/i);
   }
 });
+
+
+test('salud laboral explica la propuesta con beneficios sin prometer disponibilidad ni servicios médicos ajenos', () => {
+  const labor = read('src/pages/SaludLaboral.jsx');
+  assert.match(labor, /Nos adaptamos a la actividad y organización de cada centro/);
+  assert.match(labor, /previa comprobación de su viabilidad y requisitos/);
+  assert.doesNotMatch(labor, /(?:reconocimientos médicos|servicio de prevención ajeno|disponibilidad garantizada)/i);
+});
