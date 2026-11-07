@@ -54,6 +54,15 @@ test('F5 PostgreSQL: competencies, RA-H2 mapping, author checks, time analytics 
  assert.ok(audit.metrics.some(x=>x.unit_no===1));
  const detail=ok(await call('/courses/'+course.id+'/units/'+second.id,'GET',{},author.cookie),200).unit;
  assert.deepEqual(detail.resources,resources);
+ // Course publishing must fail closed when author H1/RA quality checks fail.
+ ok(await call('/admin/courses/'+course.id+'/units/'+second.id,'PATCH',{
+   content_blocks:[{type:'heading',level:1,text:'Título uno'},{type:'heading',level:1,text:'Título duplicado'}]
+ },author.cookie),200);
+ assert.equal((await call('/admin/courses/'+course.id+'/publish','POST',{},author.cookie)).status,422);
+ ok(await call('/admin/courses/'+course.id+'/units/'+second.id,'PATCH',{
+   content_blocks:[{type:'heading',level:1,text:'Actuación inicial'},{type:'heading',level:2,text:'Secuencia',outcome_ids:['RA1']},
+     {type:'accordion',text:'Pasos básicos',body:'Identificar riesgos y solicitar ayuda'}]
+ },author.cookie),200);
  ok(await call('/admin/courses/'+course.id+'/publish','POST',{},author.cookie),200);
  assert.equal((await call('/admin/courses/'+course.id,'PATCH',{competencies:[]},author.cookie)).status,409);
  const admin=await actor('admin','admin');
