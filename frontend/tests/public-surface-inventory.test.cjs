@@ -90,8 +90,12 @@ test('navegación y CTA comerciales no enlazan a compra, inscripción o servicio
 
 test('la portada presenta el nuevo posicionamiento y las dos líneas comerciales', () => {
   const home = read('src/pages/Home.jsx');
-  assert.doesNotMatch(home, /customer-assets\.emergentagent\.com|service\.image|<img\b/i);
-  assert.match(home, /bg-gradient-to-br/);
+  assert.doesNotMatch(home, /customer-assets\.emergentagent\.com/i);
+  assert.match(home, /Asistencia Sanitaria Integral para Empresas/);
+  assert.match(home, /title: 'Asistencia Sanitaria Integral'/);
+  assert.match(home, /Formación Sanitaria/);
+  assert.match(home, /service\.image/);
+  assert.match(home, /<img\b/);
 });
 
 
