@@ -198,7 +198,7 @@ export default function Chatbot() {
         {screen === 'home' && <>
           <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-800">
             Hola. Puedo orientarte sobre los servicios de GASI y recoger los datos para estudiar una propuesta adaptada a tu empresa.
-            <p className="mt-2 text-xs text-slate-500">No es un canal clínico ni de urgencias. No compartas datos de pacientes ni información de salud.</p>
+            <p className="mt-2 text-xs text-slate-500">Este asistente no es un canal clínico ni de urgencias. No compartas datos de pacientes ni información de salud.</p>
           </div>
           <p className="text-sm font-semibold text-slate-800">¿En qué podemos ayudarte?</p>
           <div className="grid gap-2">{TOPICS.map(topic => <button type="button" key={topic.id} onClick={() => pickTopic(topic)}
