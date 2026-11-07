@@ -159,6 +159,7 @@ export default function Chatbot() {
           payload_too_large: 'La consulta contiene demasiado texto.',
           service_unavailable: 'El correo automático no está configurado.',
           delivery_failed: 'El proveedor de correo no ha aceptado el envío.',
+          rate_limited: 'Se ha alcanzado temporalmente el límite de solicitudes. Inténtalo de nuevo más tarde o utiliza el correo directo.',
           medical_content_not_allowed: 'No envíes información clínica ni datos de salud por este canal.'
         };
         throw new Error(reasons[result.message] || 'No se ha podido confirmar el envío.');
