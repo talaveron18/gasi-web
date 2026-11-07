@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 
 const CoberturaSanitaria = () => {
   const features = [
-    { icon: <Users className="w-6 h-6" />, title: 'Enfermería Presencial', desc: 'Personal de enfermería para coberturas previamente delimitadas' },
+    { icon: <Users className="w-6 h-6" />, title: 'Atención Sanitaria', desc: 'Asistencia profesional adaptada al entorno empresarial' },
     { icon: <Clock className="w-6 h-6" />, title: 'Cobertura Planificada', desc: 'Horarios y presencia definidos previamente según las necesidades y el alcance aplicable' },
     { icon: <Building className="w-6 h-6" />, title: 'En Sus Instalaciones', desc: 'Prestación presencial en el centro acordado cuando el servicio resulte aplicable' },
     { icon: <Shield className="w-6 h-6" />, title: 'Alcance Definido', desc: 'Las actuaciones incluidas se concretan antes del inicio del servicio' },
@@ -18,22 +18,22 @@ const CoberturaSanitaria = () => {
       <section className="bg-gradient-to-br from-[#005EB8] to-[#327BBD] text-white py-20">
         <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
           <h1 className="text-4xl lg:text-5xl font-bold mb-6" data-testid="page-title">
-            Cobertura Sanitaria en Empresas
+            Asistencia Sanitaria Integral en Empresas
           </h1>
           <p className="text-xl opacity-90">
-            Enfermería presencial en sus instalaciones, con alcance y condiciones definidos previamente
+            Soluciones de atención sanitaria y coordinación asistencial adaptadas a las necesidades de cada organización
           </p>
         </div>
       </section>
 
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white"><div className="max-w-5xl mx-auto px-6 lg:px-8 mb-10"><img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1400&q=85" alt="Profesional sanitario en un entorno asistencial" loading="lazy" className="w-full h-64 md:h-80 object-cover rounded-2xl" /></div>
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-[#0F172A] mb-6">¿Qué es nuestro servicio de cobertura sanitaria?</h2>
+          <h2 className="text-3xl font-bold text-[#0F172A] mb-6">Una solución sanitaria adaptada a su empresa</h2>
           <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-            GASI organiza <strong>coberturas presenciales de enfermería</strong> en instalaciones de organizaciones cuando la necesidad planteada encaja en el alcance aplicable. No somos un servicio de emergencias ni de ambulancias.
+            GASI desarrolla un modelo de <strong>asistencia sanitaria integral en el entorno de trabajo</strong>, con atención profesional y coordinación asistencial adaptadas a las necesidades de cada centro. La configuración concreta se estudia con cada organización.
           </p>
           <p className="text-lg text-[#64748B] leading-relaxed mb-6">
-            Antes de iniciar una cobertura definimos con la organización el centro, horario, funciones y medios necesarios. La prestación queda limitada a lo acordado y a las actuaciones que correspondan al perfil profesional y al marco aplicable.
+            Antes de iniciar un servicio definimos con la organización el centro, los horarios, las funciones y los medios necesarios. La prestación se ajusta a lo acordado y a los requisitos profesionales y sanitarios que correspondan.
           </p>
           <p className="text-lg text-[#64748B] leading-relaxed">
             Si necesita presencia sanitaria en su organización, puede trasladarnos el caso para que valoremos si podemos atenderlo y en qué condiciones.
@@ -66,15 +66,15 @@ const CoberturaSanitaria = () => {
           <div className="space-y-6">
             <Card className="p-6">
               <h3 className="font-bold text-xl text-[#0F172A] mb-3">📦 Logística y Almacenes</h3>
-              <p className="text-[#64748B]">Centros que quieran valorar una cobertura presencial de enfermería para un horario y unas funciones previamente definidos.</p>
+              <p className="text-[#64748B]">Centros que quieran valorar una solución de atención sanitaria para un horario y unas funciones previamente definidos.</p>
             </Card>
             <Card className="p-6">
               <h3 className="font-bold text-xl text-[#0F172A] mb-3">🏭 Industria</h3>
-              <p className="text-[#64748B]">Instalaciones industriales que necesiten estudiar la incorporación de presencia de enfermería dentro de un alcance acordado.</p>
+              <p className="text-[#64748B]">Instalaciones industriales que necesiten estudiar la incorporación de atención sanitaria dentro de un alcance acordado.</p>
             </Card>
             <Card className="p-6">
               <h3 className="font-bold text-xl text-[#0F172A] mb-3">🏬 Centros de Trabajo</h3>
-              <p className="text-[#64748B]">Otras organizaciones con centros presenciales pueden consultarnos su necesidad para valorar su encaje antes de ofrecer una cobertura.</p>
+              <p className="text-[#64748B]">Otras organizaciones con centros presenciales pueden consultarnos su necesidad para valorar su encaje antes de definir una propuesta.</p>
             </Card>
           </div>
         </div>
