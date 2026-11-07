@@ -47,7 +47,9 @@ describe('public content safety contract', () => {
     expect(home).toContain('Formación Sanitaria');
     expect(footer).toContain('Enfermería presencial para organizaciones');
     expect(footer).toContain('Formación Sanitaria');
-    expect(chatbot).toContain("const SERVICES = ['Enfermería presencial', 'Formación sanitaria', 'Otro']");
+    expect(chatbot).toContain("from '@/lib/chatbotGuidance';");
+    const guidance = fs.readFileSync(path.join(__dirname, 'lib/chatbotGuidance.js'), 'utf8');
+    expect(guidance).toContain("export const SERVICES = ['Enfermería presencial', 'Formación sanitaria', 'Otro'];");
     expect(seo).toContain('Soluciones de asistencia sanitaria integral para empresas y formación empresarial en primeros auxilios');
     expect(seo).toContain('<title>GASI | Asistencia Sanitaria Integral para Empresas</title>');
   });
