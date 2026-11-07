@@ -114,7 +114,7 @@ function DemoAssessment({result,questionsShown,answers,onAnswer,onStart,onSubmit
 }
 export default function AulaVisualDemo(){
  const [role,setRole]=useState('student'),[completed,setCompleted]=useState([]),[selected,setSelected]=useState('welcome');
- const [visited,setVisited]=useState([]),[today,setToday]=useState([]),[day,setDay]=useState(1);
+ const [visited,setVisited]=useState(['welcome']),[today,setToday]=useState(['welcome']),[day,setDay]=useState(1);
  const [seconds,setSeconds]=useState(0),[testQs,setTestQs]=useState([]),[answers,setAnswers]=useState({}),[result,setResult]=useState(null);
  const [practice,setPractice]=useState(null),[accounts,setAccounts]=useState([
   {name:'Autor de prueba',role:'author',email:'autor@example.invalid'},
@@ -146,7 +146,7 @@ export default function AulaVisualDemo(){
    const target=samples.find((x,i)=>i>samples.findIndex(k=>k.id===id)&&next.includes(samples[i-1]?.id)&&(!visited.includes(x.id)?today.length<course.max_units_per_day:true));
    if(target)open(target.id);
  };
- const reset=()=>{setCompleted([]);setSelected('welcome');setVisited([]);setToday([]);setDay(1);setSeconds(0);setTestQs([]);setAnswers({});setResult(null);setPractice(null);};
+ const reset=()=>{setCompleted([]);setSelected('welcome');setVisited(['welcome']);setToday(['welcome']);setDay(1);setSeconds(0);setTestQs([]);setAnswers({});setResult(null);setPractice(null);};
  const start=()=>{setTestQs(randomTen());setAnswers({});setResult(null);};
  const submit=()=>{if(testQs.length!==10||Object.keys(answers).length!==10)return;
    const score=testQs.filter(q=>answers[q.id]===q.correct).length;setResult({score,passed:score>=7});
