@@ -183,7 +183,7 @@ jobs:
         run: |
           node aula/migrate.mjs
           node aula/migrate.mjs
-          psql "$GASI_INTEGRATION_DB_URL" -v ON_ERROR_STOP=1 -tAc "SELECT count(*) FROM aula_schema_migrations" | grep -qx 2
+          psql "$GASI_INTEGRATION_DB_URL" -v ON_ERROR_STOP=1 -tAc "SELECT count(*) FROM aula_schema_migrations" | grep -qx 3
           export GASI_AULA_DB_URL="$GASI_INTEGRATION_DB_URL"
           export AULA_BOOTSTRAP_CONFIRM="CREATE_FIRST_ADMIN"
           export AULA_BOOTSTRAP_EMAIL="bootstrap@example.invalid"
@@ -195,7 +195,7 @@ jobs:
             exit 1
           fi
           unset AULA_BOOTSTRAP_PASSWORD AULA_BOOTSTRAP_EMAIL AULA_BOOTSTRAP_NAME AULA_BOOTSTRAP_CONFIRM
-          node --test aula/persistence-postgres.test.mjs aula/persistence-f3.test.mjs
+          node --test aula/persistence-postgres.test.mjs aula/persistence-f3.test.mjs aula/persistence-f4.test.mjs
       - name: PostgreSQL attendance and recovery integration
         env:
           GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
