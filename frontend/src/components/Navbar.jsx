@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GASI_LOGO } from '@/assets/logo';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +20,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <Link to="/" className="flex items-center" data-testid="logo-link">
-            <span className="text-2xl font-bold tracking-wide text-[#005EB8]" aria-label="GASI - Grupo de Asistencia Sanitaria Integral">GASI</span>
+            <img src={GASI_LOGO} alt="GASI - Grupo de Asistencia Sanitaria Integral" className="h-10 w-auto max-w-full object-contain" />
           </Link>
 
           <div className="hidden lg:flex items-center space-x-1">
