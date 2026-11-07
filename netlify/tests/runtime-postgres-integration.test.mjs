@@ -656,6 +656,18 @@ test("runtime: attendance, workstation binding, isolation and recovery work on P
    }
    console.error("RECOVERY_TEST_AUDIT_DIAGNOSTIC",JSON.stringify({auditCount:snapshot.audit.length,groupCount:grouped.size,mismatch}));
  }
+ // Diagnose the fail-closed structural guard using only anonymous counts from synthetic fixtures.
+ const structuralGuard={
+  episodes:snapshot.episodes.filter(x=>!x||typeof x!=="object"||!x.id||!x.tenant_id||!x.center).length,
+  workers:snapshot.workers.filter(x=>!x||typeof x!=="object"||!x.id||!x.tenant_id||!x.role).length,
+  workstations:snapshot.workstations.filter(x=>!x||typeof x!=="object"||!x.id||!x.tenant_id||!x.center||!x.credential_hash).length,
+  attendance:snapshot.attendance.filter(x=>!x||typeof x!=="object"||!Number.isSafeInteger(Number(x.seq))||!x.worker_id||!x.tenant_id||!x.center||!x.workstation_id||!["CLOCK_IN","CLOCK_OUT","CORRECTION"].includes(x.event_type)).length,
+  contingency:snapshot.contingency.filter(x=>!x||typeof x!=="object"||!x.tenant_id||!x.center||!x.channel_type).length,
+  audit:snapshot.audit.filter(x=>!x||typeof x!=="object"||!Number.isSafeInteger(Number(x.seq))||!x.actor_id||!x.action).length,
+  counters:snapshot.counters.filter(x=>!x||typeof x!=="object"||!x.name||!Number.isFinite(Number(x.value))).length,
+  auditChainValid:diagnosticAuditValid,
+ };
+ console.error("RECOVERY_TEST_STRUCTURAL_DIAGNOSTIC",JSON.stringify(structuralGuard));
  assert.equal(snapshot.schema_version,4);
  assert.ok(snapshot.workstations.find(x=>x.id==="WS-A")?.claimed_at);
  assert.ok(snapshot.attendance.length>=5);
