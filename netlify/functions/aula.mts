@@ -157,6 +157,37 @@ async function handle(req:Request){
     await log(user,"COURSE_CREATED","course",course.id);
     return json({course},201);
   }
+  const courseEdit=path.match(/^\/admin\/courses\/([0-9a-f-]+)$/);
+  if(req.method==="PATCH"&&courseEdit){
+    requireRole(user,["admin","author"]);
+    const course=await courseById(courseEdit[1]);if(user.role==="author"&&course.created_by!==user.id)fail(403,"not_course_author");
+    if(course.status!=="draft")fail(409,"course_structure_frozen");
+    const b=await body(req);
+    const rows=await q("UPDATE aula_courses SET title=$2,objective=$3,target_audience=$4,requirements=$5,presentation=$6,updated_at=now() WHERE id=$1 RETURNING id,title",[course.id,string(b.title??course.title,180),string(b.objective??course.objective,2000),string(b.target_audience??course.target_audience,2000),string(b.requirements??course.requirements,2000),string(b.presentation??course.presentation,3000)]);
+    await log(user,"COURSE_UPDATED","course",course.id);return json({course:rows[0]});
+  }
+  const unitEdit=path.match(/^\/admin\/courses\/([0-9a-f-]+)\/units\/([0-9a-f-]+)$/);
+  if(req.method==="PATCH"&&unitEdit){
+    requireRole(user,["admin","author"]);
+    const course=await courseById(unitEdit[1]);
+    if(user.role==="author"&&course.created_by!==user.id)fail(403,"not_course_author");
+    if(course.status!=="draft")fail(409,"course_structure_frozen");
+    const previous=await q("SELECT * FROM aula_units WHERE course_id=$1 AND id=$2",[course.id,unitEdit[2]]);
+    if(!previous.length)fail(404,"unit_not_found");
+    const b=await body(req),p=previous[0];
+    const blocks=blocksOf(b.content_blocks??p.content_blocks);
+    const outcomes=Array.isArray(b.learning_outcomes)?b.learning_outcomes.slice(0,100).map((x:any)=>({id:string(x.id,80),text:string(x.text,500)})):p.learning_outcomes;
+    await q("UPDATE aula_units SET title=$3,introduction=$4,content_blocks=$5::jsonb,learning_outcomes=$6::jsonb,requires_test=$7,requires_practice=$8 WHERE course_id=$1 AND id=$2",[course.id,p.id,string(b.title??p.title,180),string(b.introduction??p.introduction,3000),JSON.stringify(blocks),JSON.stringify(outcomes),b.requires_test===undefined?p.requires_test:b.requires_test===true,b.requires_practice===undefined?p.requires_practice:b.requires_practice===true]);
+    await log(user,"UNIT_UPDATED","unit",p.id);return json({ok:true});
+  }
+  if(req.method==="POST"&&path==="/admin/tutors"){
+    requireRole(user,["admin","author"]);const b=await body(req),course=await courseById(String(b.course_id||""));
+    if(user.role==="author"&&course.created_by!==user.id)fail(403,"not_course_author");
+    const tutor=await q("SELECT id FROM aula_users WHERE id=$1 AND role='tutor' AND active=TRUE",[String(b.tutor_id||"")]);
+    if(!tutor.length)fail(422,"tutor_required");
+    await q("INSERT INTO aula_course_tutors(course_id,tutor_id) VALUES($1,$2) ON CONFLICT DO NOTHING",[course.id,tutor[0].id]);
+    await log(user,"TUTOR_ASSIGNED","course",course.id);return json({ok:true},201);
+  }
   const coursePost=path.match(/^\/admin\/courses\/([0-9a-f-]+)\/(units|publish)$/);
   if(coursePost&&req.method==="POST"){
     requireRole(user,["admin","author"]);
