@@ -3,7 +3,7 @@ import { getDatabase } from "@netlify/database";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import {gateUnit, canAuthor, canManageAccounts, canFinishUnit, ROLES} from "../aula/access-policy.mjs";
-import {validateBank,selectTen,gradeTest,validateRubric,gradePractice} from "../aula/f3-policy.mjs";
+import {validateBank,selectTen,makeOptionOrders,gradeWithOptionOrders,validateRubric,gradePractice} from "../aula/f3-policy.mjs";
 import {validOutcomes,validCompetencies,validResources,authorAudit} from "../aula/f5-policy.mjs";
 import {validSurvey,validateSurveyResponses,eligibleCertificate} from "../aula/f6-policy.mjs";
 
@@ -71,7 +71,7 @@ async function enrolment(user:any,course:any){
   return null;
 }
 async function outline(user:any,course:any,e:any,now=new Date()){
-  const units=await q("SELECT id,unit_no,title,requires_test,requires_practice,learning_outcomes FROM aula_units WHERE course_id=$1 ORDER BY unit_no",[course.id]);
+  const units=await q("SELECT id,unit_no,title,requires_test,requires_practice,allows_voluntary_practice,learning_outcomes FROM aula_units WHERE course_id=$1 ORDER BY unit_no",[course.id]);
   if(user.role!=="student")return units.map(x=>({...x,open:true,completed:false}));
   const rows=await q("SELECT p.* FROM aula_unit_progress p WHERE enrollment_id=$1",[e.id]);
   const byId=new Map(rows.map((r:any)=>[String(r.unit_id),r]));
@@ -272,7 +272,7 @@ async function handle(req:Request){
     const blocks=blocksOf(b.content_blocks??p.content_blocks);
     const outcomes=Array.isArray(b.learning_outcomes)?b.learning_outcomes.slice(0,100).map((x:any)=>({id:string(x.id,80),text:string(x.text,500)})):p.learning_outcomes;
     const resources=b.resources??p.resources;if(!validOutcomes(outcomes)||!validResources(resources))fail(422,"invalid_unit_outcomes_or_resources");
-    await q("UPDATE aula_units SET title=$3,introduction=$4,content_blocks=$5::jsonb,learning_outcomes=$6::jsonb,requires_test=$7,requires_practice=$8,resources=$9::jsonb WHERE course_id=$1 AND id=$2",[course.id,p.id,string(b.title??p.title,180),string(b.introduction??p.introduction,3000),JSON.stringify(blocks),JSON.stringify(outcomes),b.requires_test===undefined?p.requires_test:b.requires_test===true,b.requires_practice===undefined?p.requires_practice:b.requires_practice===true,JSON.stringify(resources)]);
+    await q("UPDATE aula_units SET title=$3,introduction=$4,content_blocks=$5::jsonb,learning_outcomes=$6::jsonb,requires_test=$7,requires_practice=$8,resources=$9::jsonb,allows_voluntary_practice=$10 WHERE course_id=$1 AND id=$2",[course.id,p.id,string(b.title??p.title,180),string(b.introduction??p.introduction,3000),JSON.stringify(blocks),JSON.stringify(outcomes),b.requires_test===undefined?p.requires_test:b.requires_test===true,b.requires_practice===undefined?p.requires_practice:b.requires_practice===true,JSON.stringify(resources),b.allows_voluntary_practice===undefined?p.allows_voluntary_practice:b.allows_voluntary_practice===true]);
     await log(user,"UNIT_UPDATED","unit",p.id);return json({ok:true});
   }
   if(req.method==="POST"&&path==="/admin/tutors"){
@@ -294,7 +294,7 @@ async function handle(req:Request){
       const outcomes=Array.isArray(b.learning_outcomes)?b.learning_outcomes.slice(0,100).map((x:any)=>({id:string(x.id,80),text:string(x.text,500)})):[];
       const blocks=blocksOf(b.content_blocks||[]),resources=b.resources||[];
       if(!validOutcomes(outcomes)||!validResources(resources))fail(422,"invalid_unit_outcomes_or_resources");
-      const r=await q("INSERT INTO aula_units(course_id,unit_no,title,introduction,content_blocks,learning_outcomes,requires_test,requires_practice,resources) VALUES($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8,$9::jsonb) RETURNING id,unit_no,title",[course.id,unitNo,title,string(b.introduction,3000),JSON.stringify(blocks),JSON.stringify(outcomes),b.requires_test===true,b.requires_practice===true,JSON.stringify(resources)]);
+      const r=await q("INSERT INTO aula_units(course_id,unit_no,title,introduction,content_blocks,learning_outcomes,requires_test,requires_practice,resources,allows_voluntary_practice) VALUES($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8,$9::jsonb,$10) RETURNING id,unit_no,title",[course.id,unitNo,title,string(b.introduction,3000),JSON.stringify(blocks),JSON.stringify(outcomes),b.requires_test===true,b.requires_practice===true,JSON.stringify(resources),b.allows_voluntary_practice===true]);
       await log(user,"UNIT_CREATED","unit",r[0].id);
       return json({unit:r[0]},201);
     }
@@ -305,7 +305,7 @@ async function handle(req:Request){
         const count=await q("SELECT count(*)::int AS count FROM aula_test_questions WHERE unit_id=$1",[u.id]);
         if(Number(count[0].count)!==15)fail(422,"test_bank_requires_15_questions");
       }
-      if(u.requires_practice){
+      if(u.requires_practice||u.allows_voluntary_practice){
         const found=await q("SELECT 1 FROM aula_practice_assignments WHERE unit_id=$1",[u.id]);
         if(!found.length)fail(422,"practice_rubric_required");
       }
@@ -609,7 +609,7 @@ async function handle(req:Request){
     const questions=Array.isArray(b.questions)?b.questions:[];
     if((unit.requires_test||questions.length>0)&&!validateBank(questions))fail(422,"fifteen_questions_with_three_distinct_options_required");
     const practice=b.practice;
-    if(unit.requires_practice&&!practice)fail(422,"practice_required");
+    if((unit.requires_practice||unit.allows_voluntary_practice)&&!practice)fail(422,"practice_required");
     if(practice&&(!validateRubric(practice.rubric)||string(practice.title,180).length<3||string(practice.prompt,6000).length<10||
       string(practice.reference_solution,8000).length<10||!Number.isInteger(Number(practice.min_per_criterion??2))||
       Number(practice.min_per_criterion??2)<1||Number(practice.min_per_criterion??2)>4))fail(422,"invalid_practice_rubric");
@@ -699,13 +699,20 @@ async function handle(req:Request){
         if(!attempt&&!storedProgress.test_passed_at){
           const bank=await q("SELECT id,prompt,options FROM aula_test_questions WHERE unit_id=$1 ORDER BY position",[row.id]);
           if(bank.length!==15)fail(503,"test_bank_not_configured");
-          const ids=selectTen(bank).map((x:any)=>x.id);
-          const inserted=await q("INSERT INTO aula_test_attempts(enrollment_id,unit_id,question_ids) VALUES($1,$2,$3::uuid[]) ON CONFLICT DO NOTHING RETURNING *",[e.id,row.id,ids]);
+          const sampled=selectTen(bank,()=>crypto.randomInt(4294967296)/4294967296);
+          const ids=sampled.map((x:any)=>x.id);
+          const optionOrders=makeOptionOrders(sampled,(max:number)=>crypto.randomInt(max));
+          const inserted=await q("INSERT INTO aula_test_attempts(enrollment_id,unit_id,question_ids,option_orders) VALUES($1,$2,$3::uuid[],$4::jsonb) ON CONFLICT DO NOTHING RETURNING *",[e.id,row.id,ids,JSON.stringify(optionOrders)]);
           attempt=inserted[0]||(await q("SELECT * FROM aula_test_attempts WHERE enrollment_id=$1 AND unit_id=$2 AND submitted_at IS NULL ORDER BY created_at DESC LIMIT 1",[e.id,row.id]))[0];
         }
         if(attempt){
           const raw=await q("SELECT id,prompt,options FROM aula_test_questions WHERE unit_id=$1 AND id=ANY($2::uuid[])",[row.id,attempt.question_ids]);
-          questionViews=attempt.question_ids.map((id:string)=>raw.find((x:any)=>String(x.id)===String(id)));
+          questionViews=attempt.question_ids.map((id:string)=>{
+            const q=raw.find((x:any)=>String(x.id)===String(id));
+            if(!q)fail(503,"question_bank_changed");
+            const permutation=attempt.option_orders?.[String(id)]||[0,1,2];
+            return {id:q.id,prompt:q.prompt,options:permutation.map((j:number)=>q.options[j])};
+          });
         }
       }
       const past=await q("SELECT score,passed,submitted_at FROM aula_test_attempts WHERE enrollment_id=$1 AND unit_id=$2 AND submitted_at IS NOT NULL ORDER BY submitted_at DESC LIMIT 1",[e.id,row.id]);
@@ -719,7 +726,7 @@ async function handle(req:Request){
       if(!attempt.length)fail(409,"attempt_not_active");
       const raw=await q("SELECT id,correct_index,explanation FROM aula_test_questions WHERE unit_id=$1 AND id=ANY($2::uuid[])",[row.id,attempt[0].question_ids]);
       let grade;
-      try{grade=gradeTest(attempt[0].question_ids.map((id:string)=>raw.find((x:any)=>String(x.id)===String(id))),b.answers);}
+      try{grade=gradeWithOptionOrders(attempt[0].question_ids.map((id:string)=>raw.find((x:any)=>String(x.id)===String(id))),b.answers,attempt[0].option_orders);}
       catch{fail(422,"invalid_answers");}
       const saved=await q("UPDATE aula_test_attempts SET answers=$2::jsonb,score=$3,passed=$4,submitted_at=now() WHERE id=$1 AND submitted_at IS NULL RETURNING id",
        [attempt[0].id,JSON.stringify(b.answers),grade.score,grade.passed]);
@@ -729,7 +736,7 @@ async function handle(req:Request){
       return json({score:grade.score,passed:grade.passed,review:grade.review});
     }
     if(req.method==="POST"&&assessmentPath[3]==="practice"){
-      if(!row.requires_practice||!assignment)fail(404,"practice_not_configured");
+      if((!row.requires_practice&&!row.allows_voluntary_practice)||!assignment)fail(404,"practice_not_configured");
       const b=await body(req),answer=string(b.answer,10000);
       if(answer.length<30)fail(422,"practice_answer_too_short");
       if(storedProgress.practice_approved_at)fail(409,"practice_already_approved");
@@ -766,7 +773,7 @@ async function handle(req:Request){
         if(!gate.open){await client.query("ROLLBACK");return json({detail:"unit_locked",reason:gate.reason},423);}
         await client.query("INSERT INTO aula_unit_progress(enrollment_id,unit_id) VALUES($1,$2) ON CONFLICT DO NOTHING",[e.id,unit.id]);
         await client.query("COMMIT");
-        return json({unit:{id:unit.id,unit_no:unit.unit_no,title:unit.title,introduction:unit.introduction,content_blocks:unit.content_blocks,learning_outcomes:unit.learning_outcomes,resources:unit.resources,requires_test:unit.requires_test,requires_practice:unit.requires_practice}});
+        return json({unit:{id:unit.id,unit_no:unit.unit_no,title:unit.title,introduction:unit.introduction,content_blocks:unit.content_blocks,learning_outcomes:unit.learning_outcomes,resources:unit.resources,requires_test:unit.requires_test,requires_practice:unit.requires_practice,allows_voluntary_practice:unit.allows_voluntary_practice}});
       }catch(error){await client.query("ROLLBACK");throw error;}finally{client.release();}
     }
     if(req.method==="POST"&&action==="heartbeat"){
