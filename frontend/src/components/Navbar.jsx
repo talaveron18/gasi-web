@@ -29,7 +29,7 @@ const Navbar = () => {
               <DropdownMenuTrigger asChild><Button variant="ghost" className="text-[#0F172A]" data-testid="nav-services-dropdown">Servicios <ChevronDown className="ml-1 h-4 w-4" /></Button></DropdownMenuTrigger>
               <DropdownMenuContent className="w-64">
                 <DropdownMenuItem asChild><Link to="/servicios" className="w-full" data-testid="nav-services-overview">Todos los Servicios</Link></DropdownMenuItem>
-                <DropdownMenuItem asChild><Link to="/cobertura-sanitaria" className="w-full" data-testid="nav-coverage">Enfermería presencial para organizaciones</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/cobertura-sanitaria" className="w-full" data-testid="nav-coverage">Asistencia Sanitaria Integral</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/formacion-sanitaria" className="w-full" data-testid="nav-training">Formación Sanitaria</Link></DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
