@@ -1,0 +1,46 @@
+name: Vendor GASI public photos (preview only)
+
+on:
+  push:
+    branches:
+      - automation/public-reconcile-20261023
+    paths:
+      - '.github/workflows/vendor-gasi-public-photos.yml'
+      - 'scripts/vendor-gasi-public-photos.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vendor-gasi-public-photos-preview
+  cancel-in-progress: false
+
+jobs:
+  vendor:
+    if: github.repository == 'talaveron18/gasi-web' && github.ref == 'refs/heads/automation/public-reconcile-20261023'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout preview branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: automation/public-reconcile-20261023
+          persist-credentials: true
+      - name: Use Node 24
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+      - name: Fetch and validate Unsplash photos
+        run: node scripts/vendor-gasi-public-photos.mjs
+      - name: Commit images to preview branch (never main)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/public/images/
+          if git diff --cached --quiet; then
+            echo "Assets already present; no commit needed."
+            exit 0
+          fi
+          git commit -m "assets(images): vendor 12 licensed Unsplash photos locally"
+          git pull --rebase origin automation/public-reconcile-20261023
+          git push origin HEAD:automation/public-reconcile-20261023
