@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import {gateUnit, canAuthor, canManageAccounts, canFinishUnit, ROLES} from "../aula/access-policy.mjs";
 import {validateBank,selectTen,gradeTest,validateRubric,gradePractice} from "../aula/f3-policy.mjs";
+import {validOutcomes,validCompetencies,validResources,authorAudit} from "../aula/f5-policy.mjs";
 
 const COOKIE="gasi_aula_session";
 const TTL_HOURS=8;
@@ -84,7 +85,7 @@ async function outline(user:any,course:any,e:any,now=new Date()){
 }
 function blocksOf(raw:any){
   if(!Array.isArray(raw)||raw.length>150)fail(422,"invalid_content_blocks");
-  const allowed=new Set(["heading","text","callout","image","video"]);
+  const allowed=new Set(["heading","text","callout","image","video","accordion","flashcard","faq","glossary","link","bibliography"]);
   return raw.map((b:any)=>{
     if(!b||!allowed.has(b.type))fail(422,"invalid_content_block");
     const value:any={type:b.type,text:string(b.text,5000)};
@@ -94,6 +95,11 @@ function blocksOf(raw:any){
       value.src=string(b.src,1000);
       if(!/^https:\/\//.test(value.src))fail(422,"https_media_required");
       if(b.type==="image"){value.alt=string(b.alt,200);if(!value.alt)fail(422,"image_alt_required");}
+    }
+    if(["accordion","flashcard","faq","glossary"].includes(b.type))value.body=string(b.body,5000);
+    if(["link","bibliography"].includes(b.type)&&b.src){
+      value.src=string(b.src,1000);
+      if(!/^https:\/\//.test(value.src))fail(422,"https_media_required");
     }
     if(Array.isArray(b.outcome_ids))value.outcome_ids=b.outcome_ids.slice(0,40).map((x:any)=>string(x,80));
     return value;
@@ -218,19 +224,39 @@ async function handle(req:Request){
     if(title.length<3)fail(422,"title_required");
     const duration=Number(b.duration_hours||1),accessDays=Number(b.access_days||90),cap=b.max_units_per_day==null?null:Number(b.max_units_per_day);
     if(!Number.isInteger(duration)||duration<1||duration>2000||!Number.isInteger(accessDays)||accessDays<1||accessDays>730||cap!==null&&(!Number.isInteger(cap)||cap<1||cap>100))fail(422,"invalid_course_parameters");
-    const rows=await q("INSERT INTO aula_courses(title,objective,target_audience,requirements,presentation,duration_hours,access_days,max_units_per_day,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *",[title,string(b.objective,2000),string(b.target_audience,2000),string(b.requirements,2000),string(b.presentation,3000),duration,accessDays,cap,user.id]);
+    const competencies=b.competencies||[];if(!validCompetencies(competencies))fail(422,"invalid_course_competencies");
+    const rows=await q("INSERT INTO aula_courses(title,objective,target_audience,requirements,presentation,duration_hours,access_days,max_units_per_day,created_by,competencies) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb) RETURNING *",[title,string(b.objective,2000),string(b.target_audience,2000),string(b.requirements,2000),string(b.presentation,3000),duration,accessDays,cap,user.id,JSON.stringify(competencies)]);
     const course=rows[0];
     await q("INSERT INTO aula_units(course_id,unit_no,title,introduction) VALUES($1,0,'Unidad 0 · Bienvenida y metodología','Presentación, metodología y orientación inicial')",[course.id]);
     await log(user,"COURSE_CREATED","course",course.id);
     return json({course},201);
   }
+  const auditMatch=path.match(/^\/admin\/courses\/([0-9a-f-]+)\/audit$/);
+  if(auditMatch){
+    requireRole(user,["admin","author"]);
+    if(req.method!=="GET")fail(405,"method_not_allowed");
+    const course=await courseById(auditMatch[1]);
+    if(user.role==="author"&&String(course.created_by)!==String(user.id))fail(403,"not_course_author");
+    const units=await q("SELECT u.id,u.unit_no,u.title,u.content_blocks,u.learning_outcomes,u.resources,u.requires_test,u.requires_practice, "+
+      "(SELECT count(*)::int FROM aula_test_questions tq WHERE tq.unit_id=u.id) AS question_count, "+
+      "EXISTS(SELECT 1 FROM aula_practice_assignments p WHERE p.unit_id=u.id) AS has_practice "+
+      "FROM aula_units u WHERE u.course_id=$1 ORDER BY u.unit_no",[course.id]);
+    const stats=await q("SELECT p.unit_id,count(*)::int AS studied_by,round(avg(p.viewed_seconds)::numeric,1) AS avg_seconds, "+
+      "sum(p.viewed_seconds)::bigint AS total_seconds, "+
+      "count(*) FILTER(WHERE p.completed_at IS NOT NULL)::int AS completed_by "+
+      "FROM aula_unit_progress p JOIN aula_enrollments e ON e.id=p.enrollment_id WHERE e.course_id=$1 GROUP BY p.unit_id",[course.id]);
+    return json({course:{id:course.id,title:course.title,status:course.status,competencies:course.competencies},
+      ...authorAudit(course,units,stats)});
+  }
+
   const courseEdit=path.match(/^\/admin\/courses\/([0-9a-f-]+)$/);
   if(req.method==="PATCH"&&courseEdit){
     requireRole(user,["admin","author"]);
     const course=await courseById(courseEdit[1]);if(user.role==="author"&&course.created_by!==user.id)fail(403,"not_course_author");
     if(course.status!=="draft")fail(409,"course_structure_frozen");
     const b=await body(req);
-    const rows=await q("UPDATE aula_courses SET title=$2,objective=$3,target_audience=$4,requirements=$5,presentation=$6,updated_at=now() WHERE id=$1 RETURNING id,title",[course.id,string(b.title??course.title,180),string(b.objective??course.objective,2000),string(b.target_audience??course.target_audience,2000),string(b.requirements??course.requirements,2000),string(b.presentation??course.presentation,3000)]);
+    const competencies=b.competencies??course.competencies;if(!validCompetencies(competencies))fail(422,"invalid_course_competencies");
+    const rows=await q("UPDATE aula_courses SET title=$2,objective=$3,target_audience=$4,requirements=$5,presentation=$6,competencies=$7::jsonb,updated_at=now() WHERE id=$1 RETURNING id,title",[course.id,string(b.title??course.title,180),string(b.objective??course.objective,2000),string(b.target_audience??course.target_audience,2000),string(b.requirements??course.requirements,2000),string(b.presentation??course.presentation,3000),JSON.stringify(competencies)]);
     await log(user,"COURSE_UPDATED","course",course.id);return json({course:rows[0]});
   }
   const unitEdit=path.match(/^\/admin\/courses\/([0-9a-f-]+)\/units\/([0-9a-f-]+)$/);
@@ -244,7 +270,8 @@ async function handle(req:Request){
     const b=await body(req),p=previous[0];
     const blocks=blocksOf(b.content_blocks??p.content_blocks);
     const outcomes=Array.isArray(b.learning_outcomes)?b.learning_outcomes.slice(0,100).map((x:any)=>({id:string(x.id,80),text:string(x.text,500)})):p.learning_outcomes;
-    await q("UPDATE aula_units SET title=$3,introduction=$4,content_blocks=$5::jsonb,learning_outcomes=$6::jsonb,requires_test=$7,requires_practice=$8 WHERE course_id=$1 AND id=$2",[course.id,p.id,string(b.title??p.title,180),string(b.introduction??p.introduction,3000),JSON.stringify(blocks),JSON.stringify(outcomes),b.requires_test===undefined?p.requires_test:b.requires_test===true,b.requires_practice===undefined?p.requires_practice:b.requires_practice===true]);
+    const resources=b.resources??p.resources;if(!validOutcomes(outcomes)||!validResources(resources))fail(422,"invalid_unit_outcomes_or_resources");
+    await q("UPDATE aula_units SET title=$3,introduction=$4,content_blocks=$5::jsonb,learning_outcomes=$6::jsonb,requires_test=$7,requires_practice=$8,resources=$9::jsonb WHERE course_id=$1 AND id=$2",[course.id,p.id,string(b.title??p.title,180),string(b.introduction??p.introduction,3000),JSON.stringify(blocks),JSON.stringify(outcomes),b.requires_test===undefined?p.requires_test:b.requires_test===true,b.requires_practice===undefined?p.requires_practice:b.requires_practice===true,JSON.stringify(resources)]);
     await log(user,"UNIT_UPDATED","unit",p.id);return json({ok:true});
   }
   if(req.method==="POST"&&path==="/admin/tutors"){
@@ -264,8 +291,9 @@ async function handle(req:Request){
       const b=await body(req),unitNo=Number(b.unit_no),title=string(b.title,180);
       if(!Number.isInteger(unitNo)||unitNo<1||title.length<3)fail(422,"invalid_unit");
       const outcomes=Array.isArray(b.learning_outcomes)?b.learning_outcomes.slice(0,100).map((x:any)=>({id:string(x.id,80),text:string(x.text,500)})):[];
-      const blocks=blocksOf(b.content_blocks||[]);
-      const r=await q("INSERT INTO aula_units(course_id,unit_no,title,introduction,content_blocks,learning_outcomes,requires_test,requires_practice) VALUES($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8) RETURNING id,unit_no,title",[course.id,unitNo,title,string(b.introduction,3000),JSON.stringify(blocks),JSON.stringify(outcomes),b.requires_test===true,b.requires_practice===true]);
+      const blocks=blocksOf(b.content_blocks||[]),resources=b.resources||[];
+      if(!validOutcomes(outcomes)||!validResources(resources))fail(422,"invalid_unit_outcomes_or_resources");
+      const r=await q("INSERT INTO aula_units(course_id,unit_no,title,introduction,content_blocks,learning_outcomes,requires_test,requires_practice,resources) VALUES($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8,$9::jsonb) RETURNING id,unit_no,title",[course.id,unitNo,title,string(b.introduction,3000),JSON.stringify(blocks),JSON.stringify(outcomes),b.requires_test===true,b.requires_practice===true,JSON.stringify(resources)]);
       await log(user,"UNIT_CREATED","unit",r[0].id);
       return json({unit:r[0]},201);
     }
@@ -602,7 +630,7 @@ async function handle(req:Request){
   const match=path.match(/^\/courses\/([0-9a-f-]+)(?:\/units\/([0-9a-f-]+)(?:\/(complete|heartbeat))?)?$/);
   if(match){
     const course=await courseById(match[1]),e=await enrolment(user,course),unitId=match[2],action=match[3];
-    if(!unitId&&req.method==="GET")return json({course:{id:course.id,title:course.title,objective:course.objective,target_audience:course.target_audience,requirements:course.requirements,presentation:course.presentation,duration_hours:course.duration_hours,access_days:course.access_days,max_units_per_day:course.max_units_per_day,deadline:e?.deadline||null},units:await outline(user,course,e)});
+    if(!unitId&&req.method==="GET")return json({course:{id:course.id,title:course.title,objective:course.objective,target_audience:course.target_audience,requirements:course.requirements,presentation:course.presentation,competencies:course.competencies,duration_hours:course.duration_hours,access_days:course.access_days,max_units_per_day:course.max_units_per_day,deadline:e?.deadline||null},units:await outline(user,course,e)});
     if(!unitId)fail(405,"method_not_allowed");
     const unitRows=await q("SELECT * FROM aula_units WHERE id=$1 AND course_id=$2",[unitId,course.id]);if(!unitRows.length)fail(404,"unit_not_found");const unit=unitRows[0];
     if(user.role!=="student"){
@@ -624,7 +652,7 @@ async function handle(req:Request){
         if(!gate.open){await client.query("ROLLBACK");return json({detail:"unit_locked",reason:gate.reason},423);}
         await client.query("INSERT INTO aula_unit_progress(enrollment_id,unit_id) VALUES($1,$2) ON CONFLICT DO NOTHING",[e.id,unit.id]);
         await client.query("COMMIT");
-        return json({unit:{id:unit.id,unit_no:unit.unit_no,title:unit.title,introduction:unit.introduction,content_blocks:unit.content_blocks,learning_outcomes:unit.learning_outcomes,requires_test:unit.requires_test,requires_practice:unit.requires_practice}});
+        return json({unit:{id:unit.id,unit_no:unit.unit_no,title:unit.title,introduction:unit.introduction,content_blocks:unit.content_blocks,learning_outcomes:unit.learning_outcomes,resources:unit.resources,requires_test:unit.requires_test,requires_practice:unit.requires_practice}});
       }catch(error){await client.query("ROLLBACK");throw error;}finally{client.release();}
     }
     if(req.method==="POST"&&action==="heartbeat"){
