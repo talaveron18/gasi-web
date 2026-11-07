@@ -1,16 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Target, Heart, Users, Award, ShieldCheck, Stethoscope } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 const QuienesSomos = () => {
   const values = [
-    { icon: <Heart className="w-8 h-8" />, title: 'Atención Sanitaria', desc: 'Atención sanitaria integral adaptada a las necesidades de cada organización' },
-    { icon: <Users className="w-8 h-8" />, title: 'Orientación al Cliente', desc: 'Configuraciones adaptadas a cada empresa dentro del alcance autorizado' },
-    { icon: <Award className="w-8 h-8" />, title: 'Profesionalidad', desc: 'Profesionales sanitarios con los requisitos aplicables a cada servicio' },
-    { icon: <ShieldCheck className="w-8 h-8" />, title: 'Seguridad Asistencial', desc: 'Protocolos, trazabilidad y límites de actuación definidos' },
-    { icon: <Stethoscope className="w-8 h-8" />, title: 'Prestación Delimitada', desc: 'La propuesta concreta define la prestación que puede realizarse antes de su inicio' },
-    { icon: <Target className="w-8 h-8" />, title: 'Claridad de Alcance', desc: 'Cada servicio se presta conforme a la habilitación y autorización que corresponda' }
+    { image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesional sanitario prestando atención', title: 'Atención Sanitaria', desc: 'Atención sanitaria integral adaptada a las necesidades de cada organización' },
+    { image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Espacio de trabajo empresarial', title: 'Orientación al Cliente', desc: 'Configuraciones adaptadas a cada empresa dentro del alcance autorizado' },
+    { image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesional sanitaria', title: 'Profesionalidad', desc: 'Profesionales sanitarios con los requisitos aplicables a cada servicio' },
+    { image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Profesionales en un entorno sanitario', title: 'Seguridad Asistencial', desc: 'Protocolos, trazabilidad y límites de actuación definidos' },
+    { image: 'https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Equipo de atención sanitaria', title: 'Prestación Delimitada', desc: 'La propuesta concreta define la prestación que puede realizarse antes de su inicio' },
+    { image: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1000&q=85', imageAlt: 'Entorno de trabajo organizado', title: 'Claridad de Alcance', desc: 'Cada servicio se presta conforme a la habilitación y autorización que corresponda' }
   ];
 
   return (
@@ -57,10 +56,12 @@ const QuienesSomos = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {values.map((value, index) => (
-              <Card key={index} className="text-center p-8 hover-lift" data-testid={`value-card-${index}`}>
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-[#005EB8]/10 rounded-full text-[#005EB8] mb-4">{value.icon}</div>
+              <Card key={index} className="overflow-hidden h-full hover-lift" data-testid={`value-card-${index}`}>
+                <div className="h-48 overflow-hidden bg-[#EAF4FC]"><img src={value.image} alt={value.imageAlt} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
+                <div className="p-8 text-center">
                 <h3 className="font-bold text-[#0F172A] text-xl mb-3">{value.title}</h3>
                 <p className="text-[#64748B]">{value.desc}</p>
+                </div>
               </Card>
             ))}
           </div>
