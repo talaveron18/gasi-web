@@ -12,7 +12,8 @@ test('private PostgreSQL Aula deploy publishes only authenticated API',()=>{
   const source=fs.readFileSync(path.join(dir,'aula.mts'),'utf8');
   assert.match(source,/from "\.\/_shared\/access-policy\.mjs"/);
   assert.match(source,/from "\.\/_shared\/f3-policy\.mjs"/);
-  assert.deepEqual(fs.readdirSync(path.join(dir,'_shared')).sort(),['access-policy.mjs','f3-policy.mjs']);
+  assert.match(source,/from "\.\/_shared\/f5-policy\.mjs"/);
+  assert.deepEqual(fs.readdirSync(path.join(dir,'_shared')).sort(),['access-policy.mjs','f3-policy.mjs','f5-policy.mjs']);
   assert.match(source,/auth\/login/);
   assert.doesNotMatch(source,/aula-demo|internal-clinical/);
   const config=fs.readFileSync(path.join(root,'aula-site/netlify.toml'),'utf8');
