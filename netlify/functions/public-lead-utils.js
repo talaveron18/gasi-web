@@ -6,9 +6,9 @@ const SERVICES=new Set([
   "Otro"
 ]);
 
-const response=(statusCode,message)=>({
+const response=(statusCode,message,extraHeaders={})=>({
   statusCode,
-  headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"},
+  headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store",...extraHeaders},
   body:JSON.stringify({message})
 });
 
@@ -33,7 +33,7 @@ function parseBody(event,maxBytes=8192){
   }
 }
 
-function validateBaseLead(raw,{requireCompany=false,requireMessage=false,phoneOptional=false}={}){
+function validateBaseLead(raw,{requireCompany=false,requireMessage=false,phoneOptional=false,disallowClinicalData=false}={}){
   if(raw.accepts_privacy!==true)return{error:"privacy_required"};
   if(text(raw.website,200))return{honeypot:true};
   const lead={
@@ -44,6 +44,8 @@ function validateBaseLead(raw,{requireCompany=false,requireMessage=false,phoneOp
     service:text(raw.service||raw.service_type,80),
     employee_count:text(raw.employee_count,80),
     location:text(raw.location,120),
+    timeframe:text(raw.timeframe,100),
+    service_detail:text(raw.service_detail,120),
     message:text(raw.message,2000)
   };
   if(!lead.name||!lead.email||(!phoneOptional&&!lead.phone)||!lead.service)return{error:"missing_fields"};
@@ -52,13 +54,14 @@ function validateBaseLead(raw,{requireCompany=false,requireMessage=false,phoneOp
   if(!EMAIL_RE.test(lead.email))return{error:"invalid_email"};
   if(lead.phone&&!PHONE_RE.test(lead.phone))return{error:"invalid_phone"};
   if(!SERVICES.has(lead.service))return{error:"invalid_service"};
+  if(disallowClinicalData&&/\b(?:paciente(?:s)?|historia\s+cl[ií]nica|diagn[oó]stico|mis\s+s[ií]ntomas|mi\s+medicaci[oó]n|tratamiento\s+m[eé]dico)\b/i.test([lead.message,lead.service_detail].join(" ")))return{error:"medical_content_not_allowed"};
   return{lead};
 }
 
-async function sendLeadEmail({subject,html,replyTo}){
+async function sendLeadEmail({subject,html,replyTo,recipientOverride}){
   const apiKey=process.env.RESEND_API_KEY||"";
   const sender=process.env.GASI_LEAD_SENDER_EMAIL||"coordinacion@gasisalud.com";
-  const recipient=process.env.GASI_LEAD_RECIPIENT_EMAIL||"coordinacion@gasisalud.com";
+  const recipient=recipientOverride||process.env.GASI_LEAD_RECIPIENT_EMAIL||"coordinacion@gasisalud.com";
   if(!apiKey)return{ok:false,code:"service_unavailable"};
   let upstream;
   try{
@@ -77,6 +80,7 @@ async function sendLeadEmail({subject,html,replyTo}){
     return{ok:false,code:"delivery_failed"};
   }
   if(!upstream.ok){
+    if(upstream.status===429)return{ok:false,code:"rate_limited"};
     console.error("lead_delivery_failed",{provider:"resend",status:upstream.status});
     return{ok:false,code:"delivery_failed"};
   }
