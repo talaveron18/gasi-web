@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import test from "node:test";
-import {appendAuditEventForTenant,auditTenantId,auditTenantLockKey,lockAuditTenant,previousAuditHashForTenant,restoreAuditRowsByTenant,validAuditChainsByTenant,ZERO_HASH,LEGACY_TENANT} from "../functions/internal-audit-tenant-chain.mts";
+import {appendAuditEventForTenant,auditTenantId,tenantAuditLockId,lockAuditTenant,previousAuditHashForTenant,restoreAuditRowsByTenant,validAuditChainsByTenant,ZERO_HASH,LEGACY_TENANT} from "../functions/internal-audit-tenant-chain.mts";
 
 const canonical=(value)=>{if(value===null||typeof value!=="object")return JSON.stringify(value);if(Array.isArray(value))return "["+value.map(canonical).join(",")+"]";return "{"+Object.keys(value).sort().map(k=>JSON.stringify(k)+":"+canonical(value[k])).join(",")+"}";};
 function row(tenant,seq,previous,action){const payload={at:`2026-10-29T15:00:0${seq}.000Z`,actor_id:`${tenant}-USER`,actor_role:"admin",action,episode_id:null,metadata:{actor_tenant_id:tenant}};const event_hash=crypto.createHash("sha256").update(previous+":"+canonical(payload)).digest("hex");return {tenant_id:tenant,seq,previous_hash:previous,event_hash,...payload};}
@@ -13,8 +13,8 @@ test("tenant audit chain fails closed without authenticated tenant",()=>{
 });
 
 test("tenant lock key is stable and separated between tenants",()=>{
-  assert.equal(auditTenantLockKey("TENANT-A"),auditTenantLockKey("TENANT-A"));
-  assert.notEqual(auditTenantLockKey("TENANT-A"),auditTenantLockKey("TENANT-B"));
+  assert.equal(tenantAuditLockId("TENANT-A"),tenantAuditLockId("TENANT-A"));
+  assert.notEqual(tenantAuditLockId("TENANT-A"),tenantAuditLockId("TENANT-B"));
 });
 
 test("previous hash lookup is explicitly tenant scoped",async()=>{
