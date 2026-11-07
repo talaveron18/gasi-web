@@ -5,6 +5,7 @@ import {useAula,AULA_PREVIEW_DEMO} from './AulaAuthContext';
 import AulaTutor from './AulaTutor';
 import AulaAssessmentEditor from './AulaAssessmentEditor';
 import AulaAuthorInsights from './AulaAuthorInsights';
+import AulaSurveyEditor from './AulaSurveyEditor';
 
 const input="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 focus-visible:ring-2 focus-visible:ring-[#005EB8]";
 const primary="rounded-lg bg-[#005EB8] px-4 py-2.5 font-semibold text-white disabled:opacity-50";
@@ -148,6 +149,7 @@ function CourseEditor({courseId,request,users,role,onSaved}){
       <button disabled={busy} type="button" onClick={publish} className={primary+' mt-3'}>Activar curso</button>
     </div>}
     <AulaAuthorInsights courseId={courseId} request={request}/>
+    <AulaSurveyEditor courseId={courseId} status={course.status} units={units} request={request}/>
     {course.status==='active'&&<>
       <div className="grid gap-6 md:grid-cols-2">
         <div className="space-y-3 rounded-xl border border-slate-200 p-4"><h3 className="font-bold">Matricular alumnado</h3>

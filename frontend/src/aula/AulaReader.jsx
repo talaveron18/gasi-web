@@ -4,6 +4,7 @@ import {useAula,AULA_PREVIEW_DEMO} from './AulaAuthContext';
 import AulaReaderView from './AulaReaderView';
 import AulaAssessment from './AulaAssessment';
 import AulaCommunity from './AulaCommunity';
+import AulaSurveys from './AulaSurveys';
 
 export default function AulaReader(){
   const{courseId}=useParams(),{user,loading:authLoading,request}=useAula();
@@ -84,7 +85,8 @@ export default function AulaReader(){
         today:Number(units[0]?.new_units_today||0),dailyMax:course.max_units_per_day}:null}
       assessmentPanel={!AULA_PREVIEW_DEMO&&user.role==='student'&&unit&&(unit.requires_test||unit.requires_practice)&&!loading?
         <AulaAssessment key={unit.id} courseId={courseId} unitId={unit.id} onStatus={onStatus}/>:null}/>
-      {!AULA_PREVIEW_DEMO&&<AulaCommunity courseId={courseId} role={user.role} units={units}/>}</>:
+      {!AULA_PREVIEW_DEMO&&<AulaCommunity courseId={courseId} role={user.role} units={units}/>}
+      {!AULA_PREVIEW_DEMO&&user.role==='student'&&<AulaSurveys courseId={courseId}/>}</>:
       <main className="mx-auto max-w-4xl px-5 py-16">{loading?<p role="status">Cargando curso…</p>:<p role="alert">{error||'Curso no disponible.'}</p>}</main>}
   </div>;
 }

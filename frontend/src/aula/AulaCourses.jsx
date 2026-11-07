@@ -33,6 +33,7 @@ export default function AulaCourses(){
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4"><h2 className="text-2xl font-bold">Formación disponible</h2>
         <button onClick={refresh} disabled={busy} className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 font-semibold disabled:opacity-50"><RefreshCw size={17}/> Actualizar</button>
       </div>
+      <Link className="mb-5 inline-flex rounded-lg border border-[#005EB8] bg-white px-4 py-2 font-semibold text-[#005EB8]" to="/aula/certificados">Consultar mis certificados</Link>
       {error&&<p role="alert" className="mb-5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-900">{error}</p>}
       {busy&&<p role="status">Cargando cursos desde el servidor…</p>}
       {!busy&&courses.length===0&&!error&&<p className="rounded-xl border border-slate-200 bg-white p-6 text-slate-600">Todavía no tienes cursos asignados. GASI debe darte de alta en una formación; no existe automatrícula pública.</p>}
