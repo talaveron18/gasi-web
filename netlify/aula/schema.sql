@@ -27,6 +27,15 @@ CREATE TABLE IF NOT EXISTS aula_login_attempts(
   blocked_until timestamptz,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS aula_password_resets(
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES aula_users(id) ON DELETE CASCADE,
+  token_hash text NOT NULL UNIQUE,
+  expires_at timestamptz NOT NULL,
+  used_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS aula_password_resets_active_idx ON aula_password_resets(user_id,expires_at) WHERE used_at IS NULL;
 CREATE TABLE IF NOT EXISTS aula_courses(
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   title text NOT NULL CHECK(length(title) BETWEEN 3 AND 180),
