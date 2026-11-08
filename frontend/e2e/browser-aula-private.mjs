@@ -1,0 +1,63 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import http from "node:http";
+import net from "node:net";
+import os from "node:os";
+import path from "node:path";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const __dirname=path.dirname(fileURLToPath(import.meta.url));
+const buildDir=path.resolve(__dirname,"../build");
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const contentType=file=>({".html":"text/html; charset=utf-8",".js":"text/javascript; charset=utf-8",".css":"text/css; charset=utf-8",".json":"application/json",".svg":"image/svg+xml",".png":"image/png",".jpg":"image/jpeg",".jpeg":"image/jpeg",".ico":"image/x-icon",".webp":"image/webp"}[path.extname(file).toLowerCase()]||"application/octet-stream");
+async function freePort(){return new Promise((resolve,reject)=>{const server=net.createServer();server.once("error",reject);server.listen(0,"127.0.0.1",()=>{const address=server.address();const port=typeof address==="object"&&address?address.port:0;server.close(err=>err?reject(err):resolve(port));});});}
+async function startStaticServer(){assert.ok(fs.existsSync(path.join(buildDir,"index.html")),"frontend/build missing; run yarn build before browser E2E");const server=http.createServer((req,res)=>{const u=new URL(req.url||"/","http://127.0.0.1");if(u.pathname==="/api/courses"||u.pathname.startsWith("/api/courses/")){res.writeHead(404,{"content-type":"application/json","cache-control":"no-store"});res.end(JSON.stringify({detail:"not_found"}));return;}if(u.pathname==="/api/aula/auth/me"){res.writeHead(401,{"content-type":"application/json","cache-control":"no-store"});res.end(JSON.stringify({detail:"not_authenticated"}));return;}if(u.pathname==="/api/auth/me"){res.writeHead(200,{"content-type":"text/html"});res.end("<!doctype html><title>SPA fallback</title>");return;}if(u.pathname.includes("/api/auth/")){res.writeHead(401,{"content-type":"application/json","cache-control":"no-store"});res.end(JSON.stringify({detail:"unauthenticated"}));return;}if(u.pathname.startsWith("/api/internal-clinical/")){res.writeHead(401,{"content-type":"application/json","cache-control":"no-store"});res.end(JSON.stringify({detail:"missing_session"}));return;}let target=path.join(buildDir,decodeURIComponent(u.pathname));try{const stat=fs.statSync(target);if(stat.isDirectory())target=path.join(target,"index.html");}catch{target=path.join(buildDir,"index.html");}if(!path.resolve(target).startsWith(buildDir)){res.writeHead(403);res.end();return;}fs.createReadStream(target).on("error",()=>{res.writeHead(500);res.end();}).once("open",()=>res.writeHead(200,{"content-type":contentType(target),"cache-control":"no-store"})).pipe(res);});const port=await freePort();await new Promise((resolve,reject)=>{server.once("error",reject);server.listen(port,"127.0.0.1",resolve);});return {server,origin:`http://127.0.0.1:${port}`};}
+function chromeBinary(){const candidates=[process.env.CHROME_BIN,"/usr/bin/google-chrome","/usr/bin/google-chrome-stable","/usr/bin/chromium","/usr/bin/chromium-browser"].filter(Boolean);const found=candidates.find(p=>fs.existsSync(p));assert.ok(found,`Chrome/Chromium not found. Checked: ${candidates.join(", ")}`);return found;}
+async function waitForTarget(debugPort,chrome,stderr){const deadline=Date.now()+30000;while(Date.now()<deadline){if(chrome.exitCode!==null)throw new Error(`Chrome exited before DevTools became ready (code ${chrome.exitCode}): ${stderr()}`);try{const response=await fetch(`http://127.0.0.1:${debugPort}/json/list`);if(response.ok){const targets=await response.json();const page=targets.find(t=>t.type==="page"&&t.webSocketDebuggerUrl);if(page)return page.webSocketDebuggerUrl;}}catch{}await sleep(100);}throw new Error(`Chrome DevTools endpoint did not become ready: ${stderr()}`);}
+async function cdp(wsUrl){const ws=new WebSocket(wsUrl);await new Promise((resolve,reject)=>{ws.addEventListener("open",resolve,{once:true});ws.addEventListener("error",reject,{once:true});});let id=0;const pending=new Map();ws.addEventListener("message",event=>{const msg=JSON.parse(typeof event.data==="string"?event.data:Buffer.from(event.data).toString("utf8"));if(msg.id&&pending.has(msg.id)){const {resolve,reject}=pending.get(msg.id);pending.delete(msg.id);if(msg.error)reject(new Error(`${msg.error.code}: ${msg.error.message}`));else resolve(msg.result||{});}});const send=(method,params={})=>new Promise((resolve,reject)=>{const messageId=++id;pending.set(messageId,{resolve,reject});ws.send(JSON.stringify({id:messageId,method,params}));});return {ws,send};}
+async function waitFor(send,expression,timeout=10000){const deadline=Date.now()+timeout;while(Date.now()<deadline){const result=await send("Runtime.evaluate",{expression:`Boolean(${expression})`,returnByValue:true});if(result.result?.value===true)return;await sleep(100);}throw new Error(`Timed out waiting for: ${expression}`);}
+async function value(send,expression){const result=await send("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.text||"Runtime evaluation failed");return result.result?.value;}
+async function navigate(send,url,selector){await send("Page.navigate",{url});await waitFor(send,`document.readyState===\"complete\"`);if(selector)await waitFor(send,`document.querySelector(${JSON.stringify(selector)})`);}
+async function key(send,key,code,virtualKeyCode){await send("Input.dispatchKeyEvent",{type:"rawKeyDown",key,code,windowsVirtualKeyCode:virtualKeyCode,nativeVirtualKeyCode:virtualKeyCode});await send("Input.dispatchKeyEvent",{type:"keyUp",key,code,windowsVirtualKeyCode:virtualKeyCode,nativeVirtualKeyCode:virtualKeyCode});await sleep(50);}
+async function tabUntil(send,testId,max=30){await send("Runtime.evaluate",{expression:"document.activeElement?.blur?.()"});for(let i=0;i<max;i++){await key(send,"Tab","Tab",9);const current=await value(send,"document.activeElement?.getAttribute?.('data-testid')||''");if(current===testId)return i+1;}throw new Error(`Keyboard focus never reached ${testId}`);}
+function axHas(nodes,role,name){return nodes.some(n=>n.role?.value===role&&n.name?.value===name&&!n.ignored);}
+function unnamedInteractive(nodes){const interactive=new Set(["button","link","textbox","combobox","checkbox","radio","switch","menuitem","tab"]);return nodes.filter(n=>!n.ignored&&interactive.has(String(n.role?.value||""))&&!String(n.name?.value||"").trim()).map(n=>String(n.role?.value||"unknown"));}
+async function stopChrome(chrome){if(chrome.exitCode!==null)return;chrome.kill("SIGTERM");await Promise.race([new Promise(resolve=>chrome.once("exit",resolve)),sleep(5000)]);if(chrome.exitCode===null){chrome.kill("SIGKILL");await Promise.race([new Promise(resolve=>chrome.once("exit",resolve)),sleep(2000)]);}}
+const {server,origin}=await startStaticServer();
+const debugPort=await freePort();
+const profileDir=fs.mkdtempSync(path.join(os.tmpdir(),"gasi-private-aula-e2e-"));
+const chrome=spawn(chromeBinary(),["--headless=new","--no-sandbox","--disable-dev-shm-usage","--disable-gpu","--disable-background-networking","--disable-default-apps","--disable-extensions","--no-first-run","--no-default-browser-check",`--remote-debugging-port=${debugPort}`,"--remote-debugging-address=127.0.0.1",`--user-data-dir=${profileDir}`,"about:blank"],{stdio:["ignore","ignore","pipe"],env:{...process.env,DBUS_SESSION_BUS_ADDRESS:"/dev/null"}});
+let chromeStderr="";
+chrome.stderr.on("data",chunk=>{chromeStderr+=chunk.toString();});
+try{
+ const wsUrl=await waitForTarget(debugPort,chrome,()=>chromeStderr);
+ const {ws,send}=await cdp(wsUrl);
+ await send("Page.enable");await send("Runtime.enable");await send("Accessibility.enable");
+ await navigate(send,origin+"/");
+ await waitFor(send,"location.pathname==='/aula/acceso'&&document.body.innerText.includes('Entrar al aula')");
+ const page=await value(send,"document.body.innerText");
+ assert.match(page,/Aula Virtual GASI/);
+ assert.match(page,/Acceso privado para cuentas autorizadas por GASI/);
+ assert.equal(await value(send,"Boolean(document.querySelector('[data-testid=chatbot-open-button]'))"),false,"Commercial assistant must not appear");
+ assert.equal(await value(send,"Boolean(document.querySelector('[data-testid=whatsapp-button]'))"),false,"Public WhatsApp entry must not appear");
+ assert.equal(await value(send,"Boolean(document.querySelector('form input[type=password]'))"),true,"Real private login form must be present");
+ for(const forbidden of ["/contacto","/interno/clinica","/dashboard","/sectores","/aula/mis-cursos","/aula/autor","/aula/certificados"]){
+   await navigate(send,origin+forbidden);
+   await waitFor(send,"location.pathname==='/aula/acceso'");
+   assert.equal(await value(send,"Boolean(document.querySelector('form input[type=password]'))"),true,"Private login missing after route "+forbidden);
+ }
+ await navigate(send,origin+"/politica-privacidad");
+ await waitFor(send,"location.pathname==='/politica-privacidad'");
+ assert.match(await value(send,"document.body.innerText"),/privacidad|datos personales|protección de datos/i,"Privacy notice must remain accessible");
+ await send("Emulation.setDeviceMetricsOverride",{width:390,height:740,deviceScaleFactor:1,mobile:true});
+ await navigate(send,origin+"/");
+ await waitFor(send,"location.pathname==='/aula/acceso'");
+ assert.equal(await value(send,"document.documentElement.scrollWidth<=window.innerWidth+1"),true,"Aula login must fit a 390px mobile viewport");
+ console.log(JSON.stringify({status:"PASS",privateRoot:"/aula/acceso",publicRoutes:"closed",anonymousCourses:"closed",privacy:"accessible",mobileWidth:390}));
+ ws.close();
+}finally{
+ await stopChrome(chrome);
+ await new Promise(resolve=>server.close(resolve));
+ fs.rmSync(profileDir,{recursive:true,force:true,maxRetries:5,retryDelay:200});
+}

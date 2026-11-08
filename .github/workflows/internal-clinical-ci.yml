@@ -52,6 +52,16 @@ jobs:
         run: yarn build
       - name: Browser E2E authenticated clinical flow (isolated test build)
         run: node e2e/browser-clinical.mjs
+      # A second isolated build checks the private site's actual browser routes.
+      # No private database, credentials or deployment is involved.
+      - name: Build private Aula UI for isolated browser test
+        env:
+          CI: 'true'
+          GENERATE_SOURCEMAP: 'false'
+          REACT_APP_AULA_ENABLED: 'true'
+        run: yarn build
+      - name: Browser E2E private Aula navigation and route isolation
+        run: node e2e/browser-aula-private.mjs
 
   backend-clinical:
     runs-on: ubuntu-latest
