@@ -1,0 +1,81 @@
+import React from 'react';
+import {ArrowLeft,ArrowRight,BookOpen,CheckCircle2,Clock,LockKeyhole} from 'lucide-react';
+
+const cls='rounded-xl border border-slate-200 bg-white p-4';
+function Block({block,anchor}){
+  if(block.type==='heading'){const T=['h1','h2','h3','h4'][Math.max(0,Math.min(3,(Number(block.level)||2)-1))];
+    return <T id={anchor||undefined} className={block.level===1?'text-2xl font-bold text-slate-950':'mt-6 text-xl font-semibold text-slate-900'}>{block.text}{block.level===2&&Array.isArray(block.outcome_ids)&&block.outcome_ids.length>0&&<span className="ml-2 text-xs font-normal text-slate-500">RA: {block.outcome_ids.join(', ')}</span>}</T>;}
+  if(block.type==='callout')return <aside className="rounded-xl border-l-4 border-[#005EB8] bg-blue-50 p-4"><strong className="text-blue-900">{({recuerda:'Recuerda',importante:'Importante',ejemplo:'Ejemplo',resumen:'Resumen'})[block.style]||'Nota'}</strong><p className="mt-2 whitespace-pre-wrap text-slate-800">{block.text}</p></aside>;
+  if(['accordion','faq','flashcard'].includes(block.type))return <details className="rounded-lg border border-slate-200 p-4">
+    <summary className="cursor-pointer font-semibold text-[#005EB8]">{block.type==='flashcard'?'Ficha: ':''}{block.text}</summary>
+    <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{block.body}</p>
+  </details>;
+  if(block.type==='glossary')return <dl className="rounded-lg bg-slate-100 p-4"><dt className="font-bold">{block.text}</dt><dd className="mt-2 text-sm">{block.body}</dd></dl>;
+  if(block.type==='link'||block.type==='bibliography')return <div className="rounded-lg border border-slate-200 p-4">
+    <p className="font-semibold">{block.text}</p>
+    {block.src&&<a className="mt-2 inline-flex text-sm font-semibold text-[#005EB8] underline" href={block.src} rel="noopener noreferrer" target="_blank">Abrir recurso externo</a>}
+  </div>;
+  if(block.type==='image')return <figure><img src={block.src} alt={block.alt} loading="lazy" className="max-h-96 w-full rounded-xl object-contain"/>{block.text&&<figcaption className="mt-2 text-sm text-slate-600">{block.text}</figcaption>}</figure>;
+  if(block.type==='video')return <figure><video controls preload="metadata" className="max-h-96 w-full rounded-xl" src={block.src}>Tu navegador no puede reproducir este vídeo.</video>{block.text&&<figcaption className="mt-2 text-sm text-slate-600">{block.text}</figcaption>}</figure>;
+  return <p className="whitespace-pre-wrap leading-7 text-slate-800">{block.text}</p>;
+}
+export default function AulaReaderView({course,units=[],selected,unit,loading=false,error='',onOpen,onComplete,completing=false,assessmentPanel=null,metrics=null}){
+  const index=units.findIndex(x=>x.id===selected);
+  const previous=units[index-1],next=units[index+1];
+  const content=Array.isArray(unit?.content_blocks)?unit.content_blocks:[];
+  const headings=content.map((x,i)=>({...x,blockIndex:i})).filter(x=>x.type==='heading'&&x.level<=3);
+  return <main className="min-h-[70vh] bg-slate-50 text-slate-900" data-testid="aula-reader">
+    <div className="border-b border-slate-200 bg-white px-5 py-7">
+      <div className="mx-auto max-w-7xl">
+        <p className="text-sm font-semibold uppercase tracking-wider text-[#005EB8]">Aula Virtual GASI</p>
+        <h1 className="mt-2 text-3xl font-bold">{course.title}</h1>
+        <p className="mt-3 max-w-3xl text-slate-600">{course.objective}</p>
+        <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600"><span className="flex items-center gap-1"><Clock size={16}/> {course.duration_hours} horas</span><span>Acceso: {course.access_days||90} días</span>{course.max_units_per_day&&<span>Máximo {course.max_units_per_day} unidades nuevas/día</span>}</div>
+        {metrics&&<div className="mt-4 flex flex-wrap gap-3 text-sm" aria-label="Seguimiento del curso">
+          <span className="rounded-lg bg-slate-100 px-3 py-2">Progreso: {metrics.percent}% ({metrics.done}/{metrics.total} unidades)</span>
+          <span className="rounded-lg bg-slate-100 px-3 py-2">Conexión: {Math.floor(metrics.seconds/60)} min {metrics.seconds%60} s</span>
+          {metrics.dailyMax&&<span className="rounded-lg bg-slate-100 px-3 py-2">Hoy: {metrics.today}/{metrics.dailyMax} unidades nuevas</span>}
+        </div>}
+      </div>
+    </div>
+    <div className="mx-auto grid max-w-7xl gap-6 px-4 py-7 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <nav aria-label="Índice de unidades" className={cls+' self-start lg:sticky lg:top-4'}>
+        <h2 className="mb-4 flex items-center gap-2 font-bold"><BookOpen size={18}/> Unidades del curso</h2>
+        <ol className="space-y-2">{units.map(item=><li key={item.id}>
+          <button type="button" disabled={!item.open} onClick={()=>onOpen(item.id)} aria-current={item.id===selected?'step':undefined}
+            className={'flex w-full items-start gap-2 rounded-lg p-3 text-left text-sm '+(item.id===selected?'bg-blue-100 text-blue-950 ':item.open?'hover:bg-slate-100 ':'cursor-not-allowed bg-slate-50 text-slate-500 ')}>
+            {item.completed?<CheckCircle2 size={18} className="shrink-0 text-emerald-700"/>:item.open?<BookOpen size={18} className="shrink-0 text-[#005EB8]"/>:<LockKeyhole size={18} className="shrink-0"/>}
+            <span><strong className="block">Unidad {item.unit_no}</strong>{item.title}<span className="mt-1 block text-xs">{item.completed?'Completada':item.open?'Pendiente':'Bloqueada'}</span>{!item.open&&item.reason&&<span className="mt-1 block text-xs">{item.reason}</span>}</span>
+          </button>
+        </li>)}</ol>
+      </nav>
+      <section className="min-w-0 space-y-5" aria-labelledby="aula-selected-unit">
+        {error&&<p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">{error}</p>}
+        {loading&&<p role="status" className={cls}>Cargando el contenido autorizado…</p>}
+        {unit&&!loading&&<>
+          <article className={cls+' space-y-6'}>
+            <div><p className="text-sm font-semibold text-[#005EB8]">Unidad {unit.unit_no}</p><h2 id="aula-selected-unit" className="mt-2 text-2xl font-bold">{unit.title}</h2><p className="mt-3 text-slate-600">{unit.introduction}</p></div>
+            {headings.length>0&&<aside className="rounded-xl bg-slate-50 p-4"><h3 className="text-sm font-bold">Índice de contenidos</h3><ul className="mt-2 space-y-1 text-sm text-slate-700">{headings.map((h,i)=><li key={i} className={h.level===3?'ml-4':''}><a className="text-[#005EB8] underline-offset-2 hover:underline" href={'#aula-heading-'+unit.id+'-'+h.blockIndex}>{h.text}</a></li>)}</ul></aside>}
+            {content.map((block,i)=><Block block={block} key={i} anchor={block.type==='heading'?'aula-heading-'+unit.id+'-'+i:undefined}/>)}
+            {unit.resources?.length>0&&<section className="rounded-xl border border-slate-200 p-4"><h3 className="font-bold">Recursos complementarios</h3>
+              <ul className="mt-3 space-y-2">{unit.resources.map((r,i)=><li key={i}><strong>{r.title}</strong><span className="ml-2 text-xs uppercase text-slate-500">{r.type}</span>
+                {r.description&&<p className="text-sm text-slate-700">{r.description}</p>}
+                {r.url&&<a href={r.url} target="_blank" rel="noopener noreferrer" className="text-sm text-[#005EB8] underline">Abrir enlace</a>}</li>)}</ul>
+            </section>}
+            {unit.learning_outcomes?.length>0&&<section className="rounded-xl bg-emerald-50 p-4"><h3 className="font-bold text-emerald-950">Resultados de aprendizaje</h3><ul className="mt-2 list-inside list-disc space-y-1 text-sm text-emerald-950">{unit.learning_outcomes.map(o=><li key={o.id}>{o.text}</li>)}</ul></section>}
+            {assessmentPanel}
+            {(unit.requires_test||unit.requires_practice)&&<p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              {unit.requires_test?(unit.test_passed?'Test superado. ':'Pendiente: superar el test. '):''}{unit.requires_practice?(unit.practice_approved?'Práctica aprobada por tutor.':unit.practice_status==='pending'?'Práctica enviada, pendiente de evaluar por el tutor.':'Pendiente: enviar y obtener la aprobación de la práctica obligatoria.'):''} El avance se bloquea hasta satisfacer todos los requisitos.
+            </p>}
+          </article>
+          <div className="flex flex-wrap justify-between gap-3">
+            <button className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold disabled:opacity-40" disabled={!previous?.open} onClick={()=>previous&&onOpen(previous.id)}><ArrowLeft size={16}/> Anterior</button>
+            {!units[index]?.completed&&<button type="button" data-testid="aula-complete-unit" disabled={completing||(unit.requires_test&&!unit.test_passed)||(unit.requires_practice&&!unit.practice_approved)} onClick={()=>onComplete(unit.id)} className="rounded-lg bg-[#005EB8] px-4 py-3 font-semibold text-white disabled:opacity-50">{completing?'Guardando…':'Marcar como completada'}</button>}
+            <button className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold disabled:opacity-40" disabled={!next?.open} onClick={()=>next&&onOpen(next.id)}>Siguiente <ArrowRight size={16}/></button>
+          </div>
+        </>}
+        {!unit&&!loading&&<p className={cls}>Selecciona una unidad disponible en el índice. Las unidades bloqueadas se habilitan según tu progreso y las evaluaciones exigidas.</p>}
+      </section>
+    </div>
+  </main>;
+}

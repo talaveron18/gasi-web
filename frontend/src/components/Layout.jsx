@@ -6,7 +6,7 @@ import Chatbot from './Chatbot';
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const isPrivate = /^\/(?:interno(?:\/|$)|dashboard(?:\/|$)|alumnado(?:\/|$))/.test(location.pathname);
+  const isPrivate = /^\/(?:interno(?:\/|$)|dashboard(?:\/|$)|alumnado(?:\/|$)|aula(?:\/|$))/.test(location.pathname);
   return (
     <div className="min-h-screen flex flex-col">
       <a

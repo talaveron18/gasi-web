@@ -52,6 +52,16 @@ jobs:
         run: yarn build
       - name: Browser E2E authenticated clinical flow (isolated test build)
         run: node e2e/browser-clinical.mjs
+      # A second isolated build checks the private site's actual browser routes.
+      # No private database, credentials or deployment is involved.
+      - name: Build private Aula UI for isolated browser test
+        env:
+          CI: 'true'
+          GENERATE_SOURCEMAP: 'false'
+          REACT_APP_AULA_ENABLED: 'true'
+        run: yarn build
+      - name: Browser E2E private Aula navigation and route isolation
+        run: node e2e/browser-aula-private.mjs
 
   backend-clinical:
     runs-on: ubuntu-latest
@@ -129,6 +139,10 @@ jobs:
         run: node scripts/prepare-commercial-functions.cjs
       - name: Verify commercial-only function package
         run: node --test scripts/commercial-package.test.cjs
+      - name: Verify Aula function isolation
+        run: node --test scripts/aula-package.test.cjs
+      - name: Test Aula progression and synthetic preview endpoints
+        run: node --test netlify/aula/access-policy.test.mjs netlify/aula/f3-policy.test.mjs netlify/aula/f5-policy.test.mjs netlify/aula/f6-policy.test.mjs
       - name: Netlify HTTP header smoke
         run: node scripts/netlify-http-smoke.mjs
       - name: Rehearse release artifact restore
@@ -142,6 +156,18 @@ jobs:
           name: web-infra-release-rehearsal-${{ github.sha }}
           path: release-evidence.json
           if-no-files-found: error
+      # Build the actual private LMS frontend after preserving commercial
+      # release evidence. No credentials, Netlify site or deploy are involved.
+      - name: Build isolated private Aula frontend (CI only, no deploy)
+        env:
+          CI: 'true'
+          GENERATE_SOURCEMAP: 'false'
+          REACT_APP_AULA_ENABLED: 'true'
+        run: yarn --cwd frontend build
+      - name: Verify compiled private Aula and secret-free browser assets
+        env:
+          REACT_APP_AULA_ENABLED: 'true'
+        run: node --test scripts/aula-private-build.test.cjs
 
   netlify-runtime-integration:
     runs-on: ubuntu-latest
@@ -173,6 +199,25 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - name: Install Netlify function dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: PostgreSQL Aula F1 and F2 integration
+        env:
+          GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
+        run: |
+          node aula/migrate.mjs
+          node aula/migrate.mjs
+          psql "$GASI_INTEGRATION_DB_URL" -v ON_ERROR_STOP=1 -tAc "SELECT count(*) FROM aula_schema_migrations" | grep -qx 6
+          export GASI_AULA_DB_URL="$GASI_INTEGRATION_DB_URL"
+          export AULA_BOOTSTRAP_CONFIRM="CREATE_FIRST_ADMIN"
+          export AULA_BOOTSTRAP_EMAIL="bootstrap@example.invalid"
+          export AULA_BOOTSTRAP_NAME="Administrador inicial de prueba"
+          export AULA_BOOTSTRAP_PASSWORD="$(openssl rand -hex 24)"
+          node aula/bootstrap-admin.mjs
+          if node aula/bootstrap-admin.mjs > /dev/null 2>&1; then
+            echo "ERROR: second administrator bootstrap unexpectedly succeeded"
+            exit 1
+          fi
+          unset AULA_BOOTSTRAP_PASSWORD AULA_BOOTSTRAP_EMAIL AULA_BOOTSTRAP_NAME AULA_BOOTSTRAP_CONFIRM
+          node --test aula/persistence-postgres.test.mjs aula/persistence-f3.test.mjs aula/persistence-f4.test.mjs aula/persistence-f5.test.mjs aula/persistence-f6.test.mjs
       - name: PostgreSQL attendance and recovery integration
         env:
           GASI_INTEGRATION_DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/gasi
@@ -189,7 +234,7 @@ jobs:
   # GitHub's legacy status endpoint does not expose Actions check-runs. Publish
   # each completed job conclusion on the same preview commit for auditability.
   report-ci-statuses:
-    if: ${{ always() && (github.ref == 'refs/heads/automation/public-reconcile-20261023' || github.ref == 'refs/heads/automation/public-reconcile-access-chat-20261107') }}
+    if: ${{ always() && (github.ref == 'refs/heads/automation/public-reconcile-20261023' || github.ref == 'refs/heads/automation/public-reconcile-access-chat-20261107' || github.ref == 'refs/heads/automation/public-reconcile-aula-f1f2-20261107') }}
     needs: [frontend, netlify-build, backend-clinical, netlify-clinical, netlify-runtime-integration]
     runs-on: ubuntu-latest
     permissions:

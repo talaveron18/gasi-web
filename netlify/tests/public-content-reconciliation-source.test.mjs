@@ -137,7 +137,7 @@ test('every directly rendered public route is represented in the reconciliation 
     assert.ok(publicSurfaces.includes(`frontend/src/pages/${component}.jsx`), `${route}: ${component} is outside public reconciliation inventory`);
   }
   const directPublicRoutes = [...app.matchAll(/<Route\s+path="([^"]+)"\s+element=\{<([A-Z][A-Za-z0-9]*)\s*\/>\}/g)]
-    .filter(([, route]) => !route.startsWith('/interno/') && !route.startsWith('/dashboard'))
+    .filter(([, route]) => !route.startsWith('/interno/') && !route.startsWith('/dashboard') && !route.startsWith('/aula'))
     .map(([, route, component]) => [route, component])
     .filter(([, component]) => component !== 'Navigate');
   assert.deepEqual(directPublicRoutes.sort(), [...expected.entries()].sort(), 'new directly rendered public route must be explicitly inventoried and audited');

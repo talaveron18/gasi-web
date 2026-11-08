@@ -34,5 +34,42 @@ try{
  await navigate(send,`${origin}/dashboard`);await waitFor(send,"location.pathname==='/alumnado/acceso'");assert.doesNotMatch(await value(send,"document.body.innerText"),/Mi Dashboard|Mis Cursos|Ver cursos disponibles/);
  await navigate(send,`${origin}/dashboard/admin/cursos`);await waitFor(send,"location.pathname==='/alumnado/acceso' || location.pathname==='/acceso'");assert.doesNotMatch(await value(send,"document.body.innerText"),/Administrar aula|Crear curso/);
  await navigate(send,`${origin}/acceso`,'[data-testid="access-portal"]');await tabUntil(send,"access-team");const teamFocus=JSON.parse(await value(send,"JSON.stringify({id:document.activeElement?.getAttribute('data-testid'),shadow:getComputedStyle(document.activeElement).boxShadow})"));assert.equal(teamFocus.id,"access-team");assert.notEqual(teamFocus.shadow,"none","Keyboard focus must be visibly rendered on team access");await send("Runtime.evaluate",{expression:"document.activeElement.click()"});await waitFor(send,"location.pathname==='/interno/acceso'");await waitFor(send,"document.querySelector('[data-testid=private-access-unavailable]') && /Acceso al equipo GASI/i.test(document.body.innerText)");const loginText=await value(send,"document.body.innerText");assert.match(loginText,/Acceso al equipo GASI/i);assert.match(loginText,/no está habilitado/i);assert.equal(await value(send,"Boolean(document.querySelector('form'))"),false,"Do not collect worker credentials when the API is absent");
+ // Commercial assistant: a quoted RCP question must prefill the guided proposal.
+ await navigate(send,origin+'/', '[data-testid="chatbot-open-button"]');
+ await value(send,"document.querySelector('[data-testid=chatbot-open-button]').click()");
+ await waitFor(send,"document.querySelector('[data-testid=chatbot-window]')");
+ assert.equal(await value(send,"document.activeElement===document.querySelector('[data-testid=chatbot-window]')"),true,"Dialog must receive keyboard focus");
+ assert.equal(await value(send,"[...document.querySelectorAll('[data-testid=chatbot-messages] button')].filter(b=>/Enfermería en empresas|RCP, DEA|Formación para equipos|Cobertura sanitaria/.test(b.textContent)).length"),4);
+ await value(send,"document.querySelector('#gasi-question').focus()");
+ await send("Input.insertText",{text:"¿Cuánto cuesta un curso de RCP para 20 empleados en Madrid?"});
+ await waitFor(send,"document.querySelector('#gasi-question')?.value.includes('20 empleados')");
+ await value(send,"document.querySelector('#gasi-question').closest('form').requestSubmit()");
+ await waitFor(send,"document.querySelector('[data-testid=chatbot-prefill]')");
+ assert.match(await value(send,"document.querySelector('[data-testid=chatbot-prefill]').textContent"),/20 personas.*Madrid/);
+ await value(send,"document.querySelector('[data-testid=chatbot-start-proposal]').click()");
+ await waitFor(send,"document.querySelector('[data-testid=chatbot-participants]')");
+ const prefilled=JSON.parse(await value(send,"JSON.stringify({people:document.querySelector('[data-testid=chatbot-participants]').value,service:document.querySelector('[data-testid=chatbot-service]').value})"));
+ assert.deepEqual(prefilled,{people:"20",service:"Formación sanitaria"});
+ await value(send,"document.querySelector('[data-testid=chatbot-next-button]').click()");
+ await waitFor(send,"document.querySelector('[data-testid=chatbot-city]')");
+ assert.equal(await value(send,"document.querySelector('[data-testid=chatbot-city]').value"),"Madrid");
+ // Regression: at 495px viewport height the chatbot's footer must remain fully
+ // visible while its message/form region scrolls independently.
+ await send("Emulation.setDeviceMetricsOverride",{width:1180,height:495,deviceScaleFactor:1,mobile:false});
+ await sleep(100);
+ const shortFrame=JSON.parse(await value(send,"JSON.stringify((()=>{const root=document.querySelector('[data-testid=chatbot-window]');const content=document.querySelector('[data-testid=chatbot-messages]');const footer=document.querySelector('[data-testid=chatbot-footer]');const header=root.querySelector('header');const r=root.getBoundingClientRect(),c=content.getBoundingClientRect(),f=footer.getBoundingClientRect(),h=header.getBoundingClientRect();return {rootBottom:r.bottom,rootTop:r.top,contentTop:c.top,contentBottom:c.bottom,headerBottom:h.bottom,footerTop:f.top,footerBottom:f.bottom,viewportHeight:innerHeight,scrollable:content.scrollHeight>content.clientHeight,footerLinkVisible:!!footer.querySelector('a[href^=\"mailto:\"]')&&footer.querySelector('a[href^=\"mailto:\"]').getClientRects().length>0}})())"));
+ assert.ok(shortFrame.rootTop>=0&&shortFrame.rootBottom<=shortFrame.viewportHeight+1,"Short viewport: panel must fit vertically");
+ assert.ok(shortFrame.headerBottom<=shortFrame.contentTop+1&&shortFrame.contentBottom<=shortFrame.footerTop+1,"Short viewport: footer must never overlap the scroll region");
+ assert.ok(shortFrame.footerBottom<=shortFrame.rootBottom+1&&shortFrame.footerLinkVisible,"Short viewport: email contact must remain visible inside the panel");
+ assert.equal(shortFrame.scrollable,true,"Short viewport: conversation must scroll rather than push the footer off-screen");
+  await send("Emulation.setDeviceMetricsOverride",{width:390,height:740,deviceScaleFactor:1,mobile:true});
+ const bounds=JSON.parse(await value(send,"JSON.stringify((()=>{const r=document.querySelector('[data-testid=chatbot-window]').getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,viewportWidth:window.innerWidth,viewportHeight:window.innerHeight}})())"));
+ assert.ok(bounds.left>=0&&bounds.right<=bounds.viewportWidth+1&&bounds.top>=0&&bounds.bottom<=bounds.viewportHeight+1,"Assistant must fit mobile viewport");
+ const mobileFooter=JSON.parse(await value(send,"JSON.stringify((()=>{const root=document.querySelector('[data-testid=chatbot-window]').getBoundingClientRect();const content=document.querySelector('[data-testid=chatbot-messages]').getBoundingClientRect();const footer=document.querySelector('[data-testid=chatbot-footer]').getBoundingClientRect();return {rootBottom:root.bottom,contentBottom:content.bottom,footerTop:footer.top,footerBottom:footer.bottom,viewportHeight:innerHeight}})())"));
+ assert.ok(mobileFooter.contentBottom<=mobileFooter.footerTop+1&&mobileFooter.footerBottom<=mobileFooter.rootBottom+1&&mobileFooter.footerBottom<=mobileFooter.viewportHeight+1,"390px mobile: footer must remain visible without covering messages");
+ await key(send,"Escape","Escape",27);
+ await waitFor(send,"!document.querySelector('[data-testid=chatbot-window]')");
+ assert.equal(await value(send,"document.activeElement?.getAttribute('data-testid')"),"chatbot-open-button","Closing with Escape must restore launcher focus");
+ await send("Emulation.clearDeviceMetricsOverride");
  const apiStatus=await value(send,`fetch(${JSON.stringify(`${origin}/api/courses`)}).then(r=>r.status)`);assert.equal(apiStatus,404,"Public course catalogue API must remain closed");console.log(JSON.stringify({status:"PASS",origin,access:{student:"/alumnado/acceso",team:"/interno/acceso"},registration:"closed",legacy_training_routes:"closed",public_course_api:"404 closed"}));ws.close();
 }finally{await stopChrome(chrome);await new Promise(resolve=>server.close(resolve));fs.rmSync(profileDir,{recursive:true,force:true,maxRetries:5,retryDelay:200});}

@@ -4,6 +4,8 @@ import { GraduationCap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { STUDENT_PORTAL_ENABLED } from '@/lib/accessAvailability';
 import PrivateAccessUnavailable from '@/components/PrivateAccessUnavailable';
+import {AULA_ENABLED} from '@/aula/AulaAuthContext';
+import AulaLogin from '@/aula/AulaLogin';
 
 export default function StudentAccess() {
   const { user, loading, login } = useAuth();
@@ -12,6 +14,7 @@ export default function StudentAccess() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  if (AULA_ENABLED) return <AulaLogin />;
   if (!STUDENT_PORTAL_ENABLED) return <PrivateAccessUnavailable area="alumnado" />;
   if (!loading && user) return <Navigate to="/dashboard" replace />;
 
