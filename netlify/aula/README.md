@@ -155,6 +155,31 @@ descifrar y restaurar una copia **en una base de datos aislada** antes
 de admitir alumnos. Nunca ejecutes una restauración sobre la base activa
 sin un procedimiento validado y autorización expresa.
 
+## Autorización de despliegue (08/11/2026)
+
+Fernando ha autorizado expresamente **desplegar el Aula Virtual GASI
+cuando esté terminada y comprobada**, sin solicitar otra confirmación
+para ese despliegue. La autorización se limita al **proyecto Netlify
+independiente `gasi-aula-privada`** y no requiere fusionar este PR a
+`main` ni modificar el sitio comercial `gasisalud.com`.
+
+Antes de considerar completa la publicación deben cumplirse las
+comprobaciones materiales: cuenta administrativa segura y primer cambio
+de contraseña, conexión real al PostgreSQL exclusivo, recuperación por
+correo comprobada, prueba de acceso mediante navegador (estudiante,
+docente y administrador), ausencia de contenido comercial o clínico en
+la aplicación privada, y medidas de copia y recuperación de datos
+verificadas. Las credenciales previamente expuestas deben sustituirse
+antes del acceso de personas reales. El sitio puede permanecer
+protegido por SSO Netlify durante la validación del equipo.
+
+**Limitación instrumental:** el conector Netlify disponible permite
+crear un proyecto y configurar variables de entorno, pero **no
+permite vincular ese proyecto con el repositorio ni iniciar despliegues**.
+Para el primer deploy se debe conectar la rama de este PR en la
+interfaz del proyecto Netlify o utilizar un entorno Work con navegación
+autorizada. No debe confundirse el CI en verde con un deploy realizado.
+
 ## PENDIENTE DE FERNANDO / CIERRE OPERATIVO
 
 1. **Autorizar un despliegue de pruebas** únicamente del sitio separado
