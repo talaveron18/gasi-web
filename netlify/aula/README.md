@@ -63,6 +63,12 @@ sintéticos exclusivamente en CI.
 Los certificados de finalización no se presentan como título oficial
 ni acreditación sanitaria sin la habilitación correspondiente.
 
+El CI incorpora además una **compilación independiente del Aula** con
+`REACT_APP_AULA_ENABLED=true` y una inspección de los archivos JS finales
+para verificar rutas de autenticación y ausencia de identificadores de
+secretos en el navegador. Ese ensayo no despliega ningún sitio ni crea una
+base de datos real del cliente.
+
 ## Estado de infraestructura (07/11/2026)
 
 - **Creado** en Netlify el proyecto independiente `gasi-aula-privada`
@@ -79,9 +85,11 @@ ni acreditación sanitaria sin la habilitación correspondiente.
 - **Restricción confirmada del plan gratuito de Netlify:** la opción
   `Specific scopes` / solo `Functions` requiere Pro o Enterprise. Por eso
   las escrituras limitadas a Functions devolvían HTTP 403, incluso con la
-  cuenta autorizada. Se ha configurado y verificado únicamente
-  `GASI_AULA_SENDER_EMAIL=coordinacion@gasisalud.com`, no secreto y en
-  contexto Production, con `All scopes` (incluye Builds y Functions).
+  cuenta autorizada. También se rechazó (422) marcar como secreto una variable
+  con `All scopes`; el controlador de secretos exige ámbitos explícitos.
+  Se ha configurado y verificado únicamente
+  `GASI_AULA_SENDER_EMAIL=coordinacion@gasisalud.com`, no secreto y con
+  `All scopes`, en **Production y Deploy Previews**.
   **NO** se han creado secretos de base de datos ni claves de Resend.
 - **Sitio comercial canónico** con dominio `gasisalud.com`:
   `voluble-kataifi-9b8274`; no confundir con el proyecto distinto
@@ -97,8 +105,8 @@ ni acreditación sanitaria sin la habilitación correspondiente.
   - `GASI_AULA_DB_URL`: secreto (Deploy Previews/Production autorizados).
   - `GASI_AULA_RESEND_API_KEY`: secreto, clave de Resend nueva con permiso
     **sending_access** restringido al dominio verificado.
-  - `GASI_AULA_SENDER_EMAIL`: **ya configurado** en Production, All scopes,
-    con `coordinacion@gasisalud.com` (texto, no secreto).
+  - `GASI_AULA_SENDER_EMAIL`: **ya configurado** en Production y Deploy
+    Previews, All scopes, con `coordinacion@gasisalud.com` (no secreto).
 - Asociar **solo el sitio privado** al repositorio y a la rama aprobada con
   la configuración `aula-site/netlify.toml`, cuando Fernando autorice
   expresamente el despliegue. Nunca usar el proyecto comercial para Aula.
