@@ -34,3 +34,20 @@ if(!config.includes('node scripts/assert-private-aula-target.cjs')||!config.incl
   console.error('Refusing private Aula build: root TOML is not the private Aula configuration.');
   process.exit(1);
 }
+
+// Keep routing single-source: default function at /.netlify/functions/aula
+// receives the explicit 200 rewrite from /api/aula/*.
+// A custom config.path would disable the canonical function URL.
+const handler=fs.readFileSync(path.join(root,'netlify/functions/aula.mts'),'utf8');
+if(/export\s+const\s+config\s*:/.test(handler)){
+  console.error('Refusing private Aula build: config.path conflicts with explicit /api/aula rewrite.');
+  process.exit(1);
+}
+for(const toml of ['netlify.toml','aula-site/netlify.toml']){
+  const s=fs.readFileSync(path.join(root,toml),'utf8');
+  const rule=/from = "\/api\/aula\/\*"\s+to = "\/\.netlify\/functions\/aula\?original_path=:splat"\s+status = 200\s+force = true/;
+  if(!rule.test(s)||s.indexOf('from = "/api/aula/*"')>s.indexOf('from = "/api/*"')){
+    console.error('Refusing private Aula build: missing or shadowed Aula function redirect in '+toml);
+    process.exit(1);
+  }
+}

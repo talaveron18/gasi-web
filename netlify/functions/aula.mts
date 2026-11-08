@@ -1,4 +1,4 @@
-import type { Config, Context } from "@netlify/functions";
+import type { Context } from "@netlify/functions";
 import pg from "pg";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
@@ -818,4 +818,4 @@ const aula=async(req:Request,_context:Context)=>{
   }
 };
 export default aula;
-export const config:Config={path:"/api/aula/*"};
+
