@@ -1,5 +1,5 @@
 import type { Config, Context } from "@netlify/functions";
-import { getDatabase } from "@netlify/database";
+import pg from "pg";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import {gateUnit, canAuthor, canManageAccounts, canFinishUnit, ROLES} from "../aula/access-policy.mjs";
@@ -18,7 +18,7 @@ const dbCache=new Map<string,any>();
 const conn=()=>{
   const url=env("GASI_AULA_DB_URL");
   if(!/^postgres(?:ql)?:\/\//.test(url))fail(503,"private_aula_database_not_configured");
-  if(!dbCache.has(url))dbCache.set(url,getDatabase({connectionString:url}));
+  if(!dbCache.has(url))dbCache.set(url,{pool:new pg.Pool({connectionString:url,max:5,connectionTimeoutMillis:10000,idleTimeoutMillis:30000})});
   return dbCache.get(url);
 };
 async function q(text:string,values:any[]=[]){const db=conn(),client=await db.pool.connect();try{return (await client.query(text,values)).rows;}finally{client.release();}}

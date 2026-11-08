@@ -1,7 +1,7 @@
 // One-time private bootstrap. Never run during a Netlify build or from a
 // public request. Supply secrets through a protected local environment.
 import bcrypt from "bcryptjs";
-import {getDatabase} from "@netlify/database";
+import pg from "pg";
 
 const email=String(process.env.AULA_BOOTSTRAP_EMAIL||"").trim().toLowerCase();
 const name=String(process.env.AULA_BOOTSTRAP_NAME||"").trim();
@@ -12,7 +12,7 @@ if(!confirmed||!dbUrl||!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||name.l
   console.error("Bootstrap refused: private PostgreSQL URL, email, display name, strong password, and explicit confirmation are required.");
   process.exit(1);
 }
-const db=getDatabase({connectionString:dbUrl});
+const db={pool:new pg.Pool({connectionString:dbUrl,max:2,connectionTimeoutMillis:10000,idleTimeoutMillis:30000})};
 const client=await db.pool.connect();
 try{
   await client.query("BEGIN");

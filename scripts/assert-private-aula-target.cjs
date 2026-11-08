@@ -12,3 +12,25 @@ if(process.env.NETLIFY==='true'){
 } else {
   console.log('Local private Aula build; deploy target guard applies on Netlify.');
 }
+
+// This deployment branch must be independent of Netlify Database.
+// These checks execute before npm install and before the private frontend build.
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.resolve(__dirname,'..');
+for(const file of ['package.json','netlify/package.json']){
+  const content=JSON.parse(fs.readFileSync(path.join(root,file),'utf8'));
+  if(content.dependencies?.['@netlify/database']||content.devDependencies?.['@netlify/database']){
+    console.error('Refusing private Aula build: Netlify Database dependency detected in '+file);
+    process.exit(1);
+  }
+}
+if(fs.existsSync(path.join(root,'netlify/database/migrations'))){
+  console.error('Refusing private Aula build: legacy Netlify Database migrations present.');
+  process.exit(1);
+}
+const config=fs.readFileSync(path.join(root,'netlify.toml'),'utf8');
+if(!config.includes('node scripts/assert-private-aula-target.cjs')||!config.includes('netlify/private-aula-functions-build')){
+  console.error('Refusing private Aula build: root TOML is not the private Aula configuration.');
+  process.exit(1);
+}

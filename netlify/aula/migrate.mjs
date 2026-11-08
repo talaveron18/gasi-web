@@ -1,6 +1,6 @@
 // Run explicitly against the PRIVATE Aula PostgreSQL instance, never in a public build.
 // Uses transactional versioned migrations with checksums to detect drift.
-import {getDatabase} from '@netlify/database';
+import pg from "pg";
 import {createHash} from 'node:crypto';
 import {readdir,readFile} from 'node:fs/promises';
 const url=String(process.env.GASI_AULA_DB_URL||process.env.GASI_INTEGRATION_DB_URL||'');
@@ -8,7 +8,7 @@ if(!url||!/^postgres(?:ql)?:\/\//.test(url))throw new Error('A private PostgreSQ
 const directory=new URL('./migrations/',import.meta.url);
 const files=(await readdir(directory)).filter(x=>/^\d{3}_[a-z0-9_-]+\.sql$/.test(x)).sort();
 if(!files.length)throw new Error('No migrations found.');
-const db=getDatabase({connectionString:url});
+const db={pool:new pg.Pool({connectionString:url,max:5,connectionTimeoutMillis:10000,idleTimeoutMillis:30000})};
 const client=await db.pool.connect();
 try{
  await client.query('CREATE TABLE IF NOT EXISTS aula_schema_migrations(version text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())');

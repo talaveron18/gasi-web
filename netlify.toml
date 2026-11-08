@@ -1,6 +1,9 @@
+# DEDICATED BRANCH deploy/gasi-aula-privada: root config for private LMS only; commercial config never deployed.
+# Use this file as the Netlify package-directory config for the separate
+# authenticated LMS. No clinical functions or demo credentials are included.
 [build]
   base = "/"
-  command = "node scripts/prepare-commercial-functions.cjs && yarn --cwd frontend install --non-interactive --frozen-lockfile && yarn --cwd frontend build"
+  command = "node scripts/assert-private-aula-target.cjs && npm --prefix netlify ci --ignore-scripts --no-audit --no-fund && node scripts/prepare-private-aula-functions.cjs && yarn --cwd frontend install --non-interactive --frozen-lockfile && REACT_APP_AULA_ENABLED=true yarn --cwd frontend build"
   publish = "frontend/build"
 
 [build.environment]
@@ -8,37 +11,14 @@
   GENERATE_SOURCEMAP = "false"
 
 [functions]
-  directory = "netlify/commercial-functions-build"
+  directory = "netlify/private-aula-functions-build"
+  node_bundler = "esbuild"
 
-# Internal clinical endpoints are excluded from the commercial deployment.
+# The standalone function handles routing under /api/aula and validates auth.
 [[redirects]]
-  from = "/api/internal-clinical/*"
-  to = "/api-unavailable.json"
-  status = 404
-  force = true
-
-# The public training catalogue is intentionally unavailable until the
-# separate professional/student access path is validated. Keep these
-# anonymous legacy endpoints closed even though the function still contains
-# authenticated course infrastructure for future work.
-[[redirects]]
-  from = "/api/courses/"
-  to = "/api-unavailable.json"
-  status = 404
-  force = true
-
-[[redirects]]
-  from = "/api/courses/:course_id"
-  to = "/api-unavailable.json"
-  status = 404
-  force = true
-
-# Unknown /api routes must never receive the SPA index.html with HTTP 200.
-# Netlify commercial functions remain served at /.netlify/functions/*.
-[[redirects]]
-  from = "/api"
-  to = "/api-unavailable.json"
-  status = 404
+  from = "/api/aula/*"
+  to = "/.netlify/functions/aula?original_path=:splat"
+  status = 200
   force = true
 
 [[redirects]]
@@ -52,19 +32,13 @@
   to = "/index.html"
   status = 200
 
-
 [[headers]]
   for = "/*"
   [headers.values]
-    Cache-Control = "no-cache"
+    Cache-Control = "no-store"
     X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "no-referrer"
+    Referrer-Policy = "strict-origin"
     X-Frame-Options = "DENY"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; manifest-src 'self'; worker-src 'self' blob:; upgrade-insecure-requests"
-
-[[headers]]
-  for = "/static/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:;"
