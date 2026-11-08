@@ -28,3 +28,20 @@ test('commercial build remains independent and excludes real Aula authentication
   assert.equal(files.includes('aula.mts'),false);
   assert.equal(files.includes('aula-demo.mts'),false);
 });
+
+test('private Aula site guard rejects public and wrong Netlify targets',()=>{
+  const guard=path.join(root,'scripts/assert-private-aula-target.cjs');
+  const {spawnSync}=require('node:child_process');
+  const run=(siteId)=>spawnSync(process.execPath,[guard],{
+    cwd:root,encoding:'utf8',
+    env:{...process.env,NETLIFY:'true',SITE_ID:siteId,CONTEXT:'deploy-preview'}
+  });
+  assert.equal(run('620b3f03-68b4-4f2d-b79a-80e04eec3281').status,0);
+  for(const id of ['1bcad18d-bdaf-4d23-a119-ff8cdeb3e03b','40c0b918-16c2-4d5f-bc70-c2e3932875d5','']){
+    const x=run(id);
+    assert.equal(x.status,1);
+    assert.match(x.stderr,/Refusing private Aula build/i);
+  }
+  const config=fs.readFileSync(path.join(root,'aula-site/netlify.toml'),'utf8');
+  assert.match(config,/node scripts\/assert-private-aula-target\.cjs &&/);
+});

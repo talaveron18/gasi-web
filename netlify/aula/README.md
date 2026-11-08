@@ -80,6 +80,12 @@ base de datos real del cliente.
   esta protección al publicar, manteniendo la autenticación propia del LMS.
 - **Sin despliegue ni repositorio asociado** en el nuevo sitio. La configuración
   de compilación prevista sigue siendo `aula-site/netlify.toml`.
+- **Monorepos — ajuste exacto antes de conectar Git:** en Project configuration
+  → Developer settings → Continuous deployment → Build settings, establecer
+  **Package directory = `aula-site`** y **Base directory vacío** (raíz).
+  Netlify elegirá `aula-site/netlify.toml` en lugar del `netlify.toml`
+  comercial de la raíz. El build privado se niega a ejecutarse si `SITE_ID`
+  no corresponde a `gasi-aula-privada`.
 - **Resend verificado:** el dominio `gasisalud.com` está autorizado para el
   envío. No reutilizar la clave existente de notificaciones MediQuote.
 - **Restricción confirmada del plan gratuito de Netlify:** la opción

@@ -3,7 +3,7 @@
 # authenticated LMS. No clinical functions or demo credentials are included.
 [build]
   base = "/"
-  command = "npm --prefix netlify ci --ignore-scripts --no-audit --no-fund && node scripts/prepare-private-aula-functions.cjs && yarn --cwd frontend install --non-interactive --frozen-lockfile && REACT_APP_AULA_ENABLED=true yarn --cwd frontend build"
+  command = "node scripts/assert-private-aula-target.cjs && npm --prefix netlify ci --ignore-scripts --no-audit --no-fund && node scripts/prepare-private-aula-functions.cjs && yarn --cwd frontend install --non-interactive --frozen-lockfile && REACT_APP_AULA_ENABLED=true yarn --cwd frontend build"
   publish = "frontend/build"
 
 [build.environment]
