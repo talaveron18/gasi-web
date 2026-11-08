@@ -146,6 +146,18 @@ jobs:
           name: web-infra-release-rehearsal-${{ github.sha }}
           path: release-evidence.json
           if-no-files-found: error
+      # Build the actual private LMS frontend after preserving commercial
+      # release evidence. No credentials, Netlify site or deploy are involved.
+      - name: Build isolated private Aula frontend (CI only, no deploy)
+        env:
+          CI: 'true'
+          GENERATE_SOURCEMAP: 'false'
+          REACT_APP_AULA_ENABLED: 'true'
+        run: yarn --cwd frontend build
+      - name: Verify compiled private Aula and secret-free browser assets
+        env:
+          REACT_APP_AULA_ENABLED: 'true'
+        run: node --test scripts/aula-private-build.test.cjs
 
   netlify-runtime-integration:
     runs-on: ubuntu-latest
