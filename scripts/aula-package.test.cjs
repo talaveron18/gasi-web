@@ -55,3 +55,11 @@ test('private build routes cannot show commercial or internal clinical areas',()
   for(const pathName of ['/interno','/dashboard','/contacto','/cobertura-sanitaria'])
     assert.ok(!privateApp.includes('path="'+pathName+'"'),'non-Aula route rendered: '+pathName);
 });
+
+test('private LMS CSP permits the HTTPS video content supported by reader',()=>{
+  const config=fs.readFileSync(path.join(root,'aula-site/netlify.toml'),'utf8');
+  assert.match(config,/media-src 'self' blob: https:/);
+  assert.match(config,/frame-src 'none'/);
+  const reader=fs.readFileSync(path.join(root,'frontend/src/aula/AulaReaderView.jsx'),'utf8');
+  assert.match(reader,/<video controls/);
+});
