@@ -45,3 +45,13 @@ test('private Aula site guard rejects public and wrong Netlify targets',()=>{
   const config=fs.readFileSync(path.join(root,'aula-site/netlify.toml'),'utf8');
   assert.match(config,/node scripts\/assert-private-aula-target\.cjs &&/);
 });
+
+test('private build routes cannot show commercial or internal clinical areas',()=>{
+  const app=fs.readFileSync(path.join(root,'frontend/src/App.js'),'utf8');
+  const privateApp=fs.readFileSync(path.join(root,'frontend/src/aula/AulaPrivateApp.jsx'),'utf8');
+  assert.match(app,/if\(AULA_ENABLED\)return <AulaPrivateApp\/>/);
+  assert.match(privateApp,/path="\*" element=\{<Navigate to="\/aula\/acceso" replace\/>\}/);
+  assert.match(privateApp,/path="\/politica-privacidad"/);
+  for(const pathName of ['/interno','/dashboard','/contacto','/cobertura-sanitaria'])
+    assert.ok(!privateApp.includes('path="'+pathName+'"'),'non-Aula route rendered: '+pathName);
+});
