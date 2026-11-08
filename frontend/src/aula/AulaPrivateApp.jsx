@@ -28,7 +28,7 @@ export default function AulaPrivateApp(){
         </nav>
       </div>
     </header>
-    <main id="aula-main">
+    <div id="aula-main">
       <Routes>
         <Route path="/" element={<Navigate to="/aula/acceso" replace/>}/>
         <Route path="/aula/acceso" element={<AulaLogin/>}/>
@@ -41,7 +41,7 @@ export default function AulaPrivateApp(){
         <Route path="/politica-privacidad" element={<PoliticaPrivacidad/>}/>
         <Route path="*" element={<Navigate to="/aula/acceso" replace/>}/>
       </Routes>
-    </main>
+    </div>
     <footer className="mt-12 border-t border-slate-200 bg-white px-5 py-6 text-center text-xs text-slate-600">
       <p className="inline-flex items-center justify-center gap-2"><ShieldCheck size={15} aria-hidden="true"/> Acceso privado para cuentas autorizadas por GASI.</p>
       <p className="mt-1">Los certificados de finalización no constituyen por sí mismos títulos oficiales ni acreditaciones sanitarias.</p>
