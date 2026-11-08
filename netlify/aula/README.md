@@ -130,6 +130,31 @@ son proyectos separados del entorno comercial y clínico.
   CI de Postgres 17, compilación privada y vídeos HTTPS bajo CSP.
   **No equivale a una prueba real del servicio desplegado.**
 
+
+## Copias cifradas y recuperación (Neon Free)
+
+En el proyecto Neon Free del aula se ha comprobado que **no hay snapshots
+ni copias automáticas programadas**. Antes de dar acceso a alumnado real,
+configurar copias independientes y probar su restauración.
+
+Se incluye `scripts/backup-private-aula.sh`, que utiliza `pg_dump` y
+`age` para generar un respaldo PostgreSQL **cifrado directamente en flujo**,
+sin dejar el volcado en claro almacenado en disco. Requiere la URL privada
+de Neon con `sslmode=require` y una **clave pública** de cifrado age
+(`GASI_AULA_BACKUP_RECIPIENT`). Ejecutar exclusivamente desde una
+consola segura y con `pg_dump` compatible con PostgreSQL 17:
+
+```bash
+bash scripts/backup-private-aula.sh /ruta/privada/copias
+```
+
+El script no publica las credenciales ni las incluye en argumentos de
+comandos; deben facilitarse mediante variables de entorno privadas.
+La **clave privada** age debe guardarse aparte del backup. Prueba a
+descifrar y restaurar una copia **en una base de datos aislada** antes
+de admitir alumnos. Nunca ejecutes una restauración sobre la base activa
+sin un procedimiento validado y autorización expresa.
+
 ## PENDIENTE DE FERNANDO / CIERRE OPERATIVO
 
 1. **Autorizar un despliegue de pruebas** únicamente del sitio separado

@@ -63,3 +63,17 @@ test('private LMS CSP permits the HTTPS video content supported by reader',()=>{
   const reader=fs.readFileSync(path.join(root,'frontend/src/aula/AulaReaderView.jsx'),'utf8');
   assert.match(reader,/<video controls/);
 });
+
+test('encrypted offline backups require TLS and never put DB credentials in argv',()=>{
+  const {spawnSync}=require('node:child_process');
+  const script=path.join(root,'scripts/backup-private-aula.sh');
+  const bash=spawnSync('bash',['-n',script],{encoding:'utf8'});
+  assert.equal(bash.status,0,bash.stderr);
+  const source=fs.readFileSync(script,'utf8');
+  assert.match(source,/set -Eeuo pipefail/);
+  assert.match(source,/sslmode=\(require\|verify-full\)/);
+  assert.match(source,/export PGDATABASE=/);
+  assert.match(source,/pg_dump --format=custom/);
+  assert.match(source,/age --recipient/);
+  assert.doesNotMatch(source,/pg_dump[^\n]*--dbname/);
+});
