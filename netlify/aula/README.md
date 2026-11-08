@@ -63,15 +63,49 @@ sintéticos exclusivamente en CI.
 Los certificados de finalización no se presentan como título oficial
 ni acreditación sanitaria sin la habilitación correspondiente.
 
-## PENDIENTE DE FERNANDO
+## Estado de infraestructura (07/11/2026)
 
-- PostgreSQL privado (crear instancia, restringir red/TLS y establecer respaldos).
-- Netlify del aula **separado**: definir \`GASI_AULA_DB_URL\` como secreto
-  Functions en cada entorno privado autorizado.
-- Resend: verificar remitente y configurar \`GASI_AULA_RESEND_API_KEY\`
-  (secreto Functions) y \`GASI_AULA_SENDER_EMAIL\` (Functions).
-- Decidir nombre y dominio del aula; ejecutar migraciones y bootstrap
-  seguro con \`AULA_BOOTSTRAP_*\` temporal (no en el repo ni el sitio público).
-- Ordenar expresamente el despliegue de la rama aprobada y después
-  autorizar las pruebas finales del acceso desde navegador con cuentas
-  reales de prueba. No se ha publicado ninguna versión privada.
+- **Creado** en Netlify el proyecto independiente `gasi-aula-privada`
+  (sitio ID `620b3f03-68b4-4f2d-b79a-80e04eec3281`).
+  Proyecto: https://app.netlify.com/projects/gasi-aula-privada
+- **Activada** la protección de visitantes por inicio de sesión del equipo
+  Netlify, para todos los despliegues. Es una barrera **temporal** de
+  preproducción: el acceso normal de alumnos externos necesitará revisar
+  esta protección al publicar, manteniendo la autenticación propia del LMS.
+- **Sin despliegue ni repositorio asociado** en el nuevo sitio. La configuración
+  de compilación prevista sigue siendo `aula-site/netlify.toml`.
+- **Resend verificado:** el dominio `gasisalud.com` está autorizado para el
+  envío. No reutilizar la clave existente de notificaciones MediQuote.
+- **Bloqueo real de permisos:** el conector Netlify devuelve HTTP 403 al
+  escribir variables de entorno del nuevo sitio. Las variables del aula
+  siguen **sin configurar**; no se han creado ni expuesto credenciales.
+- **Sitio comercial canónico** con dominio `gasisalud.com`:
+  `voluble-kataifi-9b8274`; no confundir con el proyecto distinto
+  `lucent-beijinho-d67388`. Falta `RESEND_API_KEY` en el sitio canónico.
+
+## PENDIENTE DE FERNANDO / CONFIGURACIÓN PRIVADA
+
+- Crear PostgreSQL exclusivo con TLS, backups y acceso restringido; obtener
+  `GASI_AULA_DB_URL` **sin publicar la URL en Git, chats ni logs**.
+- Resolver el acceso de escritura a Netlify (HTTP 403). En el proyecto
+  `gasi-aula-privada`, configurar con ámbito **Functions**:
+  - `GASI_AULA_DB_URL`: secreto (Deploy Previews/Production autorizados).
+  - `GASI_AULA_RESEND_API_KEY`: secreto, clave de Resend nueva con permiso
+    **sending_access** restringido al dominio verificado.
+  - `GASI_AULA_SENDER_EMAIL`: remitente del dominio verificado; propuesta
+    `coordinacion@gasisalud.com` (texto, no secreto).
+- Asociar **solo el sitio privado** al repositorio y a la rama aprobada con
+  la configuración `aula-site/netlify.toml`, cuando Fernando autorice
+  expresamente el despliegue. Nunca usar el proyecto comercial para Aula.
+- Sitio comercial `voluble-kataifi-9b8274`: configurar `RESEND_API_KEY`
+  como secreto Functions, usando una **clave distinta** de la del aula y
+  de MediQuote; verificar envío real del chatbot tras el despliegue aprobado.
+- Migrar PostgreSQL con `netlify/aula/migrate.mjs` y ejecutar desde entorno
+  seguro `netlify/aula/bootstrap-admin.mjs` una sola vez, pasando
+  `AULA_BOOTSTRAP_CONFIRM=CREATE_FIRST_ADMIN`, `AULA_BOOTSTRAP_EMAIL`,
+  `AULA_BOOTSTRAP_NAME` y `AULA_BOOTSTRAP_PASSWORD` temporalmente.
+  Eliminar las variables de bootstrap al terminar. No necesita secreto de
+  firma adicional para las sesiones.
+- Fernando decide dominio final, revisión de textos legales y alcance de
+  certificados, fusión y despliegue. No confundir un sitio vacío o un CI
+  en verde con un LMS operativo.
