@@ -25,9 +25,9 @@ del aula en el proyecto comercial de \`gasisalud.com\` ni en el clínico.
    otro bootstrap si ya existe un administrador. **Borrar las variables
    temporales** y cambiar contraseña tras el primer acceso.
 4. **Configurar un Netlify separado para el aula:** usar
-   \`aula-site/netlify.toml\`. Establecer secretos en **Functions**,
-   exclusivamente en este sitio, en los contextos privado que se vayan a
-   usar (Deploy Previews y Production):
+   \`aula-site/netlify.toml\`. Establecer secretos con **ámbitos explícitos en Netlify Free**
+   (`Builds`, `Functions`, `Runtime`), únicamente en este sitio, para
+   Production y Deploy Previews (véase explicación de riesgo más abajo):
    - \`GASI_AULA_DB_URL\`: conexión TLS a PostgreSQL privado.
    - \`GASI_AULA_RESEND_API_KEY\`: clave de recuperación de contraseñas.
    - \`GASI_AULA_SENDER_EMAIL\`: remitente verificado en Resend.
@@ -69,62 +69,88 @@ para verificar rutas de autenticación y ausencia de identificadores de
 secretos en el navegador. Ese ensayo no despliega ningún sitio ni crea una
 base de datos real del cliente.
 
-## Estado de infraestructura (07/11/2026)
+## Estado de infraestructura (08/11/2026)
 
-- **Creado** en Netlify el proyecto independiente `gasi-aula-privada`
-  (sitio ID `620b3f03-68b4-4f2d-b79a-80e04eec3281`).
-  Proyecto: https://app.netlify.com/projects/gasi-aula-privada
-- **Activada** la protección de visitantes por inicio de sesión del equipo
-  Netlify, para todos los despliegues. Es una barrera **temporal** de
-  preproducción: el acceso normal de alumnos externos necesitará revisar
-  esta protección al publicar, manteniendo la autenticación propia del LMS.
-- **Sin despliegue ni repositorio asociado** en el nuevo sitio. La configuración
-  de compilación prevista sigue siendo `aula-site/netlify.toml`.
-- **Monorepos — ajuste exacto antes de conectar Git:** en Project configuration
-  → Developer settings → Continuous deployment → Build settings, establecer
-  **Package directory = `aula-site`** y **Base directory vacío** (raíz).
-  Netlify elegirá `aula-site/netlify.toml` en lugar del `netlify.toml`
-  comercial de la raíz. El build privado se niega a ejecutarse si `SITE_ID`
-  no corresponde a `gasi-aula-privada`.
-- **Resend verificado:** el dominio `gasisalud.com` está autorizado para el
-  envío. No reutilizar la clave existente de notificaciones MediQuote.
-- **Restricción confirmada del plan gratuito de Netlify:** la opción
-  `Specific scopes` / solo `Functions` requiere Pro o Enterprise. Por eso
-  las escrituras limitadas a Functions devolvían HTTP 403, incluso con la
-  cuenta autorizada. También se rechazó (422) marcar como secreto una variable
-  con `All scopes`; el controlador de secretos exige ámbitos explícitos.
-  Se ha configurado y verificado únicamente
-  `GASI_AULA_SENDER_EMAIL=coordinacion@gasisalud.com`, no secreto y con
-  `All scopes`, en **Production y Deploy Previews**.
-  **NO** se han creado secretos de base de datos ni claves de Resend.
-- **Sitio comercial canónico** con dominio `gasisalud.com`:
-  `voluble-kataifi-9b8274`; no confundir con el proyecto distinto
-  `lucent-beijinho-d67388`. Falta `RESEND_API_KEY` en el sitio canónico.
+**Sin contratar ningún plan de pago.** El sitio privado de Netlify y Neon
+son proyectos separados del entorno comercial y clínico.
 
-## PENDIENTE DE FERNANDO / CONFIGURACIÓN PRIVADA
+- **Netlify:** proyecto [`gasi-aula-privada`](https://app.netlify.com/projects/gasi-aula-privada),
+  ID `620b3f03-68b4-4f2d-b79a-80e04eec3281`; protección temporal
+  mediante inicio de sesión del equipo; **sin despliegue ni repositorio
+  asociado**. En un futuro deberá autorizarse el acceso del alumnado
+  manteniendo siempre la autenticación del propio LMS.
+- **Neon PostgreSQL 17:** proyecto **`gasi-aula-privada`**
+  (`purple-shadow-12770287`), región de Frankfurt (`aws-eu-central-1`),
+  base de datos `gasi_aula`, organización de plan Free. Aplicadas de forma
+  transaccional las migraciones **001–006** a una base inicialmente vacía:
+  **22 tablas**, seis versiones registradas con checksum SHA-256. Se ha
+  verificado la lista de tablas y migraciones después. **Sin alumnos reales**.
+  El mantenimiento, copias de seguridad y política de restauración deben
+  revisarse antes de admitir usuarios; no asumir que el nivel gratuito
+  incluye los respaldos que exigirá el servicio.
+- **Secretos del aula en Netlify:** `GASI_AULA_DB_URL` (con
+  `sslmode=require`) y `GASI_AULA_RESEND_API_KEY`: ambos establecidos
+  y verificados con `is_secret=true`, **ámbitos explícitos**
+  `Builds + Functions + Runtime`, contextos **Production + Deploy Previews**,
+  únicamente en el sitio privado. `GASI_AULA_SENDER_EMAIL` está configurado
+  con `coordinacion@gasisalud.com`, no secreto, en ambos contextos.
+  La clave de correo está limitada a `sending_access` del dominio
+  `gasisalud.com`, ya verificado en Resend.
+- **Por qué este ámbito en Netlify Free:** la opción de seleccionar
+  exclusivamente `Functions` está bloqueada en el plan gratuito y devuelve
+  403; `All scopes` combinado con la marca `Secret` devolvía 422.
+  Se verificó una alternativa **gratuita y funcional** con los tres ámbitos
+  explícitos anteriores: creación de un secreto sintético, comprobación de
+  `is_secret=true` y eliminación inmediata. La compilación de React solo
+  inserta variables con prefijo `REACT_APP_` y nunca debe recibir nombres o
+  valores de secretos mediante este prefijo, scripts, logs o plantillas.
+  El ámbito `Builds` **amplía el acceso** frente al objetivo Functions-only:
+  no se debe permitir código de compilación no revisado ni builds de PRs
+  externos con acceso a secretos. Revisar esta decisión antes de abrir
+  contribuciones externas o publicar.
+- **Web comercial correcta:** Netlify `voluble-kataifi-9b8274`, que sirve
+  `gasisalud.com`. Se ha guardado `RESEND_API_KEY` como secreto **independiente**
+  con los mismos ámbitos explícitos y contextos; su remitente y destinatario
+  de Production se han fijado en `coordinacion@gasisalud.com`.
+  **No se ha probado aún el envío end-to-end del chatbot ni desplegado el PR.**
+- **Administrador inicial pendiente:** la operación directa de creación
+  quedó bloqueada por el sistema de seguridad y la lectura posterior de
+  PostgreSQL confirma **cero administradores**. Ejecutar desde un entorno
+  seguro el script `netlify/aula/bootstrap-admin.mjs`, nunca por un
+  endpoint público ni dentro de un build; usar las variables temporales
+  indicadas anteriormente y destruirlas después.
+- **Integración Git/Netlify aún pendiente:** en el proyecto privado,
+  conectar GitHub a la rama aprobada y fijar **Package directory =
+  `aula-site`**, **Base directory vacío**. La configuración exclusiva
+  `aula-site/netlify.toml` incluye un control que impide compilar el aula
+  desde un `SITE_ID` distinto al de `gasi-aula-privada`.
+  No publicar ni fusionar con `main` sin autorización explícita.
+- **Pruebas de código:** CI con seis comprobaciones principales verdes en
+  commit `1ab16cb`, incluida navegación aislada del aula con Chrome,
+  CI de Postgres 17, compilación privada y vídeos HTTPS bajo CSP.
+  **No equivale a una prueba real del servicio desplegado.**
 
-- Crear PostgreSQL exclusivo con TLS, backups y acceso restringido; obtener
-  `GASI_AULA_DB_URL` **sin publicar la URL en Git, chats ni logs**.
-- **Resolver el alcance exclusivo Functions:** el plan gratuito no permite
-  `Specific scopes`; valorar Pro/Enterprise antes de incorporar secretos.
-  En el proyecto `gasi-aula-privada`, configurar con ámbito **Functions**:
-  - `GASI_AULA_DB_URL`: secreto (Deploy Previews/Production autorizados).
-  - `GASI_AULA_RESEND_API_KEY`: secreto, clave de Resend nueva con permiso
-    **sending_access** restringido al dominio verificado.
-  - `GASI_AULA_SENDER_EMAIL`: **ya configurado** en Production y Deploy
-    Previews, All scopes, con `coordinacion@gasisalud.com` (no secreto).
-- Asociar **solo el sitio privado** al repositorio y a la rama aprobada con
-  la configuración `aula-site/netlify.toml`, cuando Fernando autorice
-  expresamente el despliegue. Nunca usar el proyecto comercial para Aula.
-- Sitio comercial `voluble-kataifi-9b8274`: configurar `RESEND_API_KEY`
-  como secreto Functions, usando una **clave distinta** de la del aula y
-  de MediQuote; verificar envío real del chatbot tras el despliegue aprobado.
-- Migrar PostgreSQL con `netlify/aula/migrate.mjs` y ejecutar desde entorno
-  seguro `netlify/aula/bootstrap-admin.mjs` una sola vez, pasando
-  `AULA_BOOTSTRAP_CONFIRM=CREATE_FIRST_ADMIN`, `AULA_BOOTSTRAP_EMAIL`,
-  `AULA_BOOTSTRAP_NAME` y `AULA_BOOTSTRAP_PASSWORD` temporalmente.
-  Eliminar las variables de bootstrap al terminar. No necesita secreto de
-  firma adicional para las sesiones.
-- Fernando decide dominio final, revisión de textos legales y alcance de
-  certificados, fusión y despliegue. No confundir un sitio vacío o un CI
-  en verde con un LMS operativo.
+## PENDIENTE DE FERNANDO / CIERRE OPERATIVO
+
+1. **Autorizar un despliegue de pruebas** únicamente del sitio separado
+   `gasi-aula-privada` (sin tocar `main` ni `gasisalud.com`) cuando
+   proceda. Tras vincular la rama, verificar el build y el endpoint de salud.
+2. **Administrador:** ejecutar el bootstrap seguro con `AULA_BOOTSTRAP_CONFIRM`,
+   `AULA_BOOTSTRAP_EMAIL`, `AULA_BOOTSTRAP_NAME`,
+   `AULA_BOOTSTRAP_PASSWORD` y `GASI_AULA_DB_URL` temporales. Se debe
+   generar una contraseña fuerte no registrada en Git ni en logs, verificar
+   el alta una sola vez y forzar el cambio al entrar.
+3. **Pruebas reales privadas:** iniciar sesión, cambiar la contraseña,
+   probar recuperación por correo, matricular alumno de prueba, comprobar
+   roles, límites por día, foros, tutorías, tests, encuestas y certificados,
+   y verificar la ausencia de cruces con la web pública.
+4. **Chatbot comercial:** hacer un despliegue aprobado del código de la rama
+   comercial correspondiente, comprobar que el formulario envía por Resend
+   y verificar la recepción en el buzón de coordinación.
+5. **Decisiones de GASI:** dominio final del aula, revisión jurídica y de
+   protección de datos, alcance de los certificados privados y aprobación
+   diferenciada de despliegue/fusión.
+6. **Higiene de credenciales:** existe una primera clave de Resend de aula
+   creada durante la puesta en marcha y **no utilizada**, cuya revocación
+   debe autorizar expresamente el titular antes de ejecutar el borrado.
+   No reutilizar la clave de notificaciones de MediQuote.
